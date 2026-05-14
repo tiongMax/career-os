@@ -1,0 +1,20 @@
+.env
+bin/
+tmp/
+dist/
+coverage.out
+*.log
+
+# Go
+vendor/
+.gocache/
+.gomodcache/
+
+# Frontend
+node_modules/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
