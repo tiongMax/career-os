@@ -1,3 +1,4 @@
+// Package http wires HTTP routes, middleware, and handlers for the CareerOS API.
 package http
 
 import (
@@ -11,6 +12,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// NewRouter builds the API router with production-oriented middleware and all
+// versioned endpoint registrations.
 func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Client) nethttp.Handler {
 	r := chi.NewRouter()
 
@@ -26,6 +29,8 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 	return r
 }
 
+// requestLogger returns middleware that records one structured log event for
+// each completed request.
 func requestLogger(log zerolog.Logger) func(nethttp.Handler) nethttp.Handler {
 	return func(next nethttp.Handler) nethttp.Handler {
 		return nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {

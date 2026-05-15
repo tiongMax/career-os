@@ -1,3 +1,6 @@
+// Package config centralizes runtime configuration loaded from environment
+// variables. It provides typed defaults for local development while surfacing
+// malformed values early during process startup.
 package config
 
 import (
@@ -7,16 +10,30 @@ import (
 	"time"
 )
 
+// Config contains all process-level settings required by the API, worker, and
+// command-line utilities.
 type Config struct {
-	AppEnv                     string
-	APIPort                    string
-	DatabaseURL                string
-	RedisURL                   string
+	// AppEnv identifies the current deployment environment, such as
+	// "development", "staging", or "production".
+	AppEnv string
+	// APIPort is the TCP port the HTTP API listens on.
+	APIPort string
+	// DatabaseURL is the PostgreSQL connection string used by pgx and goose.
+	DatabaseURL string
+	// RedisURL is the Redis connection string used by background services.
+	RedisURL string
+	// ReminderWorkerPollInterval controls how often the reminder worker wakes
+	// up to look for due reminders.
 	ReminderWorkerPollInterval time.Duration
-	ReminderMaxRetries         int
-	LogLevel                   string
+	// ReminderMaxRetries is the maximum number of delivery attempts before a
+	// reminder job should be treated as exhausted.
+	ReminderMaxRetries int
+	// LogLevel controls zerolog verbosity.
+	LogLevel string
 }
 
+// Load reads configuration from environment variables and applies safe local
+// defaults for values that are not set.
 func Load() (Config, error) {
 	maxRetries, err := getInt("REMINDER_MAX_RETRIES", 3)
 	if err != nil {
@@ -41,10 +58,13 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// APIAddress returns the net/http-compatible bind address for the API server.
 func (c Config) APIAddress() string {
 	return ":" + c.APIPort
 }
 
+// getString returns an environment variable value or fallback when the variable
+// is unset.
 func getString(key, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -53,6 +73,8 @@ func getString(key, fallback string) string {
 	return value
 }
 
+// getInt parses an integer environment variable, returning fallback when the
+// variable is unset.
 func getInt(key string, fallback int) (int, error) {
 	value := os.Getenv(key)
 	if value == "" {
