@@ -1,3 +1,4 @@
+// Command worker starts the CareerOS background worker process.
 package main
 
 import (
@@ -13,6 +14,8 @@ import (
 	"careeros/backend/internal/workers"
 )
 
+// main loads process configuration, initializes shared infrastructure clients,
+// and runs the reminder worker until the process receives a shutdown signal.
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

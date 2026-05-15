@@ -10,17 +10,23 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// HealthHandler reports service health by checking the backing PostgreSQL and
+// Redis dependencies.
 type HealthHandler struct {
+	// Postgres is the database pool used for readiness checks.
 	Postgres *pgxpool.Pool
-	Redis    *redis.Client
+	// Redis is the cache/queue client used for readiness checks.
+	Redis *redis.Client
 }
 
+// healthResponse is the JSON contract returned by the health endpoint.
 type healthResponse struct {
 	Status   string `json:"status"`
 	Postgres string `json:"postgres"`
 	Redis    string `json:"redis"`
 }
 
+// ServeHTTP implements the readiness endpoint for the API.
 func (h HealthHandler) ServeHTTP(w nethttp.ResponseWriter, r *nethttp.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 	defer cancel()

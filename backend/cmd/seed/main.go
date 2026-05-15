@@ -1,3 +1,4 @@
+// Command seed loads development or bootstrap data into CareerOS.
 package main
 
 import (
@@ -5,6 +6,7 @@ import (
 	"careeros/backend/internal/logger"
 )
 
+// main is a placeholder entry point for future seed routines.
 func main() {
 	cfg, err := config.Load()
 	if err != nil {

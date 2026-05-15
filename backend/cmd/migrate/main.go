@@ -1,3 +1,4 @@
+// Command migrate applies and inspects CareerOS database migrations.
 package main
 
 import (
@@ -12,8 +13,12 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+// migrationsDir is the repository-relative directory that stores goose
+// migration files.
 const migrationsDir = "backend/migrations"
 
+// main dispatches goose migration commands against the configured PostgreSQL
+// database.
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: migrate <up|down|status>")
