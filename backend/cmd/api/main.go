@@ -1,3 +1,4 @@
+// Command api starts the CareerOS HTTP API server.
 package main
 
 import (
@@ -15,6 +16,8 @@ import (
 	"careeros/backend/internal/logger"
 )
 
+// main loads process configuration, initializes shared infrastructure clients,
+// and runs the HTTP server with graceful shutdown handling.
 func main() {
 	ctx := context.Background()
 

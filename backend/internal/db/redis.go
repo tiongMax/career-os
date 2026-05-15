@@ -6,6 +6,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// NewRedisClient creates and verifies a Redis client from a redis:// connection
+// string.
 func NewRedisClient(ctx context.Context, redisURL string) (*redis.Client, error) {
 	opts, err := redis.ParseURL(redisURL)
 	if err != nil {

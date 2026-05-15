@@ -1,3 +1,5 @@
+// Package db provides database and cache client constructors shared by
+// executable entry points.
 package db
 
 import (
@@ -7,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// NewPostgresPool creates and verifies a pgx connection pool using the
+// application's default pool sizing and connection lifetime settings.
 func NewPostgresPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
