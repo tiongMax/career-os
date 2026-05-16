@@ -26,15 +26,15 @@ import (
 func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Client) nethttp.Handler {
 	r := chi.NewRouter()
 	store := queries.New(postgres)
-	handler := NewHandler(
-		companysvc.New(store),
-		resumesvc.New(store),
-		appsvc.New(store),
-		jdsvc.New(store),
-		contactsvc.New(store),
-		interviewsvc.New(store),
-		remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
-	)
+	handler := NewHandler(Services{
+		Companies:       companysvc.New(store),
+		Resumes:         resumesvc.New(store),
+		Applications:    appsvc.New(store),
+		JobDescriptions: jdsvc.New(store),
+		Contacts:        contactsvc.New(store),
+		Interviews:      interviewsvc.New(store),
+		Reminders:       remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
+	})
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -44,31 +44,19 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", HealthHandler{Postgres: postgres, Redis: redisClient}.ServeHTTP)
 
-		r.Post("/companies", handler.createCompany)
-		r.Get("/companies", handler.listCompanies)
-		r.Route("/companies", func(r chi.Router) {
-			r.Post("/", handler.createCompany)
-			r.Get("/", handler.listCompanies)
+		collection(r, "/companies", handler.createCompany, handler.listCompanies, func(r chi.Router) {
 			r.Get("/{id}", handler.getCompany)
 			r.Patch("/{id}", handler.updateCompany)
 			r.Delete("/{id}", handler.deleteCompany)
 		})
 
-		r.Post("/resume-versions", handler.createResumeVersion)
-		r.Get("/resume-versions", handler.listResumeVersions)
-		r.Route("/resume-versions", func(r chi.Router) {
-			r.Post("/", handler.createResumeVersion)
-			r.Get("/", handler.listResumeVersions)
+		collection(r, "/resume-versions", handler.createResumeVersion, handler.listResumeVersions, func(r chi.Router) {
 			r.Get("/{id}", handler.getResumeVersion)
 			r.Patch("/{id}", handler.updateResumeVersion)
 			r.Delete("/{id}", handler.deleteResumeVersion)
 		})
 
-		r.Post("/applications", handler.createApplication)
-		r.Get("/applications", handler.listApplications)
-		r.Route("/applications", func(r chi.Router) {
-			r.Post("/", handler.createApplication)
-			r.Get("/", handler.listApplications)
+		collection(r, "/applications", handler.createApplication, handler.listApplications, func(r chi.Router) {
 			r.Get("/{id}", handler.getApplication)
 			r.Patch("/{id}", handler.updateApplication)
 			r.Delete("/{id}", handler.deleteApplication)
@@ -84,11 +72,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Patch("/{id}", handler.updateJobDescription)
 		})
 
-		r.Post("/contacts", handler.createContact)
-		r.Get("/contacts", handler.listContacts)
-		r.Route("/contacts", func(r chi.Router) {
-			r.Post("/", handler.createContact)
-			r.Get("/", handler.listContacts)
+		collection(r, "/contacts", handler.createContact, handler.listContacts, func(r chi.Router) {
 			r.Get("/{id}", handler.getContact)
 			r.Patch("/{id}", handler.updateContact)
 			r.Delete("/{id}", handler.deleteContact)
@@ -99,11 +83,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Delete("/{id}", handler.deleteInterview)
 		})
 
-		r.Post("/reminders", handler.createReminder)
-		r.Get("/reminders", handler.listReminders)
-		r.Route("/reminders", func(r chi.Router) {
-			r.Post("/", handler.createReminder)
-			r.Get("/", handler.listReminders)
+		collection(r, "/reminders", handler.createReminder, handler.listReminders, func(r chi.Router) {
 			r.Get("/due", handler.listDueReminders)
 			r.Get("/{id}", handler.getReminder)
 			r.Patch("/{id}", handler.updateReminder)
@@ -113,6 +93,22 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 	})
 
 	return r
+}
+
+func collection(
+	r chi.Router,
+	pattern string,
+	create nethttp.HandlerFunc,
+	list nethttp.HandlerFunc,
+	nested func(chi.Router),
+) {
+	r.Post(pattern, create)
+	r.Get(pattern, list)
+	r.Route(pattern, func(r chi.Router) {
+		r.Post("/", create)
+		r.Get("/", list)
+		nested(r)
+	})
 }
 
 // requestLogger returns middleware that records one structured log event for

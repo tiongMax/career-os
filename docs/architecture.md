@@ -122,5 +122,7 @@ starting.
 
 ## What Is Planned
 
-- sqlc generated query layer.
+- Query generation via sqlc from `backend/queries` into
+  `backend/internal/db/queries`, replacing the current hand-maintained query
+  package.
 - Search, analytics, seed data, performance benchmarks, and frontend UI.

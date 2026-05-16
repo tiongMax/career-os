@@ -1,0 +1,75 @@
+package http
+
+import (
+	"net/http"
+
+	"careeros/backend/internal/db/queries"
+)
+
+func (h Handler) createJobDescription(w http.ResponseWriter, r *http.Request) {
+	applicationID, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid application id")
+		return
+	}
+	var req queries.CreateJobDescriptionParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	req.ApplicationID = applicationID
+	jobDescription, err := h.jobDescriptions.Create(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, jobDescription)
+}
+
+func (h Handler) getJobDescriptionByApplication(w http.ResponseWriter, r *http.Request) {
+	applicationID, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid application id")
+		return
+	}
+	jobDescription, err := h.jobDescriptions.GetByApplication(r.Context(), applicationID)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, jobDescription)
+}
+
+type updateJobDescriptionRequest struct {
+	RawText           *string   `json:"raw_text"`
+	ExtractedKeywords *[]string `json:"extracted_keywords"`
+	AISummary         *string   `json:"ai_summary"`
+}
+
+func (h Handler) updateJobDescription(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid job description id")
+		return
+	}
+	var req updateJobDescriptionRequest
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	arg := queries.UpdateJobDescriptionParams{
+		ID:          id,
+		RawText:     req.RawText,
+		AISummary:   req.AISummary,
+		SetKeywords: req.ExtractedKeywords != nil,
+	}
+	if req.ExtractedKeywords != nil {
+		arg.ExtractedKeywords = *req.ExtractedKeywords
+	}
+	jobDescription, err := h.jobDescriptions.Update(r.Context(), arg)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, jobDescription)
+}
