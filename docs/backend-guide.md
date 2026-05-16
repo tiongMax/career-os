@@ -1,7 +1,8 @@
 # Backend Guide
 
-The backend is a Go service with a small current implementation and a clear
-planned path toward service-layer business logic.
+The backend is a Go service organized around thin HTTP handlers, service-layer
+business rules, hand-written query methods, PostgreSQL, Redis, and a background
+reminder worker.
 
 ## Directory Map
 
@@ -15,7 +16,9 @@ backend/
   internal/
     config/    environment config
     db/        PostgreSQL and Redis client constructors
+      queries/ hand-written query methods and scan helpers
     http/      router, middleware, handlers
+    services/  business rules and workflow coordination
     logger/    zerolog setup
     workers/   background worker code
   migrations/  database schema migrations
@@ -55,10 +58,58 @@ Current route group:
 ```text
 /api/v1
   GET /health
+  CRUD /companies
+  CRUD /resume-versions
+  CRUD /applications
+  PATCH /applications/{id}/status
+  GET /applications/{id}/audit-logs
+  POST,GET /applications/{id}/job-description
+  PATCH /job-descriptions/{id}
+  CRUD /contacts
+  POST,GET /applications/{id}/interviews
+  PATCH,DELETE /interviews/{id}
+  CRUD /reminders
+  GET /reminders/due
+  POST /reminders/{id}/cancel
 ```
 
 The request logger records method, path, status, bytes written, duration, and
 request ID.
+
+## Service Layer
+
+Service packages live under `backend/internal/services`. Handlers decode HTTP
+input and call services; services own validation and workflow rules; query
+methods own SQL.
+
+Current services:
+
+- `companies`: company CRUD validation.
+- `resumes`: resume version validation and tag update semantics.
+- `applications`: application validation, status transition rules, and audit
+  log creation.
+- `jobdescriptions`: job description validation and keyword update semantics.
+- `contacts`: contact name validation.
+- `interviews`: interview `round_type` validation.
+- `reminders`: reminder validation, idempotency-key creation, and Redis
+  scheduling coordination.
+
+Keep business rules out of HTTP handlers. If an endpoint needs validation,
+state transitions, scheduling, or transactions, put that behavior in the
+service package and expose it through a small interface in the handler.
+
+## Query Layer
+
+Query methods live under `backend/internal/db/queries`. They are hand-written in
+the current codebase but intentionally shaped like generated query methods:
+
+- Parameter structs describe insert and update inputs.
+- Model structs carry API JSON tags.
+- Scan helpers centralize nullable PostgreSQL handling.
+- Mutations that should report missing rows use `ensureAffected`.
+
+When adding SQL, prefer parameterized queries, explicit column lists, and scan
+helpers over ad hoc row handling inside services or handlers.
 
 ## Health Handler
 
@@ -140,22 +191,29 @@ The worker currently:
 3. Builds `workers.ReminderWorker`.
 4. Runs until context cancellation.
 
-Current `ReminderWorker.Run()` starts a ticker, logs startup, logs each tick at
-debug level, and exits cleanly when the process is interrupted.
+Current `ReminderWorker.Run()` starts a ticker, claims due reminder IDs from the
+`reminders:scheduled` Redis sorted set, updates reminder state in PostgreSQL,
+records idempotent delivery rows, and exits cleanly when the process is
+interrupted.
 
-Planned reminder behavior belongs in `backend/internal/workers/reminders.go` or
-small helper files under `backend/internal/workers`.
+Failed delivery attempts increment `retry_count`, store `last_error`, and
+reschedule with backoff. Exhausted reminders are marked `failed` and copied to
+`failed_reminder_jobs`.
 
-## Planned Backend Layers
+Worker reliability is covered by unit tests in
+`backend/internal/workers/reminders_test.go`. Those tests use package-local
+store and queue fakes so the retry/dead-letter state machine can be tested
+without requiring Docker for every `go test ./...` run.
 
-The PRD calls for a richer backend than what exists today. When adding real CRUD
-and workflow endpoints, prefer this structure:
+## Backend Layering
+
+When adding new backend behavior, prefer this structure:
 
 ```text
 internal/http        HTTP parsing, route params, JSON responses
 internal/services    business rules and transactions
-internal/db/queries  generated sqlc query methods
-backend/queries      source SQL files for sqlc
+internal/db/queries  SQL query methods and scan helpers
+backend/migrations   schema changes
 ```
 
 Rule of thumb:
