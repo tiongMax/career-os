@@ -1,7 +1,7 @@
 # Architecture
 
-CareerOS is a single-user job application operating system. The current codebase
-is the Day 1 foundation: a Go API, a reminder worker process, PostgreSQL, Redis,
+CareerOS is a single-user job application operating system. The current backend
+includes a Go API, a Redis-backed reminder worker process, PostgreSQL, Redis,
 Goose migrations, and a placeholder frontend.
 
 ## Current Runtime Shape
@@ -35,24 +35,25 @@ PostgreSQL        Redis
 | Process | Entry point | Purpose |
 | --- | --- | --- |
 | API | `backend/cmd/api/main.go` | Starts the HTTP server and serves `/api/v1/*` routes. |
-| Worker | `backend/cmd/worker/main.go` | Starts the reminder worker loop. Currently logs ticks on an interval. |
+| Worker | `backend/cmd/worker/main.go` | Starts the reminder worker loop that claims due reminders from Redis, updates PostgreSQL state, retries failures, and dead-letters exhausted jobs. |
 | Migrate | `backend/cmd/migrate/main.go` | Runs Goose migrations with `up`, `down`, or `status`. |
 | Seed | `backend/cmd/seed/main.go` | Placeholder entry point for seed data. |
 
 ## Request Flow
 
-The implemented HTTP flow is intentionally small:
+The implemented HTTP flow uses thin handlers over service and query layers:
 
 ```text
 HTTP request
   -> chi router
   -> middleware
   -> handler
+  -> service
   -> PostgreSQL / Redis clients
   -> JSON response
 ```
 
-The planned fuller backend shape from the PRD is:
+Business-heavy endpoints follow this shape:
 
 ```text
 HTTP request
@@ -63,8 +64,8 @@ HTTP request
   -> PostgreSQL
 ```
 
-Use that planned shape when adding business-heavy endpoints, especially
-application status transitions, reminder scheduling, and audit logging.
+Application status transitions, reminder scheduling, and audit logging keep
+business rules out of handlers.
 
 ## Main Dependencies
 
@@ -112,13 +113,14 @@ starting.
 - PostgreSQL and Redis connectivity checks.
 - Initial database schema migration.
 - Docker Compose for local infrastructure.
-- Reminder worker skeleton.
+- CRUD APIs for companies, resume versions, applications, job descriptions,
+  contacts, interviews, and reminders.
+- Service layer for validation, application status transitions, reminder
+  scheduling, and worker retry behavior.
+- Redis sorted-set scheduling for reminders.
+- Reminder delivery idempotency and failed job storage.
 
 ## What Is Planned
 
-- CRUD APIs for companies, resume versions, applications, job descriptions,
-  contacts, interviews, and reminders.
-- Service layer for business rules.
 - sqlc generated query layer.
-- Transactional application workflow and audit logs.
-- Search, analytics, reminder delivery, and frontend UI.
+- Search, analytics, seed data, performance benchmarks, and frontend UI.

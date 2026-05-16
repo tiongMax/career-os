@@ -8,7 +8,10 @@ import (
 	"careeros/backend/internal/db/queries"
 	appsvc "careeros/backend/internal/services/applications"
 	companysvc "careeros/backend/internal/services/companies"
+	contactsvc "careeros/backend/internal/services/contacts"
+	interviewsvc "careeros/backend/internal/services/interviews"
 	jdsvc "careeros/backend/internal/services/jobdescriptions"
+	remindersvc "careeros/backend/internal/services/reminders"
 	resumesvc "careeros/backend/internal/services/resumes"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -19,6 +22,9 @@ type Handler struct {
 	resumes         resumeService
 	applications    applicationService
 	jobDescriptions jobDescriptionService
+	contacts        contactService
+	interviews      interviewService
+	reminders       reminderService
 }
 
 type companyService interface {
@@ -53,17 +59,48 @@ type jobDescriptionService interface {
 	Update(context.Context, queries.UpdateJobDescriptionParams) (queries.JobDescription, error)
 }
 
+type contactService interface {
+	Create(context.Context, queries.CreateContactParams) (queries.Contact, error)
+	List(context.Context) ([]queries.Contact, error)
+	Get(context.Context, string) (queries.Contact, error)
+	Update(context.Context, queries.UpdateContactParams) (queries.Contact, error)
+	Delete(context.Context, string) error
+}
+
+type interviewService interface {
+	Create(context.Context, queries.CreateInterviewRoundParams) (queries.InterviewRound, error)
+	ListByApplication(context.Context, string) ([]queries.InterviewRound, error)
+	Update(context.Context, queries.UpdateInterviewRoundParams) (queries.InterviewRound, error)
+	Delete(context.Context, string) error
+}
+
+type reminderService interface {
+	Create(context.Context, queries.CreateReminderParams) (queries.Reminder, error)
+	List(context.Context) ([]queries.Reminder, error)
+	ListDue(context.Context) ([]queries.Reminder, error)
+	Get(context.Context, string) (queries.Reminder, error)
+	Update(context.Context, queries.UpdateReminderParams) (queries.Reminder, error)
+	Cancel(context.Context, string) (queries.Reminder, error)
+	Delete(context.Context, string) error
+}
+
 func NewHandler(
 	companies companyService,
 	resumes resumeService,
 	applications applicationService,
 	jobDescriptions jobDescriptionService,
+	contacts contactService,
+	interviews interviewService,
+	reminders reminderService,
 ) Handler {
 	return Handler{
 		companies:       companies,
 		resumes:         resumes,
 		applications:    applications,
 		jobDescriptions: jobDescriptions,
+		contacts:        contacts,
+		interviews:      interviews,
+		reminders:       reminders,
 	}
 }
 
@@ -397,6 +434,236 @@ func (h Handler) updateJobDescription(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, jobDescription)
 }
 
+func (h Handler) createContact(w http.ResponseWriter, r *http.Request) {
+	var req queries.CreateContactParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	contact, err := h.contacts.Create(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, contact)
+}
+
+func (h Handler) listContacts(w http.ResponseWriter, r *http.Request) {
+	contacts, err := h.contacts.List(r.Context())
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, contacts)
+}
+
+func (h Handler) getContact(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid contact id")
+		return
+	}
+	contact, err := h.contacts.Get(r.Context(), id)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, contact)
+}
+
+func (h Handler) updateContact(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid contact id")
+		return
+	}
+	var req queries.UpdateContactParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	req.ID = id
+	contact, err := h.contacts.Update(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, contact)
+}
+
+func (h Handler) deleteContact(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid contact id")
+		return
+	}
+	if err := h.contacts.Delete(r.Context(), id); err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeNoContent(w)
+}
+
+func (h Handler) createInterview(w http.ResponseWriter, r *http.Request) {
+	applicationID, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid application id")
+		return
+	}
+	var req queries.CreateInterviewRoundParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	req.ApplicationID = applicationID
+	interview, err := h.interviews.Create(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, interview)
+}
+
+func (h Handler) listApplicationInterviews(w http.ResponseWriter, r *http.Request) {
+	applicationID, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid application id")
+		return
+	}
+	interviews, err := h.interviews.ListByApplication(r.Context(), applicationID)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, interviews)
+}
+
+func (h Handler) updateInterview(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid interview id")
+		return
+	}
+	var req queries.UpdateInterviewRoundParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	req.ID = id
+	interview, err := h.interviews.Update(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, interview)
+}
+
+func (h Handler) deleteInterview(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid interview id")
+		return
+	}
+	if err := h.interviews.Delete(r.Context(), id); err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeNoContent(w)
+}
+
+func (h Handler) createReminder(w http.ResponseWriter, r *http.Request) {
+	var req queries.CreateReminderParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	reminder, err := h.reminders.Create(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, reminder)
+}
+
+func (h Handler) listReminders(w http.ResponseWriter, r *http.Request) {
+	reminders, err := h.reminders.List(r.Context())
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, reminders)
+}
+
+func (h Handler) listDueReminders(w http.ResponseWriter, r *http.Request) {
+	reminders, err := h.reminders.ListDue(r.Context())
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, reminders)
+}
+
+func (h Handler) getReminder(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid reminder id")
+		return
+	}
+	reminder, err := h.reminders.Get(r.Context(), id)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, reminder)
+}
+
+func (h Handler) updateReminder(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid reminder id")
+		return
+	}
+	var req queries.UpdateReminderParams
+	if err := decodeJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	req.ID = id
+	reminder, err := h.reminders.Update(r.Context(), req)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, reminder)
+}
+
+func (h Handler) deleteReminder(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid reminder id")
+		return
+	}
+	if err := h.reminders.Delete(r.Context(), id); err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeNoContent(w)
+}
+
+func (h Handler) cancelReminder(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid reminder id")
+		return
+	}
+	reminder, err := h.reminders.Cancel(r.Context(), id)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, reminder)
+}
+
 func (h Handler) writeServiceError(w http.ResponseWriter, err error) {
 	switch {
 	case isNotFound(err):
@@ -407,9 +674,13 @@ func (h Handler) writeServiceError(w http.ResponseWriter, err error) {
 		errors.Is(err, appsvc.ErrInvalidTrack),
 		errors.Is(err, appsvc.ErrTitleRequired),
 		errors.Is(err, companysvc.ErrNameRequired),
+		errors.Is(err, contactsvc.ErrNameRequired),
+		errors.Is(err, interviewsvc.ErrInvalidRoundType),
 		errors.Is(err, resumesvc.ErrInvalidTrack),
 		errors.Is(err, resumesvc.ErrNameRequired),
-		errors.Is(err, jdsvc.ErrRawTextRequired):
+		errors.Is(err, jdsvc.ErrRawTextRequired),
+		errors.Is(err, remindersvc.ErrTitleRequired),
+		errors.Is(err, remindersvc.ErrDueAtRequired):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case pgErrorCode(err, "23503"):
 		writeError(w, http.StatusConflict, "request conflicts with existing related data")

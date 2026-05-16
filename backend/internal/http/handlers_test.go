@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"careeros/backend/internal/db/queries"
 	appsvc "careeros/backend/internal/services/applications"
@@ -38,7 +39,13 @@ func TestCollectionRoutesAcceptDocumentedPaths(t *testing.T) {
 		r.Route("/applications", func(r chi.Router) {
 			r.Post("/", handler.createApplication)
 			r.Get("/", handler.listApplications)
+			r.Post("/{id}/interviews", handler.createInterview)
+			r.Get("/{id}/interviews", handler.listApplicationInterviews)
 		})
+		r.Post("/contacts", handler.createContact)
+		r.Get("/contacts", handler.listContacts)
+		r.Post("/reminders", handler.createReminder)
+		r.Get("/reminders", handler.listReminders)
 	})
 
 	tests := []struct {
@@ -55,6 +62,12 @@ func TestCollectionRoutesAcceptDocumentedPaths(t *testing.T) {
 		{name: "get resumes no slash", method: http.MethodGet, path: "/api/v1/resume-versions", want: http.StatusOK},
 		{name: "post applications no slash", method: http.MethodPost, path: "/api/v1/applications", body: `{"company_id":"` + testUUID + `","title":"Backend Engineer","role_track":"backend"}`, want: http.StatusCreated},
 		{name: "get applications no slash", method: http.MethodGet, path: "/api/v1/applications", want: http.StatusOK},
+		{name: "post contacts no slash", method: http.MethodPost, path: "/api/v1/contacts", body: `{"company_id":"` + testUUID + `","name":"Ada Lovelace"}`, want: http.StatusCreated},
+		{name: "get contacts no slash", method: http.MethodGet, path: "/api/v1/contacts", want: http.StatusOK},
+		{name: "post interviews under application", method: http.MethodPost, path: "/api/v1/applications/" + testUUID + "/interviews", body: `{"round_type":"technical"}`, want: http.StatusCreated},
+		{name: "get interviews under application", method: http.MethodGet, path: "/api/v1/applications/" + testUUID + "/interviews", want: http.StatusOK},
+		{name: "post reminders no slash", method: http.MethodPost, path: "/api/v1/reminders", body: `{"application_id":"` + testUUID + `","title":"Follow up","due_at":"2026-05-16T10:00:00Z"}`, want: http.StatusCreated},
+		{name: "get reminders no slash", method: http.MethodGet, path: "/api/v1/reminders", want: http.StatusOK},
 	}
 
 	for _, tt := range tests {
@@ -185,6 +198,9 @@ type testFakes struct {
 	resumes         *fakeResumeService
 	applications    *fakeApplicationService
 	jobDescriptions *fakeJobDescriptionService
+	contacts        *fakeContactService
+	interviews      *fakeInterviewService
+	reminders       *fakeReminderService
 }
 
 func newTestHandler() (Handler, testFakes) {
@@ -193,8 +209,11 @@ func newTestHandler() (Handler, testFakes) {
 		resumes:         &fakeResumeService{},
 		applications:    &fakeApplicationService{},
 		jobDescriptions: &fakeJobDescriptionService{},
+		contacts:        &fakeContactService{},
+		interviews:      &fakeInterviewService{},
+		reminders:       &fakeReminderService{},
 	}
-	return NewHandler(fakes.companies, fakes.resumes, fakes.applications, fakes.jobDescriptions), fakes
+	return NewHandler(fakes.companies, fakes.resumes, fakes.applications, fakes.jobDescriptions, fakes.contacts, fakes.interviews, fakes.reminders), fakes
 }
 
 type fakeCompanyService struct {
@@ -305,4 +324,97 @@ func (f *fakeJobDescriptionService) GetByApplication(context.Context, string) (q
 func (f *fakeJobDescriptionService) Update(_ context.Context, arg queries.UpdateJobDescriptionParams) (queries.JobDescription, error) {
 	f.updated = arg
 	return queries.JobDescription{ID: arg.ID, ApplicationID: testUUID, RawText: "Go backend role", ExtractedKeywords: arg.ExtractedKeywords}, nil
+}
+
+type fakeContactService struct {
+	updated queries.UpdateContactParams
+}
+
+func (f *fakeContactService) Create(_ context.Context, arg queries.CreateContactParams) (queries.Contact, error) {
+	return queries.Contact{ID: testUUID, CompanyID: arg.CompanyID, Name: arg.Name}, nil
+}
+
+func (f *fakeContactService) List(context.Context) ([]queries.Contact, error) {
+	return []queries.Contact{{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}}, nil
+}
+
+func (f *fakeContactService) Get(context.Context, string) (queries.Contact, error) {
+	return queries.Contact{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}, nil
+}
+
+func (f *fakeContactService) Update(_ context.Context, arg queries.UpdateContactParams) (queries.Contact, error) {
+	f.updated = arg
+	name := "Ada Lovelace"
+	if arg.Name != nil {
+		name = *arg.Name
+	}
+	return queries.Contact{ID: arg.ID, CompanyID: testUUID, Name: name}, nil
+}
+
+func (f *fakeContactService) Delete(context.Context, string) error {
+	return nil
+}
+
+type fakeInterviewService struct {
+	created queries.CreateInterviewRoundParams
+	updated queries.UpdateInterviewRoundParams
+}
+
+func (f *fakeInterviewService) Create(_ context.Context, arg queries.CreateInterviewRoundParams) (queries.InterviewRound, error) {
+	f.created = arg
+	return queries.InterviewRound{ID: testUUID, ApplicationID: arg.ApplicationID, RoundType: arg.RoundType}, nil
+}
+
+func (f *fakeInterviewService) ListByApplication(_ context.Context, applicationID string) ([]queries.InterviewRound, error) {
+	return []queries.InterviewRound{{ID: testUUID, ApplicationID: applicationID, RoundType: "technical"}}, nil
+}
+
+func (f *fakeInterviewService) Update(_ context.Context, arg queries.UpdateInterviewRoundParams) (queries.InterviewRound, error) {
+	f.updated = arg
+	roundType := "technical"
+	if arg.RoundType != nil {
+		roundType = *arg.RoundType
+	}
+	return queries.InterviewRound{ID: arg.ID, ApplicationID: testUUID, RoundType: roundType}, nil
+}
+
+func (f *fakeInterviewService) Delete(context.Context, string) error {
+	return nil
+}
+
+type fakeReminderService struct {
+	updated queries.UpdateReminderParams
+}
+
+func (f *fakeReminderService) Create(_ context.Context, arg queries.CreateReminderParams) (queries.Reminder, error) {
+	return queries.Reminder{ID: testUUID, ApplicationID: arg.ApplicationID, Title: arg.Title, DueAt: arg.DueAt, Status: "pending"}, nil
+}
+
+func (f *fakeReminderService) List(context.Context) ([]queries.Reminder, error) {
+	return []queries.Reminder{{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}}, nil
+}
+
+func (f *fakeReminderService) ListDue(context.Context) ([]queries.Reminder, error) {
+	return []queries.Reminder{{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}}, nil
+}
+
+func (f *fakeReminderService) Get(context.Context, string) (queries.Reminder, error) {
+	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
+}
+
+func (f *fakeReminderService) Update(_ context.Context, arg queries.UpdateReminderParams) (queries.Reminder, error) {
+	f.updated = arg
+	title := "Follow up"
+	if arg.Title != nil {
+		title = *arg.Title
+	}
+	return queries.Reminder{ID: arg.ID, ApplicationID: testUUID, Title: title, DueAt: time.Now(), Status: "pending"}, nil
+}
+
+func (f *fakeReminderService) Cancel(context.Context, string) (queries.Reminder, error) {
+	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "cancelled"}, nil
+}
+
+func (f *fakeReminderService) Delete(context.Context, string) error {
+	return nil
 }

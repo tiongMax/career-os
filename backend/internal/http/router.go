@@ -8,7 +8,10 @@ import (
 	"careeros/backend/internal/db/queries"
 	appsvc "careeros/backend/internal/services/applications"
 	companysvc "careeros/backend/internal/services/companies"
+	contactsvc "careeros/backend/internal/services/contacts"
+	interviewsvc "careeros/backend/internal/services/interviews"
 	jdsvc "careeros/backend/internal/services/jobdescriptions"
+	remindersvc "careeros/backend/internal/services/reminders"
 	resumesvc "careeros/backend/internal/services/resumes"
 
 	"github.com/go-chi/chi/v5"
@@ -28,6 +31,9 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		resumesvc.New(store),
 		appsvc.New(store),
 		jdsvc.New(store),
+		contactsvc.New(store),
+		interviewsvc.New(store),
+		remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
 	)
 
 	r.Use(middleware.RequestID)
@@ -70,10 +76,39 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Get("/{id}/audit-logs", handler.listApplicationAuditLogs)
 			r.Post("/{id}/job-description", handler.createJobDescription)
 			r.Get("/{id}/job-description", handler.getJobDescriptionByApplication)
+			r.Post("/{id}/interviews", handler.createInterview)
+			r.Get("/{id}/interviews", handler.listApplicationInterviews)
 		})
 
 		r.Route("/job-descriptions", func(r chi.Router) {
 			r.Patch("/{id}", handler.updateJobDescription)
+		})
+
+		r.Post("/contacts", handler.createContact)
+		r.Get("/contacts", handler.listContacts)
+		r.Route("/contacts", func(r chi.Router) {
+			r.Post("/", handler.createContact)
+			r.Get("/", handler.listContacts)
+			r.Get("/{id}", handler.getContact)
+			r.Patch("/{id}", handler.updateContact)
+			r.Delete("/{id}", handler.deleteContact)
+		})
+
+		r.Route("/interviews", func(r chi.Router) {
+			r.Patch("/{id}", handler.updateInterview)
+			r.Delete("/{id}", handler.deleteInterview)
+		})
+
+		r.Post("/reminders", handler.createReminder)
+		r.Get("/reminders", handler.listReminders)
+		r.Route("/reminders", func(r chi.Router) {
+			r.Post("/", handler.createReminder)
+			r.Get("/", handler.listReminders)
+			r.Get("/due", handler.listDueReminders)
+			r.Get("/{id}", handler.getReminder)
+			r.Patch("/{id}", handler.updateReminder)
+			r.Delete("/{id}", handler.deleteReminder)
+			r.Post("/{id}/cancel", handler.cancelReminder)
 		})
 	})
 

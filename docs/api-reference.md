@@ -52,14 +52,9 @@ Content-Type: application/json
 Either `postgres` or `redis` can be `error` depending on which dependency
 failed.
 
-## Planned API Groups
-
-These groups come from the PRD and roadmap. They are not implemented in the
-current codebase yet.
+## Implemented API Groups
 
 ### Companies
-
-Planned endpoints:
 
 ```http
 POST /api/v1/companies
@@ -76,8 +71,6 @@ Purpose:
 
 ### Resume Versions
 
-Planned endpoints:
-
 ```http
 POST /api/v1/resume-versions
 GET /api/v1/resume-versions
@@ -93,14 +86,13 @@ Purpose:
 
 ### Applications
 
-Planned endpoints:
-
 ```http
 POST /api/v1/applications
 GET /api/v1/applications
 GET /api/v1/applications/{id}
 PATCH /api/v1/applications/{id}
-POST /api/v1/applications/{id}/status
+PATCH /api/v1/applications/{id}/status
+GET /api/v1/applications/{id}/audit-logs
 DELETE /api/v1/applications/{id}
 ```
 
@@ -112,11 +104,9 @@ Purpose:
 
 ### Job Descriptions
 
-Planned endpoints:
-
 ```http
-POST /api/v1/applications/{application_id}/job-description
-GET /api/v1/applications/{application_id}/job-description
+POST /api/v1/applications/{id}/job-description
+GET /api/v1/applications/{id}/job-description
 PATCH /api/v1/job-descriptions/{id}
 ```
 
@@ -126,8 +116,6 @@ Purpose:
 - Support keyword extraction, summaries, and search.
 
 ### Contacts
-
-Planned endpoints:
 
 ```http
 POST /api/v1/contacts
@@ -141,37 +129,94 @@ Purpose:
 
 - Track people related to companies and applications.
 
+Create request:
+
+```json
+{
+  "company_id": "uuid",
+  "name": "Ada Lovelace",
+  "role": "Recruiter",
+  "email": "ada@example.com",
+  "linkedin_url": "https://linkedin.com/in/ada",
+  "relationship": "recruiter",
+  "notes": "Met during screening"
+}
+```
+
+Validation:
+
+- `name` is required and cannot be blank.
+- `company_id` must reference an existing company.
+
 ### Interview Rounds
 
-Planned endpoints:
-
 ```http
-POST /api/v1/interview-rounds
-GET /api/v1/applications/{application_id}/interview-rounds
-PATCH /api/v1/interview-rounds/{id}
-DELETE /api/v1/interview-rounds/{id}
+POST /api/v1/applications/{id}/interviews
+GET /api/v1/applications/{id}/interviews
+PATCH /api/v1/interviews/{id}
+DELETE /api/v1/interviews/{id}
 ```
 
 Purpose:
 
 - Track interview stages, schedules, notes, and outcomes.
 
-### Reminders
+Create request:
 
-Planned endpoints:
+```json
+{
+  "round_type": "technical",
+  "scheduled_at": "2026-05-17T10:00:00Z",
+  "interviewer": "Grace Hopper",
+  "notes": "Focus on Go services",
+  "outcome": "pending"
+}
+```
+
+Validation:
+
+- `round_type` must be one of `recruiter`, `online_assessment`, `technical`,
+  `system_design`, `behavioral`, or `final`.
+- Interview rounds are created under an application ID.
+
+### Reminders
 
 ```http
 POST /api/v1/reminders
 GET /api/v1/reminders
+GET /api/v1/reminders/due
 GET /api/v1/reminders/{id}
 PATCH /api/v1/reminders/{id}
+DELETE /api/v1/reminders/{id}
 POST /api/v1/reminders/{id}/cancel
 ```
 
 Purpose:
 
 - Schedule follow-ups and deadlines.
-- Feed the reminder worker.
+- Feed the Redis sorted set used by the reminder worker.
+
+Create request:
+
+```json
+{
+  "application_id": "uuid",
+  "contact_id": "uuid",
+  "title": "Follow up with recruiter",
+  "description": "Send a short note after the technical round",
+  "due_at": "2026-05-17T10:00:00Z"
+}
+```
+
+Validation and behavior:
+
+- `title` is required and cannot be blank.
+- `due_at` is required.
+- The API generates `idempotency_key` server-side.
+- Pending reminders are scheduled in Redis under `reminders:scheduled`.
+- Cancelling or deleting a reminder removes it from the Redis schedule.
+
+## Planned API Groups
 
 ### Search
 

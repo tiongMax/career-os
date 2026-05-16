@@ -55,6 +55,64 @@ type JobDescription struct {
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 
+type Contact struct {
+	ID           string    `json:"id"`
+	CompanyID    string    `json:"company_id"`
+	Name         string    `json:"name"`
+	Role         *string   `json:"role,omitempty"`
+	Email        *string   `json:"email,omitempty"`
+	LinkedinURL  *string   `json:"linkedin_url,omitempty"`
+	Relationship *string   `json:"relationship,omitempty"`
+	Notes        *string   `json:"notes,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type InterviewRound struct {
+	ID            string     `json:"id"`
+	ApplicationID string     `json:"application_id"`
+	RoundType     string     `json:"round_type"`
+	ScheduledAt   *time.Time `json:"scheduled_at,omitempty"`
+	Interviewer   *string    `json:"interviewer,omitempty"`
+	Notes         *string    `json:"notes,omitempty"`
+	Outcome       *string    `json:"outcome,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+type Reminder struct {
+	ID             string     `json:"id"`
+	ApplicationID  string     `json:"application_id"`
+	ContactID      *string    `json:"contact_id,omitempty"`
+	Title          string     `json:"title"`
+	Description    *string    `json:"description,omitempty"`
+	DueAt          time.Time  `json:"due_at"`
+	Status         string     `json:"status"`
+	IdempotencyKey string     `json:"idempotency_key"`
+	RetryCount     int32      `json:"retry_count"`
+	LastError      *string    `json:"last_error,omitempty"`
+	DeliveredAt    *time.Time `json:"delivered_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+type ReminderDelivery struct {
+	ID             string    `json:"id"`
+	ReminderID     string    `json:"reminder_id"`
+	IdempotencyKey string    `json:"idempotency_key"`
+	DeliveredAt    time.Time `json:"delivered_at"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+type FailedReminderJob struct {
+	ID           string          `json:"id"`
+	ReminderID   *string         `json:"reminder_id,omitempty"`
+	ErrorMessage string          `json:"error_message"`
+	RetryCount   int32           `json:"retry_count"`
+	Payload      json.RawMessage `json:"payload"`
+	FailedAt     time.Time       `json:"failed_at"`
+}
+
 type AuditLog struct {
 	ID         string          `json:"id"`
 	EntityType string          `json:"entity_type"`
