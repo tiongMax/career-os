@@ -22,30 +22,14 @@ func TestCollectionRoutesAcceptDocumentedPaths(t *testing.T) {
 	handler, fakes := newTestHandler()
 	router := chi.NewRouter()
 	router.Route("/api/v1", func(r chi.Router) {
-		r.Post("/companies", handler.createCompany)
-		r.Get("/companies", handler.listCompanies)
-		r.Route("/companies", func(r chi.Router) {
-			r.Post("/", handler.createCompany)
-			r.Get("/", handler.listCompanies)
-		})
-		r.Post("/resume-versions", handler.createResumeVersion)
-		r.Get("/resume-versions", handler.listResumeVersions)
-		r.Route("/resume-versions", func(r chi.Router) {
-			r.Post("/", handler.createResumeVersion)
-			r.Get("/", handler.listResumeVersions)
-		})
-		r.Post("/applications", handler.createApplication)
-		r.Get("/applications", handler.listApplications)
-		r.Route("/applications", func(r chi.Router) {
-			r.Post("/", handler.createApplication)
-			r.Get("/", handler.listApplications)
+		collection(r, "/companies", handler.createCompany, handler.listCompanies, func(r chi.Router) {})
+		collection(r, "/resume-versions", handler.createResumeVersion, handler.listResumeVersions, func(r chi.Router) {})
+		collection(r, "/applications", handler.createApplication, handler.listApplications, func(r chi.Router) {
 			r.Post("/{id}/interviews", handler.createInterview)
 			r.Get("/{id}/interviews", handler.listApplicationInterviews)
 		})
-		r.Post("/contacts", handler.createContact)
-		r.Get("/contacts", handler.listContacts)
-		r.Post("/reminders", handler.createReminder)
-		r.Get("/reminders", handler.listReminders)
+		collection(r, "/contacts", handler.createContact, handler.listContacts, func(r chi.Router) {})
+		collection(r, "/reminders", handler.createReminder, handler.listReminders, func(r chi.Router) {})
 	})
 
 	tests := []struct {
@@ -213,7 +197,15 @@ func newTestHandler() (Handler, testFakes) {
 		interviews:      &fakeInterviewService{},
 		reminders:       &fakeReminderService{},
 	}
-	return NewHandler(fakes.companies, fakes.resumes, fakes.applications, fakes.jobDescriptions, fakes.contacts, fakes.interviews, fakes.reminders), fakes
+	return NewHandler(Services{
+		Companies:       fakes.companies,
+		Resumes:         fakes.resumes,
+		Applications:    fakes.applications,
+		JobDescriptions: fakes.jobDescriptions,
+		Contacts:        fakes.contacts,
+		Interviews:      fakes.interviews,
+		Reminders:       fakes.reminders,
+	}), fakes
 }
 
 type fakeCompanyService struct {
