@@ -159,3 +159,78 @@ export interface SearchResult {
 
 export const search = (q: string) =>
   apiFetch<{ query: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`);
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export interface AnalyticsSummary {
+  total: number;
+  active: number;
+  responded: number;
+  offers: number;
+  response_rate: number;
+  offer_rate: number;
+  pending_reminders: number;
+}
+
+export interface StatusCount {
+  status: string;
+  count: number;
+}
+
+export interface TrackCount {
+  track: string;
+  count: number;
+}
+
+export interface ResumeVersionPerformance {
+  id: string;
+  name: string;
+  track: string;
+  applications: number;
+  responses: number;
+  interviews: number;
+  offers: number;
+  response_rate: number;
+  offer_rate: number;
+}
+
+export interface SourcePerformance {
+  source: string;
+  applications: number;
+  responses: number;
+  offers: number;
+  response_rate: number;
+}
+
+export interface FunnelStep {
+  stage: string;
+  count: number;
+}
+
+export interface UpcomingInterview {
+  id: string;
+  round_type: string;
+  scheduled_at?: string;
+  application_title: string;
+  company_name: string;
+}
+
+export interface UpcomingReminder {
+  id: string;
+  title: string;
+  due_at: string;
+  application_title: string;
+}
+
+export interface UpcomingData {
+  interviews: UpcomingInterview[];
+  reminders: UpcomingReminder[];
+}
+
+export const getAnalyticsSummary = () => apiFetch<AnalyticsSummary>("/analytics/summary");
+export const getAnalyticsByStatus = () => apiFetch<StatusCount[]>("/analytics/by-status");
+export const getAnalyticsByTrack = () => apiFetch<TrackCount[]>("/analytics/by-role-track");
+export const getAnalyticsByResumeVersion = () => apiFetch<ResumeVersionPerformance[]>("/analytics/by-resume-version");
+export const getAnalyticsSourcePerformance = () => apiFetch<SourcePerformance[]>("/analytics/source-performance");
+export const getAnalyticsFunnel = () => apiFetch<FunnelStep[]>("/analytics/funnel");
+export const getAnalyticsUpcoming = () => apiFetch<UpcomingData>("/analytics/upcoming");

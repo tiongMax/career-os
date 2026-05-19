@@ -131,3 +131,63 @@ type SearchResult struct {
 	Rank    float64 `json:"rank"`
 }
 
+type AnalyticsSummary struct {
+	Total            int64   `json:"total"`
+	Active           int64   `json:"active"`
+	Responded        int64   `json:"responded"`
+	Offers           int64   `json:"offers"`
+	ResponseRate     float64 `json:"response_rate"`
+	OfferRate        float64 `json:"offer_rate"`
+	PendingReminders int64   `json:"pending_reminders"`
+}
+
+type StatusCount struct {
+	Status string `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+type TrackCount struct {
+	Track string `json:"track"`
+	Count int64  `json:"count"`
+}
+
+type ResumeVersionPerformance struct {
+	ID           string  `json:"id"`
+	Name         string  `json:"name"`
+	Track        string  `json:"track"`
+	Applications int64   `json:"applications"`
+	Responses    int64   `json:"responses"`
+	Interviews   int64   `json:"interviews"`
+	Offers       int64   `json:"offers"`
+	ResponseRate float64 `json:"response_rate"`
+	OfferRate    float64 `json:"offer_rate"`
+}
+
+type SourcePerformance struct {
+	Source       string  `json:"source"`
+	Applications int64   `json:"applications"`
+	Responses    int64   `json:"responses"`
+	Offers       int64   `json:"offers"`
+	ResponseRate float64 `json:"response_rate"`
+}
+
+type FunnelStep struct {
+	Stage string `json:"stage"`
+	Count int64  `json:"count"`
+}
+
+type UpcomingInterview struct {
+	ID               string     `json:"id"`
+	RoundType        string     `json:"round_type"`
+	ScheduledAt      *time.Time `json:"scheduled_at,omitempty"`
+	ApplicationTitle string     `json:"application_title"`
+	CompanyName      string     `json:"company_name"`
+}
+
+type UpcomingReminder struct {
+	ID               string    `json:"id"`
+	Title            string    `json:"title"`
+	DueAt            time.Time `json:"due_at"`
+	ApplicationTitle string    `json:"application_title"`
+}
+
