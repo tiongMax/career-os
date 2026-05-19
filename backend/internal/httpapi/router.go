@@ -70,10 +70,13 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Get("/{id}/job-description", handler.getJobDescriptionByApplication)
 			r.Post("/{id}/interviews", handler.createInterview)
 			r.Get("/{id}/interviews", handler.listApplicationInterviews)
+			r.Get("/{id}/recommended-resume", handler.recommendedResume)
 		})
 
 		r.Route("/job-descriptions", func(r chi.Router) {
 			r.Patch("/{id}", handler.updateJobDescription)
+			r.Post("/{id}/extract-keywords", handler.extractKeywords)
+			r.Post("/{id}/compare-resume/{resumeVersionId}", handler.compareResume)
 		})
 
 		collection(r, "/contacts", handler.createContact, handler.listContacts, func(r chi.Router) {

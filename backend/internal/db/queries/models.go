@@ -191,3 +191,16 @@ type UpcomingReminder struct {
 	ApplicationTitle string    `json:"application_title"`
 }
 
+type ResumeMatchResult struct {
+	Matched []string `json:"matched"`
+	Missing []string `json:"missing"`
+	Score   float64  `json:"score"`
+}
+
+type RecommendedResumeResult struct {
+	ResumeVersion ResumeVersion `json:"resume_version"`
+	Matched       []string      `json:"matched"`
+	Missing       []string      `json:"missing"`
+	Score         float64       `json:"score"`
+}
+

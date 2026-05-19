@@ -147,6 +147,26 @@ export const getApplicationJobDescription = (id: string) =>
   apiFetch<JobDescription>(`/applications/${id}/job-description`);
 export const getApplicationInterviews = (id: string) =>
   apiFetch<InterviewRound[]>(`/applications/${id}/interviews`);
+export const getRecommendedResume = (applicationId: string) =>
+  apiFetch<RecommendedResumeResult>(`/applications/${applicationId}/recommended-resume`);
+
+export interface ResumeMatchResult {
+  matched: string[];
+  missing: string[];
+  score: number;
+}
+
+export interface RecommendedResumeResult {
+  resume_version: ResumeVersion;
+  matched: string[];
+  missing: string[];
+  score: number;
+}
+
+export const extractKeywords = (jdId: string) =>
+  apiFetch<JobDescription>(`/job-descriptions/${jdId}/extract-keywords`, { method: "POST" });
+export const compareResume = (jdId: string, resumeVersionId: string) =>
+  apiFetch<ResumeMatchResult>(`/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`, { method: "POST" });
 
 // ─── Contacts ────────────────────────────────────────────────────────────────
 

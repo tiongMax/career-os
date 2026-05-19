@@ -6,9 +6,11 @@ import {
   getApplicationInterviews,
   getCompany,
   getResumeVersion,
+  getRecommendedResume,
 } from "@/lib/api";
 import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
+import { ExtractKeywordsButton } from "./extract-keywords-button";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -24,6 +26,10 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
     app.resume_version_id ? getResumeVersion(app.resume_version_id).catch(() => null) : Promise.resolve(null),
     getApplicationJobDescription(id).catch(() => null),
   ]);
+
+  const recommendedResume = jobDescription && jobDescription.extracted_keywords.length > 0
+    ? await getRecommendedResume(id).catch(() => null)
+    : null;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -71,7 +77,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
 
           {jobDescription && (
             <Card title="Job Description">
-              {jobDescription.extracted_keywords.length > 0 && (
+              {jobDescription.extracted_keywords.length > 0 ? (
                 <div className="mb-3 flex flex-wrap gap-1.5">
                   {jobDescription.extracted_keywords.map((kw) => (
                     <span key={kw} className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
@@ -79,10 +85,50 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                     </span>
                   ))}
                 </div>
+              ) : (
+                <ExtractKeywordsButton jdId={jobDescription.id} />
               )}
-              <p className="text-sm text-neutral-600 whitespace-pre-wrap line-clamp-6">
+              <p className="text-sm text-neutral-600 whitespace-pre-wrap line-clamp-6 mt-3">
                 {jobDescription.raw_text}
               </p>
+            </Card>
+          )}
+
+          {recommendedResume && (
+            <Card title="Resume Match">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-medium text-neutral-800">{recommendedResume.resume_version.name}</p>
+                  <p className="text-xs text-neutral-400 capitalize mt-0.5">{recommendedResume.resume_version.track}</p>
+                </div>
+                <span className={`text-lg font-semibold ${recommendedResume.score >= 0.7 ? "text-green-600" : recommendedResume.score >= 0.4 ? "text-yellow-600" : "text-red-500"}`}>
+                  {Math.round(recommendedResume.score * 100)}%
+                </span>
+              </div>
+              {recommendedResume.matched.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-xs text-neutral-400 mb-1">Matched</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recommendedResume.matched.map((kw) => (
+                      <span key={kw} className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {recommendedResume.missing.length > 0 && (
+                <div>
+                  <p className="text-xs text-neutral-400 mb-1">Missing</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recommendedResume.missing.map((kw) => (
+                      <span key={kw} className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600">
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
           )}
 
