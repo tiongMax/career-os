@@ -1,38 +1,22 @@
 import Link from "next/link";
-import { getApplications, getReminders } from "@/lib/api";
+import { getApplications, getAnalyticsSummary } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 
-async function getStats() {
-  const [applications, reminders] = await Promise.allSettled([
-    getApplications(),
-    getReminders(),
+export default async function DashboardPage() {
+  const [summary, applications] = await Promise.all([
+    getAnalyticsSummary().catch(() => null),
+    getApplications().catch(() => []),
   ]);
 
-  const apps = applications.status === "fulfilled" ? applications.value : [];
-  const rems = reminders.status === "fulfilled" ? reminders.value : [];
-
-  const active = apps.filter((a) =>
-    ["applied", "recruiter_screen", "technical_screen", "onsite", "offer"].includes(a.status)
-  );
-  const offers = apps.filter((a) => a.status === "offer");
-  const responded = apps.filter((a) =>
-    ["recruiter_screen", "technical_screen", "onsite", "offer", "rejected"].includes(a.status)
-  );
-  const pendingReminders = rems.filter((r) => r.status === "pending");
-
-  return {
-    total: apps.length,
-    active: active.length,
-    offers: offers.length,
-    responseRate: apps.length > 0 ? Math.round((responded.length / apps.length) * 100) : 0,
-    pendingReminders: pendingReminders.length,
-    recentApps: apps.slice(-5).reverse(),
+  const stats = {
+    total: summary?.total ?? 0,
+    active: summary?.active ?? 0,
+    offers: summary?.offers ?? 0,
+    responseRate: summary ? Math.round(summary.response_rate * 100) : 0,
+    pendingReminders: summary?.pending_reminders ?? 0,
+    recentApps: applications.slice(-5).reverse(),
   };
-}
-
-export default async function DashboardPage() {
-  const stats = await getStats();
 
   return (
     <div className="space-y-8">

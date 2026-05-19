@@ -6,6 +6,7 @@ import {
   getApplicationInterviews,
   getCompany,
   getResumeVersion,
+  getResumeVersions,
   getRecommendedResume,
   getPrepContext,
 } from "@/lib/api";
@@ -13,6 +14,7 @@ import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { ExtractKeywordsButton } from "./extract-keywords-button";
 import { PrepBriefCard } from "./prep-brief-card";
+import { CompareResumeCard } from "./compare-resume-card";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -23,11 +25,12 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
     getApplicationInterviews(id).catch(() => []),
   ]);
 
-  const [company, resume, jobDescription, prepContext] = await Promise.all([
+  const [company, resume, jobDescription, prepContext, allResumeVersions] = await Promise.all([
     getCompany(app.company_id).catch(() => null),
     app.resume_version_id ? getResumeVersion(app.resume_version_id).catch(() => null) : Promise.resolve(null),
     getApplicationJobDescription(id).catch(() => null),
     getPrepContext(id).catch(() => null),
+    getResumeVersions().catch(() => []),
   ]);
 
   const contacts = prepContext?.contacts ?? [];
@@ -134,6 +137,12 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                   </div>
                 </div>
               )}
+            </Card>
+          )}
+
+          {jobDescription && jobDescription.extracted_keywords.length > 0 && allResumeVersions.length > 0 && (
+            <Card title="Compare Resume">
+              <CompareResumeCard jdId={jobDescription.id} resumeVersions={allResumeVersions} />
             </Card>
           )}
 

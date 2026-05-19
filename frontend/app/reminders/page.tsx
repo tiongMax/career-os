@@ -1,5 +1,6 @@
 import { getReminders, getFailedReminders } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { RetryButton } from "./retry-button";
 
 const REMINDER_STATUS_STYLES: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -74,6 +75,7 @@ export default async function RemindersPage() {
                   <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Error Message</th>
                   <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Retry Count</th>
                   <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Failed At</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
@@ -82,6 +84,9 @@ export default async function RemindersPage() {
                     <td className="px-5 py-3 text-neutral-800">{job.error_message}</td>
                     <td className="px-5 py-3 text-xs text-neutral-400">{job.retry_count}</td>
                     <td className="px-5 py-3 text-neutral-500 text-xs">{formatDate(job.failed_at)}</td>
+                    <td className="px-5 py-3">
+                      {job.reminder_id ? <RetryButton reminderId={job.reminder_id} /> : <span className="text-xs text-neutral-400">—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
