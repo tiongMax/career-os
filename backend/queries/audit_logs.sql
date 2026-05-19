@@ -1,9 +1,16 @@
--- name: CreateAuditLog :one
+-- name: CreateAuditLogSQL :one
 INSERT INTO audit_logs (entity_type, entity_id, action, old_value, new_value)
-VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)
-RETURNING *;
+VALUES (
+    sqlc.arg(entity_type),
+    sqlc.arg(entity_id)::uuid,
+    sqlc.arg(action),
+    sqlc.narg(old_value)::jsonb,
+    sqlc.narg(new_value)::jsonb
+)
+RETURNING id::text, entity_type, entity_id::text, action, old_value, new_value, created_at;
 
--- name: ListAuditLogsForEntity :many
-SELECT * FROM audit_logs
-WHERE entity_type = $1 AND entity_id = $2
+-- name: ListAuditLogsForEntitySQL :many
+SELECT id::text, entity_type, entity_id::text, action, old_value, new_value, created_at
+FROM audit_logs
+WHERE entity_type = sqlc.arg(entity_type) AND entity_id = sqlc.arg(entity_id)::uuid
 ORDER BY created_at DESC;

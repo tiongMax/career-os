@@ -101,7 +101,7 @@ Recommended future layout:
 
 ```text
 backend/internal/services/applications.go
-backend/internal/http/applications.go
+backend/internal/httpapi/applications.go
 backend/queries/applications.sql
 ```
 

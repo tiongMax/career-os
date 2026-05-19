@@ -1,28 +1,36 @@
--- name: CreateCompany :one
+-- name: CreateCompanySQL :one
 INSERT INTO companies (name, website, industry, location, notes)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING *;
+VALUES (
+    sqlc.arg(name),
+    sqlc.narg(website),
+    sqlc.narg(industry),
+    sqlc.narg(location),
+    sqlc.narg(notes)
+)
+RETURNING id::text, name, website, industry, location, notes, created_at, updated_at;
 
--- name: ListCompanies :many
-SELECT * FROM companies
+-- name: ListCompaniesSQL :many
+SELECT id::text, name, website, industry, location, notes, created_at, updated_at
+FROM companies
 ORDER BY created_at DESC;
 
--- name: GetCompany :one
-SELECT * FROM companies
-WHERE id = $1;
+-- name: GetCompanySQL :one
+SELECT id::text, name, website, industry, location, notes, created_at, updated_at
+FROM companies
+WHERE id = sqlc.arg(id)::uuid;
 
--- name: UpdateCompany :one
+-- name: UpdateCompanySQL :one
 UPDATE companies
 SET
-    name = COALESCE($2, name),
-    website = COALESCE($3, website),
-    industry = COALESCE($4, industry),
-    location = COALESCE($5, location),
-    notes = COALESCE($6, notes),
+    name = COALESCE(sqlc.narg(name), name),
+    website = COALESCE(sqlc.narg(website), website),
+    industry = COALESCE(sqlc.narg(industry), industry),
+    location = COALESCE(sqlc.narg(location), location),
+    notes = COALESCE(sqlc.narg(notes), notes),
     updated_at = now()
-WHERE id = $1
-RETURNING *;
+WHERE id = sqlc.arg(id)::uuid
+RETURNING id::text, name, website, industry, location, notes, created_at, updated_at;
 
--- name: DeleteCompany :exec
+-- name: DeleteCompanyRowCount :execrows
 DELETE FROM companies
-WHERE id = $1;
+WHERE id = sqlc.arg(id)::uuid;
