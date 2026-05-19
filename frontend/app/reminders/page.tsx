@@ -1,4 +1,4 @@
-import { getReminders } from "@/lib/api";
+import { getReminders, getFailedReminders } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 const REMINDER_STATUS_STYLES: Record<string, string> = {
@@ -11,6 +11,7 @@ const REMINDER_STATUS_STYLES: Record<string, string> = {
 
 export default async function RemindersPage() {
   const reminders = await getReminders().catch(() => []);
+  const failedJobs = await getFailedReminders().catch(() => []);
 
   const pending = reminders.filter((r) => r.status === "pending");
   const rest = reminders.filter((r) => r.status !== "pending");
@@ -58,6 +59,34 @@ export default async function RemindersPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {failedJobs.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-neutral-900">
+            Failed Jobs ({failedJobs.length})
+          </h2>
+          <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-neutral-100 bg-neutral-50">
+                  <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Error Message</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Retry Count</th>
+                  <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Failed At</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {failedJobs.map((job) => (
+                  <tr key={job.id} className="hover:bg-neutral-50">
+                    <td className="px-5 py-3 text-neutral-800">{job.error_message}</td>
+                    <td className="px-5 py-3 text-xs text-neutral-400">{job.retry_count}</td>
+                    <td className="px-5 py-3 text-neutral-500 text-xs">{formatDate(job.failed_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

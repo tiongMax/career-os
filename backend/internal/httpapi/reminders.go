@@ -98,3 +98,26 @@ func (h Handler) cancelReminder(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, reminder)
 }
+
+func (h Handler) listFailedReminders(w http.ResponseWriter, r *http.Request) {
+	jobs, err := h.reminders.ListFailed(r.Context())
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, jobs)
+}
+
+func (h Handler) retryReminder(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid reminder id")
+		return
+	}
+	reminder, err := h.reminders.Retry(r.Context(), id)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, reminder)
+}

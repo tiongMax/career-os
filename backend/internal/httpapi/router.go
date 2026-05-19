@@ -89,10 +89,12 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 
 		collection(r, "/reminders", handler.createReminder, handler.listReminders, func(r chi.Router) {
 			r.Get("/due", handler.listDueReminders)
+			r.Get("/failed", handler.listFailedReminders)
 			r.Get("/{id}", handler.getReminder)
 			r.Patch("/{id}", handler.updateReminder)
 			r.Delete("/{id}", handler.deleteReminder)
 			r.Post("/{id}/cancel", handler.cancelReminder)
+			r.Post("/{id}/retry", handler.retryReminder)
 		})
 
 		r.Get("/search", handler.search)

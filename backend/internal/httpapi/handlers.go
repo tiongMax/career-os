@@ -83,9 +83,11 @@ type reminderService interface {
 	Create(context.Context, queries.CreateReminderParams) (queries.Reminder, error)
 	List(context.Context) ([]queries.Reminder, error)
 	ListDue(context.Context) ([]queries.Reminder, error)
+	ListFailed(context.Context) ([]queries.FailedReminderJob, error)
 	Get(context.Context, string) (queries.Reminder, error)
 	Update(context.Context, queries.UpdateReminderParams) (queries.Reminder, error)
 	Cancel(context.Context, string) (queries.Reminder, error)
+	Retry(context.Context, string) (queries.Reminder, error)
 	Delete(context.Context, string) error
 }
 

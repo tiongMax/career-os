@@ -42,6 +42,8 @@ type Store interface {
 	UpdateReminder(context.Context, queries.UpdateReminderParams) (queries.Reminder, error)
 	UpdateReminderStatus(context.Context, string, string) (queries.Reminder, error)
 	DeleteReminder(context.Context, string) error
+	ListFailedReminderJobs(context.Context) ([]queries.FailedReminderJob, error)
+	ResetReminderForRetry(context.Context, string) (queries.Reminder, error)
 }
 
 // Scheduler schedules and unschedules durable reminders in the async work
@@ -148,6 +150,26 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 		}
 	}
 	return s.store.DeleteReminder(ctx, id)
+}
+
+// ListFailed returns all failed reminder jobs ordered by failed_at DESC.
+func (s *Service) ListFailed(ctx context.Context) ([]queries.FailedReminderJob, error) {
+	return s.store.ListFailedReminderJobs(ctx)
+}
+
+// Retry resets a failed reminder to pending and re-enqueues it in Redis.
+// Returns pgx.ErrNoRows if the reminder is not in 'failed' status.
+func (s *Service) Retry(ctx context.Context, id string) (queries.Reminder, error) {
+	reminder, err := s.store.ResetReminderForRetry(ctx, id)
+	if err != nil {
+		return queries.Reminder{}, err
+	}
+	if s.scheduler != nil {
+		if err := s.scheduler.ScheduleReminder(ctx, reminder); err != nil {
+			return queries.Reminder{}, err
+		}
+	}
+	return reminder, nil
 }
 
 func newIdempotencyKey() (string, error) {
