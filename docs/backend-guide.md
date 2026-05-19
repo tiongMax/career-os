@@ -44,7 +44,7 @@ The API address is derived from `API_PORT` through `Config.APIAddress()`.
 
 ## Router and Middleware
 
-Router file: `backend/internal/http/router.go`
+Router file: `backend/internal/httpapi/router.go`
 
 Current middleware:
 
@@ -113,7 +113,7 @@ helpers over ad hoc row handling inside services or handlers.
 
 ## Health Handler
 
-File: `backend/internal/http/health.go`
+File: `backend/internal/httpapi/health.go`
 
 `GET /api/v1/health` checks both PostgreSQL and Redis with a 2 second timeout.
 
@@ -210,7 +210,7 @@ without requiring Docker for every `go test ./...` run.
 When adding new backend behavior, prefer this structure:
 
 ```text
-internal/http        HTTP parsing, route params, JSON responses
+internal/httpapi     HTTP parsing, route params, JSON responses
 internal/services    business rules and transactions
 internal/db/queries  SQL query methods and scan helpers
 backend/migrations   schema changes

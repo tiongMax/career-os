@@ -1,5 +1,5 @@
 // Package http wires HTTP routes, middleware, and handlers for the CareerOS API.
-package http
+package httpapi
 
 import (
 	nethttp "net/http"

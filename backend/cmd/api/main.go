@@ -12,7 +12,7 @@ import (
 
 	"careeros/backend/internal/config"
 	"careeros/backend/internal/db"
-	careeroshttp "careeros/backend/internal/http"
+	"careeros/backend/internal/httpapi"
 	"careeros/backend/internal/logger"
 )
 
@@ -42,7 +42,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              cfg.APIAddress(),
-		Handler:           careeroshttp.NewRouter(log, postgres, redisClient),
+		Handler:           httpapi.NewRouter(log, postgres, redisClient),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -193,7 +193,7 @@ Make sure:
 ```text
 Generate a Go backend scaffold for CareerOS using Chi, pgx, sqlc, Goose migrations, PostgreSQL, Redis, Docker Compose, Zerolog, and a Makefile.
 
-Create cmd/api, cmd/worker, cmd/seed, internal/config, internal/db, internal/http, internal/services, internal/workers, internal/logger.
+Create cmd/api, cmd/worker, cmd/seed, internal/config, internal/db, internal/httpapi, internal/services, internal/workers, internal/logger.
 
 Add docker-compose.yml, .env.example, health endpoint, and initial Goose migrations for companies, resume_versions, applications, job_descriptions, contacts, interview_rounds, reminders, audit_logs, reminder_deliveries, and failed_reminder_jobs.
 ```
