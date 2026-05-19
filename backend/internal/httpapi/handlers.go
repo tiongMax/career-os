@@ -62,6 +62,9 @@ type jobDescriptionService interface {
 	Create(context.Context, queries.CreateJobDescriptionParams) (queries.JobDescription, error)
 	GetByApplication(context.Context, string) (queries.JobDescription, error)
 	Update(context.Context, queries.UpdateJobDescriptionParams) (queries.JobDescription, error)
+	ExtractKeywords(context.Context, string) (queries.JobDescription, error)
+	CompareResume(context.Context, string, string) (queries.ResumeMatchResult, error)
+	RecommendedResume(context.Context, string) (queries.RecommendedResumeResult, error)
 }
 
 type contactService interface {
