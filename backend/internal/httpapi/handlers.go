@@ -5,6 +5,7 @@ import (
 
 	"careeros/backend/internal/db/queries"
 	appsvc "careeros/backend/internal/services/applications"
+	analyticssvc "careeros/backend/internal/services/analytics"
 )
 
 type Handler struct {
@@ -16,6 +17,7 @@ type Handler struct {
 	interviews      interviewService
 	reminders       reminderService
 	searchSvc       searchService
+	analytics       analyticsService
 }
 
 type Services struct {
@@ -27,6 +29,7 @@ type Services struct {
 	Interviews      interviewService
 	Reminders       reminderService
 	Search          searchService
+	Analytics       analyticsService
 }
 
 type companyService interface {
@@ -90,6 +93,16 @@ type searchService interface {
 	Search(context.Context, string) ([]queries.SearchResult, error)
 }
 
+type analyticsService interface {
+	Summary(context.Context) (queries.AnalyticsSummary, error)
+	ByStatus(context.Context) ([]queries.StatusCount, error)
+	ByTrack(context.Context) ([]queries.TrackCount, error)
+	ByResumeVersion(context.Context) ([]queries.ResumeVersionPerformance, error)
+	SourcePerformance(context.Context) ([]queries.SourcePerformance, error)
+	Funnel(context.Context) ([]queries.FunnelStep, error)
+	Upcoming(context.Context) (analyticssvc.UpcomingResult, error)
+}
+
 func NewHandler(services Services) Handler {
 	return Handler{
 		companies:       services.Companies,
@@ -100,5 +113,6 @@ func NewHandler(services Services) Handler {
 		interviews:      services.Interviews,
 		reminders:       services.Reminders,
 		searchSvc:       services.Search,
+		analytics:       services.Analytics,
 	}
 }
