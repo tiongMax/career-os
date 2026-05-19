@@ -1,4 +1,7 @@
-.PHONY: api worker seed migrate-up migrate-down test compose-up compose-down bench-search bench-mixed
+.PHONY: dev api worker seed migrate-up migrate-down test compose-up compose-down bench-search bench-mixed
+
+dev:
+	npm run dev
 
 api:
 	go run ./backend/cmd/api
