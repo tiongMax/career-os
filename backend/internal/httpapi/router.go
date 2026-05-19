@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"careeros/backend/internal/db/queries"
+	analyticssvc "careeros/backend/internal/services/analytics"
 	appsvc "careeros/backend/internal/services/applications"
 	companysvc "careeros/backend/internal/services/companies"
 	contactsvc "careeros/backend/internal/services/contacts"
@@ -36,6 +37,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		Interviews:      interviewsvc.New(store),
 		Reminders:       remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
 		Search:          searchsvc.New(store),
+		Analytics:       analyticssvc.New(store),
 	})
 
 	r.Use(middleware.RequestID)
@@ -87,13 +89,25 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 
 		collection(r, "/reminders", handler.createReminder, handler.listReminders, func(r chi.Router) {
 			r.Get("/due", handler.listDueReminders)
+			r.Get("/failed", handler.listFailedReminders)
 			r.Get("/{id}", handler.getReminder)
 			r.Patch("/{id}", handler.updateReminder)
 			r.Delete("/{id}", handler.deleteReminder)
 			r.Post("/{id}/cancel", handler.cancelReminder)
+			r.Post("/{id}/retry", handler.retryReminder)
 		})
 
 		r.Get("/search", handler.search)
+
+		r.Route("/analytics", func(r chi.Router) {
+			r.Get("/summary", handler.getAnalyticsSummary)
+			r.Get("/by-status", handler.getAnalyticsByStatus)
+			r.Get("/by-role-track", handler.getAnalyticsByTrack)
+			r.Get("/by-resume-version", handler.getAnalyticsByResumeVersion)
+			r.Get("/source-performance", handler.getAnalyticsSourcePerformance)
+			r.Get("/funnel", handler.getAnalyticsFunnel)
+			r.Get("/upcoming", handler.getAnalyticsUpcoming)
+		})
 	})
 
 	return r

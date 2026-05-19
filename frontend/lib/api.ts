@@ -106,6 +106,15 @@ export interface Reminder {
   updated_at: string;
 }
 
+export interface FailedReminderJob {
+  id: string;
+  reminder_id?: string;
+  error_message: string;
+  retry_count: number;
+  payload: unknown;
+  failed_at: string;
+}
+
 export interface AuditLog {
   id: string;
   entity_type: string;
@@ -146,6 +155,9 @@ export const getContacts = () => apiFetch<Contact[]>("/contacts");
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
+export const getFailedReminders = () => apiFetch<FailedReminderJob[]>("/reminders/failed");
+export const retryReminder = (id: string) =>
+  apiFetch<Reminder>(`/reminders/${id}/retry`, { method: "POST" });
 
 // ─── Search ──────────────────────────────────────────────────────────────────
 
