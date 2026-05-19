@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"careeros/backend/internal/db/queries"
 )
@@ -38,6 +39,11 @@ type Store interface {
 	UpdateJobDescription(context.Context, queries.UpdateJobDescriptionParams) (queries.JobDescription, error)
 	ListResumeVersions(context.Context) ([]queries.ResumeVersion, error)
 	GetResumeVersion(context.Context, string) (queries.ResumeVersion, error)
+	GetApplication(context.Context, string) (queries.Application, error)
+	GetCompany(context.Context, string) (queries.Company, error)
+	ListInterviewRoundsByApplication(context.Context, string) ([]queries.InterviewRound, error)
+	ListAuditLogsForEntity(context.Context, string, string) ([]queries.AuditLog, error)
+	ListContactsByCompany(context.Context, string) ([]queries.Contact, error)
 }
 
 type Service struct {
@@ -183,4 +189,135 @@ func resumeSearchText(rv queries.ResumeVersion) string {
 		parts = append(parts, *rv.ContentText)
 	}
 	return strings.Join(parts, " ")
+}
+
+// PrepContext aggregates all data relevant to interview preparation for an application.
+func (s *Service) PrepContext(ctx context.Context, applicationID string) (queries.PrepContext, error) {
+	app, err := s.store.GetApplication(ctx, applicationID)
+	if err != nil {
+		return queries.PrepContext{}, err
+	}
+	company, err := s.store.GetCompany(ctx, app.CompanyID)
+	if err != nil {
+		return queries.PrepContext{}, err
+	}
+
+	var jd *queries.JobDescription
+	if jdResult, err := s.store.GetJobDescriptionByApplication(ctx, applicationID); err == nil {
+		jd = &jdResult
+	}
+
+	var resume *queries.ResumeVersion
+	if app.ResumeVersionID != nil {
+		if rv, err := s.store.GetResumeVersion(ctx, *app.ResumeVersionID); err == nil {
+			resume = &rv
+		}
+	}
+
+	interviews, _ := s.store.ListInterviewRoundsByApplication(ctx, applicationID)
+	if interviews == nil {
+		interviews = []queries.InterviewRound{}
+	}
+	contacts, _ := s.store.ListContactsByCompany(ctx, app.CompanyID)
+	if contacts == nil {
+		contacts = []queries.Contact{}
+	}
+	auditLogs, _ := s.store.ListAuditLogsForEntity(ctx, "application", applicationID)
+	if auditLogs == nil {
+		auditLogs = []queries.AuditLog{}
+	}
+
+	return queries.PrepContext{
+		Application:    app,
+		Company:        company,
+		JobDescription: jd,
+		Resume:         resume,
+		Interviews:     interviews,
+		Contacts:       contacts,
+		AuditLogs:      auditLogs,
+	}, nil
+}
+
+// GeneratePrepBrief builds a template-based interview prep brief from the application's prep context.
+func (s *Service) GeneratePrepBrief(ctx context.Context, applicationID string) (queries.PrepBrief, error) {
+	pc, err := s.PrepContext(ctx, applicationID)
+	if err != nil {
+		return queries.PrepBrief{}, err
+	}
+	return buildPrepBrief(pc), nil
+}
+
+func buildPrepBrief(pc queries.PrepContext) queries.PrepBrief {
+	roleSummary := pc.Application.Title + " at " + pc.Company.Name
+	if pc.Application.EmploymentType != nil {
+		roleSummary += " (" + *pc.Application.EmploymentType + ")"
+	}
+	if pc.Application.Location != nil {
+		roleSummary += " · " + *pc.Application.Location
+	}
+
+	var keyGaps []string
+	if pc.JobDescription != nil && pc.Resume != nil && len(pc.JobDescription.ExtractedKeywords) > 0 {
+		keyGaps = matchKeywords(pc.JobDescription.ExtractedKeywords, *pc.Resume).Missing
+	}
+	if keyGaps == nil {
+		keyGaps = []string{}
+	}
+
+	seen := map[string]bool{}
+	var focusAreas []string
+	for _, iv := range pc.Interviews {
+		area := interviewFocusArea(iv.RoundType)
+		if !seen[area] {
+			focusAreas = append(focusAreas, area)
+			seen[area] = true
+		}
+	}
+	if len(focusAreas) == 0 {
+		focusAreas = []string{"Technical skills", "Behavioral questions", "Company culture fit"}
+	}
+
+	var talkingPoints []string
+	if pc.Resume != nil {
+		for _, tag := range pc.Resume.Tags {
+			talkingPoints = append(talkingPoints, "Highlight experience with "+tag)
+		}
+	}
+	if pc.JobDescription != nil && pc.Resume != nil && len(pc.JobDescription.ExtractedKeywords) > 0 {
+		for _, kw := range matchKeywords(pc.JobDescription.ExtractedKeywords, *pc.Resume).Matched {
+			talkingPoints = append(talkingPoints, "Demonstrate "+kw+" proficiency")
+		}
+	}
+	if len(talkingPoints) == 0 {
+		talkingPoints = []string{"Research the company and role", "Prepare STAR-method stories", "Review your resume highlights"}
+	}
+
+	return queries.PrepBrief{
+		RoleSummary:   roleSummary,
+		KeyGaps:       keyGaps,
+		FocusAreas:    focusAreas,
+		TalkingPoints: talkingPoints,
+		GeneratedAt:   time.Now(),
+	}
+}
+
+func interviewFocusArea(roundType string) string {
+	switch roundType {
+	case "technical":
+		return "Technical coding and problem solving"
+	case "behavioral":
+		return "Behavioral questions (STAR method)"
+	case "system_design":
+		return "System design and architecture"
+	case "hr":
+		return "HR screening and culture fit"
+	case "take_home":
+		return "Take-home assignment review"
+	default:
+		words := strings.ReplaceAll(roundType, "_", " ")
+		if len(words) > 0 {
+			return strings.ToUpper(words[:1]) + words[1:]
+		}
+		return words
+	}
 }

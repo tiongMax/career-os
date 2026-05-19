@@ -168,6 +168,29 @@ export const extractKeywords = (jdId: string) =>
 export const compareResume = (jdId: string, resumeVersionId: string) =>
   apiFetch<ResumeMatchResult>(`/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`, { method: "POST" });
 
+export interface PrepContext {
+  application: Application;
+  company: Company;
+  job_description?: JobDescription;
+  resume?: ResumeVersion;
+  interviews: InterviewRound[];
+  contacts: Contact[];
+  audit_logs: AuditLog[];
+}
+
+export interface PrepBrief {
+  role_summary: string;
+  key_gaps: string[];
+  focus_areas: string[];
+  talking_points: string[];
+  generated_at: string;
+}
+
+export const getPrepContext = (applicationId: string) =>
+  apiFetch<PrepContext>(`/applications/${applicationId}/prep-context`);
+export const generatePrepBrief = (applicationId: string) =>
+  apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, { method: "POST" });
+
 // ─── Contacts ────────────────────────────────────────────────────────────────
 
 export const getContacts = () => apiFetch<Contact[]>("/contacts");

@@ -65,6 +65,8 @@ type jobDescriptionService interface {
 	ExtractKeywords(context.Context, string) (queries.JobDescription, error)
 	CompareResume(context.Context, string, string) (queries.ResumeMatchResult, error)
 	RecommendedResume(context.Context, string) (queries.RecommendedResumeResult, error)
+	PrepContext(context.Context, string) (queries.PrepContext, error)
+	GeneratePrepBrief(context.Context, string) (queries.PrepBrief, error)
 }
 
 type contactService interface {

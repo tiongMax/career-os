@@ -7,10 +7,12 @@ import {
   getCompany,
   getResumeVersion,
   getRecommendedResume,
+  getPrepContext,
 } from "@/lib/api";
 import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { ExtractKeywordsButton } from "./extract-keywords-button";
+import { PrepBriefCard } from "./prep-brief-card";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -21,11 +23,14 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
     getApplicationInterviews(id).catch(() => []),
   ]);
 
-  const [company, resume, jobDescription] = await Promise.all([
+  const [company, resume, jobDescription, prepContext] = await Promise.all([
     getCompany(app.company_id).catch(() => null),
     app.resume_version_id ? getResumeVersion(app.resume_version_id).catch(() => null) : Promise.resolve(null),
     getApplicationJobDescription(id).catch(() => null),
+    getPrepContext(id).catch(() => null),
   ]);
+
+  const contacts = prepContext?.contacts ?? [];
 
   const recommendedResume = jobDescription && jobDescription.extracted_keywords.length > 0
     ? await getRecommendedResume(id).catch(() => null)
@@ -151,6 +156,10 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               </ul>
             </Card>
           )}
+
+          <Card title="Prep Brief">
+            <PrepBriefCard applicationId={id} />
+          </Card>
         </section>
 
         <section className="space-y-5">
@@ -171,6 +180,31 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               <p className="text-sm text-neutral-400">No resume attached</p>
             )}
           </Card>
+
+          {contacts.length > 0 && (
+            <Card title={`Company Contacts (${contacts.length})`}>
+              <ul className="space-y-3">
+                {contacts.map((contact) => (
+                  <li key={contact.id}>
+                    <p className="text-sm font-medium text-neutral-800">{contact.name}</p>
+                    {contact.role && <p className="text-xs text-neutral-400">{contact.role}</p>}
+                    <div className="flex gap-2 mt-0.5">
+                      {contact.email && (
+                        <a href={`mailto:${contact.email}`} className="text-xs text-blue-600 hover:underline">
+                          {contact.email}
+                        </a>
+                      )}
+                      {contact.linkedin_url && (
+                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                          LinkedIn
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           <Card title={`Audit Log (${auditLogs.length})`}>
             {auditLogs.length === 0 ? (

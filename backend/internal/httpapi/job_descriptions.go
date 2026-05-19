@@ -118,3 +118,31 @@ func (h Handler) recommendedResume(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, result)
 }
+
+func (h Handler) prepContext(w http.ResponseWriter, r *http.Request) {
+	applicationID, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid application id")
+		return
+	}
+	result, err := h.jobDescriptions.PrepContext(r.Context(), applicationID)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h Handler) generatePrepBrief(w http.ResponseWriter, r *http.Request) {
+	applicationID, ok := pathUUID(r, "id")
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid application id")
+		return
+	}
+	result, err := h.jobDescriptions.GeneratePrepBrief(r.Context(), applicationID)
+	if err != nil {
+		h.writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, result)
+}
