@@ -71,6 +71,8 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Post("/{id}/interviews", handler.createInterview)
 			r.Get("/{id}/interviews", handler.listApplicationInterviews)
 			r.Get("/{id}/recommended-resume", handler.recommendedResume)
+			r.Get("/{id}/prep-context", handler.prepContext)
+			r.Post("/{id}/generate-prep-brief", handler.generatePrepBrief)
 		})
 
 		r.Route("/job-descriptions", func(r chi.Router) {

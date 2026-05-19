@@ -204,3 +204,21 @@ type RecommendedResumeResult struct {
 	Score         float64       `json:"score"`
 }
 
+type PrepContext struct {
+	Application    Application      `json:"application"`
+	Company        Company          `json:"company"`
+	JobDescription *JobDescription  `json:"job_description,omitempty"`
+	Resume         *ResumeVersion   `json:"resume,omitempty"`
+	Interviews     []InterviewRound `json:"interviews"`
+	Contacts       []Contact        `json:"contacts"`
+	AuditLogs      []AuditLog       `json:"audit_logs"`
+}
+
+type PrepBrief struct {
+	RoleSummary   string    `json:"role_summary"`
+	KeyGaps       []string  `json:"key_gaps"`
+	FocusAreas    []string  `json:"focus_areas"`
+	TalkingPoints []string  `json:"talking_points"`
+	GeneratedAt   time.Time `json:"generated_at"`
+}
+

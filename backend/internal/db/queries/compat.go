@@ -449,6 +449,50 @@ func (q *Queries) CreateReminderDelivery(ctx context.Context, reminder Reminder)
 	return ReminderDelivery{ID: row.ID, ReminderID: row.ReminderID, IdempotencyKey: row.IdempotencyKey, DeliveredAt: timeFrom(row.DeliveredAt), CreatedAt: timeFrom(row.CreatedAt)}, err
 }
 
+func (q *Queries) ListContactsByCompany(ctx context.Context, companyID string) ([]Contact, error) {
+	const sql = `SELECT id::text, company_id::text, name, role, email, linkedin_url, relationship, notes, created_at, updated_at FROM contacts WHERE company_id = $1::uuid ORDER BY name`
+	rows, err := q.db.Query(ctx, sql, companyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	contacts := make([]Contact, 0)
+	for rows.Next() {
+		var id, cid, name string
+		var role, email, linkedinURL, relationship, notes *string
+		var createdAt, updatedAt pgtype.Timestamptz
+		if err := rows.Scan(&id, &cid, &name, &role, &email, &linkedinURL, &relationship, &notes, &createdAt, &updatedAt); err != nil {
+			return nil, err
+		}
+		contacts = append(contacts, contactFrom(id, cid, name, role, email, linkedinURL, relationship, notes, createdAt, updatedAt))
+	}
+	return contacts, rows.Err()
+}
+
+func (q *Queries) ListRemindersByApplication(ctx context.Context, applicationID string) ([]Reminder, error) {
+	const sql = `SELECT id::text, application_id::text, COALESCE(contact_id::text, '') AS contact_id, title, description, due_at, status, idempotency_key, retry_count, last_error, delivered_at, created_at, updated_at FROM reminders WHERE application_id = $1::uuid ORDER BY due_at`
+	rows, err := q.db.Query(ctx, sql, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	reminders := make([]Reminder, 0)
+	for rows.Next() {
+		var id, appID, idempotencyKey, status string
+		var contactID interface{}
+		var title string
+		var description, lastError *string
+		var retryCount int32
+		var dueAt, createdAt, updatedAt pgtype.Timestamptz
+		var deliveredAt *time.Time
+		if err := rows.Scan(&id, &appID, &contactID, &title, &description, &dueAt, &status, &idempotencyKey, &retryCount, &lastError, &deliveredAt, &createdAt, &updatedAt); err != nil {
+			return nil, err
+		}
+		reminders = append(reminders, reminderFrom(id, appID, contactID, title, description, dueAt, status, idempotencyKey, retryCount, lastError, deliveredAt, createdAt, updatedAt))
+	}
+	return reminders, rows.Err()
+}
+
 func (q *Queries) Search(ctx context.Context, query string) ([]SearchResult, error) {
 	const sql = `
 		SELECT 'application' AS type,
