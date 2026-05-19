@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"careeros/backend/internal/db/queries"
+	analyticssvc "careeros/backend/internal/services/analytics"
 	appsvc "careeros/backend/internal/services/applications"
 	companysvc "careeros/backend/internal/services/companies"
 	contactsvc "careeros/backend/internal/services/contacts"
@@ -36,6 +37,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		Interviews:      interviewsvc.New(store),
 		Reminders:       remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
 		Search:          searchsvc.New(store),
+		Analytics:       analyticssvc.New(store),
 	})
 
 	r.Use(middleware.RequestID)
@@ -94,6 +96,16 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		})
 
 		r.Get("/search", handler.search)
+
+		r.Route("/analytics", func(r chi.Router) {
+			r.Get("/summary", handler.getAnalyticsSummary)
+			r.Get("/by-status", handler.getAnalyticsByStatus)
+			r.Get("/by-role-track", handler.getAnalyticsByTrack)
+			r.Get("/by-resume-version", handler.getAnalyticsByResumeVersion)
+			r.Get("/source-performance", handler.getAnalyticsSourcePerformance)
+			r.Get("/funnel", handler.getAnalyticsFunnel)
+			r.Get("/upcoming", handler.getAnalyticsUpcoming)
+		})
 	})
 
 	return r
