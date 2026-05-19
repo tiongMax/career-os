@@ -122,3 +122,12 @@ type AuditLog struct {
 	NewValue   json.RawMessage `json:"new_value,omitempty"`
 	CreatedAt  time.Time       `json:"created_at"`
 }
+
+type SearchResult struct {
+	Type    string  `json:"type"`
+	ID      string  `json:"id"`
+	Title   string  `json:"title"`
+	Company *string `json:"company,omitempty"`
+	Rank    float64 `json:"rank"`
+}
+

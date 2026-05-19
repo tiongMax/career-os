@@ -146,3 +146,16 @@ export const getContacts = () => apiFetch<Contact[]>("/contacts");
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
+
+// ─── Search ──────────────────────────────────────────────────────────────────
+
+export interface SearchResult {
+  type: string;
+  id: string;
+  title: string;
+  company?: string;
+  rank: number;
+}
+
+export const search = (q: string) =>
+  apiFetch<{ query: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`);

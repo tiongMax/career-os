@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SearchForm } from "./search-form";
 
 export default async function SearchPage(props: PageProps<"/search">) {
@@ -13,11 +14,9 @@ export default async function SearchPage(props: PageProps<"/search">) {
       if (res.ok) {
         const data = await res.json();
         results = data.results ?? [];
-      } else {
-        error = "Search is not available yet — coming in Day 4.";
       }
     } catch {
-      error = "Search is not available yet — coming in Day 4.";
+      error = "Search unavailable. Please try again later.";
     }
   }
 
@@ -46,16 +45,18 @@ export default async function SearchPage(props: PageProps<"/search">) {
           <ul className="space-y-2">
             {results.map((r) => (
               <li key={r.id} className="rounded-lg border border-neutral-200 bg-white px-5 py-4">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-800">{r.title}</p>
-                    {r.company && <p className="text-xs text-neutral-400 mt-0.5">{r.company}</p>}
+                <Link href={"/applications/" + r.id} className="block">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-800">{r.title}</p>
+                      {r.company && <p className="text-xs text-neutral-400 mt-0.5">{r.company}</p>}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs rounded-full bg-neutral-100 text-neutral-500 px-2 py-0.5 capitalize">{r.type}</span>
+                      {r.rank && <p className="text-xs text-neutral-400 mt-1">rank {r.rank.toFixed(2)}</p>}
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className="text-xs rounded-full bg-neutral-100 text-neutral-500 px-2 py-0.5 capitalize">{r.type}</span>
-                    {r.rank && <p className="text-xs text-neutral-400 mt-1">rank {r.rank.toFixed(2)}</p>}
-                  </div>
-                </div>
+                </Link>
               </li>
             ))}
           </ul>

@@ -15,6 +15,7 @@ type Handler struct {
 	contacts        contactService
 	interviews      interviewService
 	reminders       reminderService
+	searchSvc       searchService
 }
 
 type Services struct {
@@ -25,6 +26,7 @@ type Services struct {
 	Contacts        contactService
 	Interviews      interviewService
 	Reminders       reminderService
+	Search          searchService
 }
 
 type companyService interface {
@@ -84,6 +86,10 @@ type reminderService interface {
 	Delete(context.Context, string) error
 }
 
+type searchService interface {
+	Search(context.Context, string) ([]queries.SearchResult, error)
+}
+
 func NewHandler(services Services) Handler {
 	return Handler{
 		companies:       services.Companies,
@@ -93,5 +99,6 @@ func NewHandler(services Services) Handler {
 		contacts:        services.Contacts,
 		interviews:      services.Interviews,
 		reminders:       services.Reminders,
+		searchSvc:       services.Search,
 	}
 }

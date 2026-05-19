@@ -13,6 +13,7 @@ import (
 	jdsvc "careeros/backend/internal/services/jobdescriptions"
 	remindersvc "careeros/backend/internal/services/reminders"
 	resumesvc "careeros/backend/internal/services/resumes"
+	searchsvc "careeros/backend/internal/services/search"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -34,6 +35,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		Contacts:        contactsvc.New(store),
 		Interviews:      interviewsvc.New(store),
 		Reminders:       remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
+		Search:          searchsvc.New(store),
 	})
 
 	r.Use(middleware.RequestID)
@@ -90,6 +92,8 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Delete("/{id}", handler.deleteReminder)
 			r.Post("/{id}/cancel", handler.cancelReminder)
 		})
+
+		r.Get("/search", handler.search)
 	})
 
 	return r
