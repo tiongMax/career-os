@@ -10,12 +10,14 @@ import {
   Search,
   Bell,
   BarChart2,
+  Users,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/applications", label: "Applications", icon: Briefcase },
   { href: "/resume-versions", label: "Resumes", icon: FileText },
+  { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/search", label: "Search", icon: Search },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
