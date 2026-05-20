@@ -28,12 +28,16 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 shrink-0 border-r border-neutral-200 bg-white h-screen sticky top-0 flex flex-col">
-      <div className="px-5 py-5 border-b border-neutral-200">
-        <span className="text-base font-semibold text-neutral-900 tracking-tight">
-          CareerOS
-        </span>
+      <div className="px-4 py-5 border-b border-neutral-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
+            <Briefcase className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-base font-semibold text-neutral-900 tracking-tight">CareerOS</span>
+        </div>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -43,8 +47,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
                 active
-                  ? "bg-neutral-100 text-neutral-900 font-medium"
-                  : "text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50"
+                  ? "bg-neutral-900 text-white font-medium"
+                  : "text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100"
               )}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -53,6 +57,15 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-4 py-4 border-t border-neutral-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-neutral-600">
+            N
+          </div>
+          <span className="text-xs text-neutral-500 truncate">tiongMax</span>
+        </div>
+      </div>
     </aside>
   );
 }
