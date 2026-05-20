@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Search, X, Check, Building2, Plus } from "lucide-react";
 import type { Company, ResumeVersion } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
@@ -28,20 +29,10 @@ const EMPLOYMENT_TYPES = [
 ];
 
 const LOCATION_SUGGESTIONS = [
-  "Remote",
-  "San Francisco, CA",
-  "New York, NY",
-  "Seattle, WA",
-  "Austin, TX",
-  "Boston, MA",
-  "Chicago, IL",
-  "Los Angeles, CA",
-  "Denver, CO",
-  "Miami, FL",
-  "Washington, DC",
-  "Pittsburgh, PA",
-  "Portland, OR",
-  "Atlanta, GA",
+  "Remote", "San Francisco, CA", "New York, NY", "Seattle, WA",
+  "Austin, TX", "Boston, MA", "Chicago, IL", "Los Angeles, CA",
+  "Denver, CO", "Miami, FL", "Washington, DC", "Pittsburgh, PA",
+  "Portland, OR", "Atlanta, GA",
 ];
 
 export function NewApplicationForm({
@@ -54,7 +45,6 @@ export function NewApplicationForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isNewCompany, setIsNewCompany] = useState(companies.length === 0);
   const [isCustomTrack, setIsCustomTrack] = useState(false);
   const [status, setStatus] = useState("saved");
 
@@ -66,14 +56,19 @@ export function NewApplicationForm({
     const fd = new FormData(e.currentTarget);
 
     try {
+      const existingCompanyId = fd.get("company_id") as string;
+      const newCompanyName = (fd.get("new_company_name") as string)?.trim();
+
+      if (!existingCompanyId && !newCompanyName) {
+        throw new Error("Please select or create a company");
+      }
+
       let companyId: string;
-      if (isNewCompany) {
-        const name = (fd.get("new_company_name") as string).trim();
-        if (!name) throw new Error("Company name is required");
+      if (newCompanyName) {
         const res = await fetch(`${BASE}/companies`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name: newCompanyName }),
         });
         if (!res.ok) {
           const text = await res.text().catch(() => res.statusText);
@@ -82,8 +77,7 @@ export function NewApplicationForm({
         const company = await res.json();
         companyId = company.id;
       } else {
-        companyId = fd.get("company_id") as string;
-        if (!companyId) throw new Error("Please select a company");
+        companyId = existingCompanyId;
       }
 
       const track = isCustomTrack
@@ -135,34 +129,7 @@ export function NewApplicationForm({
       {/* Position */}
       <FormSection title="Position">
         <Field label="Company" required>
-          {isNewCompany ? (
-            <div className="space-y-2">
-              <input
-                name="new_company_name"
-                required
-                placeholder="e.g. Google, Stripe…"
-                className={inputClass}
-                autoFocus
-              />
-              {companies.length > 0 && (
-                <button type="button" onClick={() => setIsNewCompany(false)} className={linkClass}>
-                  ← Select existing company
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <select name="company_id" required className={selectClass}>
-                <option value="">Select company…</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <button type="button" onClick={() => setIsNewCompany(true)} className={linkClass}>
-                + Add new company
-              </button>
-            </div>
-          )}
+          <CompanyCombobox companies={companies} />
         </Field>
 
         <Field label="Role Title" required>
@@ -310,10 +277,165 @@ export function NewApplicationForm({
   );
 }
 
+type CompanySelection =
+  | { type: "existing"; id: string; name: string }
+  | { type: "new"; name: string };
+
+function CompanyCombobox({ companies }: { companies: Company[] }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<CompanySelection | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = query
+    ? companies.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
+    : companies;
+
+  const hasExactMatch = companies.some(
+    (c) => c.name.toLowerCase() === query.trim().toLowerCase()
+  );
+  const showCreate = query.trim().length > 0 && !hasExactMatch;
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function selectExisting(company: Company) {
+    setSelected({ type: "existing", id: company.id, name: company.name });
+    setQuery("");
+    setOpen(false);
+  }
+
+  function selectNew(name: string) {
+    setSelected({ type: "new", name });
+    setQuery("");
+    setOpen(false);
+  }
+
+  function clear() {
+    setSelected(null);
+    setQuery("");
+    setOpen(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  const showDropdown = open && !selected && (filtered.length > 0 || showCreate);
+
+  return (
+    <div ref={containerRef} className="relative">
+      {selected?.type === "existing" && (
+        <input type="hidden" name="company_id" value={selected.id} />
+      )}
+      {selected?.type === "new" && (
+        <input type="hidden" name="new_company_name" value={selected.name} />
+      )}
+
+      {selected ? (
+        /* Selected state */
+        <div className="flex items-center gap-3 rounded-md border border-green-200 bg-green-50 px-3 py-2.5">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100">
+            {selected.type === "new"
+              ? <Plus className="h-3 w-3 text-green-600" />
+              : <Check className="h-3 w-3 text-green-600" />
+            }
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-neutral-800 truncate">{selected.name}</p>
+            <p className="text-xs text-green-600">
+              {selected.type === "new" ? "New company — will be created" : "Existing company"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={clear}
+            className="shrink-0 rounded p-0.5 text-neutral-400 hover:bg-green-100 hover:text-neutral-600 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        /* Search input */
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            autoComplete="off"
+            placeholder="Search companies…"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            className="w-full rounded-md border border-neutral-200 bg-white py-2 pl-9 pr-3 text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => { setQuery(""); inputRef.current?.focus(); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {showDropdown && (
+        <div className="absolute left-0 right-0 z-30 mt-1.5 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
+          {/* Existing companies */}
+          {filtered.length > 0 && (
+            <ul className="max-h-48 overflow-y-auto py-1">
+              {filtered.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); selectExisting(c); }}
+                    className="group flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <Building2 className="h-3.5 w-3.5 shrink-0 text-neutral-400 group-hover:text-neutral-300" />
+                    <span className="truncate">{c.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Create new option */}
+          {showCreate && (
+            <div className={filtered.length > 0 ? "border-t border-neutral-100" : ""}>
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); selectNew(query.trim()); }}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors cursor-pointer"
+              >
+                <div className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-blue-400">
+                  <Plus className="h-2.5 w-2.5" />
+                </div>
+                <span>Create <span className="font-medium">&ldquo;{query.trim()}&rdquo;</span></span>
+              </button>
+            </div>
+          )}
+
+          {filtered.length === 0 && !showCreate && (
+            <p className="px-3 py-3 text-sm text-neutral-400">No companies found</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Remove overflow-hidden from FormSection so the combobox dropdown can escape the card */
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
-      <h2 className="px-5 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wide border-b border-neutral-100 bg-neutral-50">
+    <div className="rounded-lg border border-neutral-200 bg-white">
+      <h2 className="rounded-t-lg px-5 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wide border-b border-neutral-100 bg-neutral-50">
         {title}
       </h2>
       <div className="px-5 py-5 space-y-4">{children}</div>
