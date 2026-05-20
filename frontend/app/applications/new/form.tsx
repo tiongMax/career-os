@@ -39,7 +39,7 @@ const SOURCE_OPTIONS: Option[] = [
   "LinkedIn", "Referral", "Company Website", "Indeed",
   "Glassdoor", "Wellfound", "Handshake", "Recruiter",
   "Job Fair", "Cold Outreach",
-].map((s) => ({ value: s.toLowerCase().replace(/ /g, "_"), label: s }));
+].map((s) => ({ value: s, label: s }));
 
 const LOCATION_OPTIONS: Option[] = [
   "Remote", "San Francisco, CA", "New York, NY", "Seattle, WA",
@@ -327,12 +327,18 @@ function OptionCombobox({
     function handleOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
-        if (!selected) setQuery("");
+        if (!selected) {
+          if (allowCustom && query.trim()) {
+            pickCustom(query.trim());
+          } else {
+            setQuery("");
+          }
+        }
       }
     }
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
-  }, [selected]);
+  }, [selected, query, allowCustom]);
 
   function pick(option: Option) {
     setSelected(option);
@@ -342,7 +348,7 @@ function OptionCombobox({
   }
 
   function pickCustom(raw: string) {
-    const opt: Option = { value: raw.toLowerCase(), label: raw };
+    const opt: Option = { value: raw, label: raw };
     setSelected(opt);
     setQuery("");
     setOpen(false);
