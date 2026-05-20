@@ -2,38 +2,58 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, Check, Building2, Plus } from "lucide-react";
+import Link from "next/link";
+import { Search, X, Check, Building2, Plus, ChevronDown } from "lucide-react";
 import type { Company, ResumeVersion } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
-const PRESET_TRACKS = ["backend", "ai", "quant", "general", "fullstack", "platform"];
+interface Option {
+  value: string;
+  label: string;
+  meta?: string;
+  dot?: string;
+}
 
-const STATUSES = [
-  { value: "saved", label: "Saved" },
-  { value: "applied", label: "Applied" },
-  { value: "recruiter_screen", label: "Recruiter Screen" },
-  { value: "technical_screen", label: "Technical Screen" },
-  { value: "onsite", label: "Onsite" },
-  { value: "offer", label: "Offer" },
-  { value: "rejected", label: "Rejected" },
-  { value: "withdrawn", label: "Withdrawn" },
+const TRACK_OPTIONS: Option[] = [
+  { value: "backend",   label: "Backend"   },
+  { value: "ai",        label: "AI"        },
+  { value: "quant",     label: "Quant"     },
+  { value: "general",   label: "General"   },
+  { value: "fullstack", label: "Fullstack" },
+  { value: "platform",  label: "Platform"  },
 ];
 
-const EMPLOYMENT_TYPES = [
-  { value: "", label: "Not specified" },
-  { value: "full_time", label: "Full-time" },
+const STATUS_OPTIONS: Option[] = [
+  { value: "saved",            label: "Saved",            dot: "bg-slate-400"   },
+  { value: "applied",          label: "Applied",          dot: "bg-blue-500"    },
+  { value: "recruiter_screen", label: "Recruiter Screen", dot: "bg-purple-500"  },
+  { value: "technical_screen", label: "Technical Screen", dot: "bg-indigo-500"  },
+  { value: "onsite",           label: "Onsite",           dot: "bg-orange-500"  },
+  { value: "offer",            label: "Offer",            dot: "bg-green-500"   },
+  { value: "rejected",         label: "Rejected",         dot: "bg-red-500"     },
+  { value: "withdrawn",        label: "Withdrawn",        dot: "bg-neutral-400" },
+];
+
+const EMPLOYMENT_OPTIONS: Option[] = [
+  { value: "full_time",  label: "Full-time"  },
   { value: "internship", label: "Internship" },
-  { value: "part_time", label: "Part-time" },
-  { value: "contract", label: "Contract" },
+  { value: "part_time",  label: "Part-time"  },
+  { value: "contract",   label: "Contract"   },
 ];
 
-const LOCATION_SUGGESTIONS = [
+const SOURCE_OPTIONS: Option[] = [
+  "LinkedIn", "Referral", "Company Website", "Indeed",
+  "Glassdoor", "Wellfound", "Handshake", "Recruiter",
+  "Job Fair", "Cold Outreach",
+].map((s) => ({ value: s.toLowerCase().replace(/ /g, "_"), label: s }));
+
+const LOCATION_OPTIONS: Option[] = [
   "Remote", "San Francisco, CA", "New York, NY", "Seattle, WA",
   "Austin, TX", "Boston, MA", "Chicago, IL", "Los Angeles, CA",
   "Denver, CO", "Miami, FL", "Washington, DC", "Pittsburgh, PA",
   "Portland, OR", "Atlanta, GA",
-];
+].map((loc) => ({ value: loc, label: loc }));
 
 export function NewApplicationForm({
   companies,
@@ -45,8 +65,13 @@ export function NewApplicationForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isCustomTrack, setIsCustomTrack] = useState(false);
-  const [status, setStatus] = useState("saved");
+  const [status, setStatus] = useState("");
+
+  const resumeOptions: Option[] = resumes.map((r) => ({
+    value: r.id,
+    label: r.name,
+    meta: r.track,
+  }));
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -80,9 +105,7 @@ export function NewApplicationForm({
         companyId = existingCompanyId;
       }
 
-      const track = isCustomTrack
-        ? (fd.get("custom_track") as string).trim().toLowerCase()
-        : (fd.get("role_track") as string);
+      const track = fd.get("role_track") as string;
       if (!track) throw new Error("Track is required");
 
       const body: Record<string, unknown> = {
@@ -131,7 +154,6 @@ export function NewApplicationForm({
         <Field label="Company" required>
           <CompanyCombobox companies={companies} />
         </Field>
-
         <Field label="Role Title" required>
           <input
             name="title"
@@ -146,57 +168,34 @@ export function NewApplicationForm({
       <FormSection title="Classification">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Track" required>
-            {isCustomTrack ? (
-              <div className="space-y-2">
-                <input
-                  name="custom_track"
-                  required
-                  placeholder="e.g. devrel, security…"
-                  className={inputClass}
-                  autoFocus
-                />
-                <button type="button" onClick={() => setIsCustomTrack(false)} className={linkClass}>
-                  ← Use preset
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <select name="role_track" required className={selectClass}>
-                  {PRESET_TRACKS.map((t) => (
-                    <option key={t} value={t} className="capitalize">{t}</option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => setIsCustomTrack(true)} className={linkClass}>
-                  + Custom track
-                </button>
-              </div>
-            )}
+            <OptionCombobox
+              name="role_track"
+              options={TRACK_OPTIONS}
+              placeholder="Select track…"
+              allowCustom
+              required
+            />
           </Field>
-
           <Field label="Status">
-            <select
+            <OptionCombobox
               name="status"
-              className={selectClass}
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
+              options={STATUS_OPTIONS}
+              placeholder="Select status…"
+              required
+              onSelect={setStatus}
+            />
           </Field>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Employment Type">
-            <select name="employment_type" className={selectClass}>
-              {EMPLOYMENT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+            <OptionCombobox
+              name="employment_type"
+              options={EMPLOYMENT_OPTIONS}
+              placeholder="Select type…"
+            />
           </Field>
-
-          {status !== "saved" && (
+          {status && status !== "saved" && (
             <Field label="Applied Date">
               <input
                 name="applied_at"
@@ -212,12 +211,11 @@ export function NewApplicationForm({
       {/* Resume */}
       <FormSection title="Resume">
         <Field label="Resume Version">
-          <select name="resume_version_id" className={selectClass}>
-            <option value="">None</option>
-            {resumes.map((r) => (
-              <option key={r.id} value={r.id}>{r.name} ({r.track})</option>
-            ))}
-          </select>
+          <OptionCombobox
+            name="resume_version_id"
+            options={resumeOptions}
+            placeholder="Search resumes…"
+          />
         </Field>
       </FormSection>
 
@@ -225,29 +223,25 @@ export function NewApplicationForm({
       <FormSection title="Details">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Source">
-            <input name="source" placeholder="LinkedIn, referral, etc." className={inputClass} />
+            <OptionCombobox
+              name="source"
+              options={SOURCE_OPTIONS}
+              placeholder="LinkedIn, referral…"
+              allowCustom
+            />
           </Field>
           <Field label="Location">
-            <div>
-              <input
-                name="location"
-                placeholder="San Francisco, Remote…"
-                className={inputClass}
-                list="location-suggestions"
-              />
-              <datalist id="location-suggestions">
-                {LOCATION_SUGGESTIONS.map((loc) => (
-                  <option key={loc} value={loc} />
-                ))}
-              </datalist>
-            </div>
+            <OptionCombobox
+              name="location"
+              options={LOCATION_OPTIONS}
+              placeholder="San Francisco, Remote…"
+              allowCustom
+            />
           </Field>
         </div>
-
         <Field label="Job URL">
           <input name="job_url" type="url" placeholder="https://…" className={inputClass} />
         </Field>
-
         <Field label="Notes">
           <textarea
             name="notes"
@@ -266,16 +260,218 @@ export function NewApplicationForm({
         >
           {loading ? "Saving…" : "Create Application"}
         </button>
-        <a
+        <Link
           href="/applications"
           className="rounded-md border border-neutral-200 px-5 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
           Cancel
-        </a>
+        </Link>
       </div>
     </form>
   );
 }
+
+// ─── OptionCombobox ───────────────────────────────────────────────────────────
+// For fixed option lists (Track, Status, Employment Type, Resume Version).
+// required=true  → starts with defaultOption selected, no clear button
+// allowCustom=true → lets the user type a value not in the list (for Track)
+
+function OptionCombobox({
+  name,
+  options,
+  placeholder = "Search…",
+  defaultOption,
+  required = false,
+  allowCustom = false,
+  onSelect,
+}: {
+  name: string;
+  options: Option[];
+  placeholder?: string;
+  defaultOption?: Option;
+  required?: boolean;
+  allowCustom?: boolean;
+  onSelect?: (value: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Option | null>(defaultOption ?? null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = query
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  const hasExactMatch = options.some(
+    (o) => o.label.toLowerCase() === query.trim().toLowerCase()
+  );
+  const showCreate = allowCustom && query.trim().length > 0 && !hasExactMatch && !selected;
+  const showDropdown = open && (filtered.length > 0 || showCreate);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        if (!selected) setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [selected]);
+
+  function pick(option: Option) {
+    setSelected(option);
+    setQuery("");
+    setOpen(false);
+    onSelect?.(option.value);
+  }
+
+  function pickCustom(raw: string) {
+    const opt: Option = { value: raw.toLowerCase(), label: raw };
+    setSelected(opt);
+    setQuery("");
+    setOpen(false);
+    onSelect?.(opt.value);
+  }
+
+  function clear() {
+    setSelected(null);
+    setQuery("");
+    setOpen(true);
+    onSelect?.("");
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input type="hidden" name={name} value={selected?.value ?? ""} />
+
+      {selected ? (
+        /* ── Selected pill ── */
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="group flex w-full items-center gap-2.5 rounded-md border border-neutral-900 bg-white px-3 py-2 text-left transition-colors hover:bg-neutral-900"
+        >
+          {selected.dot && (
+            <span className={`h-2 w-2 shrink-0 rounded-full ${selected.dot} group-hover:opacity-70`} />
+          )}
+          <Check className="h-3.5 w-3.5 shrink-0 text-neutral-500 group-hover:text-neutral-300" />
+          <span className="flex-1 truncate text-sm font-medium text-neutral-800 group-hover:text-white">
+            {selected.label}
+          </span>
+          {selected.meta && (
+            <span className="shrink-0 text-xs text-neutral-400 group-hover:text-neutral-300">{selected.meta}</span>
+          )}
+          {!required ? (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); clear(); }}
+              className="ml-auto shrink-0 rounded p-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 group-hover:hover:bg-neutral-700 group-hover:text-neutral-300"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          ) : (
+            <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 text-neutral-400 group-hover:text-neutral-300" />
+          )}
+        </button>
+      ) : open ? (
+        /* ── Search input (open) ── */
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            autoComplete="off"
+            autoFocus
+            placeholder={placeholder}
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); }}
+            className="w-full rounded-md border border-neutral-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => { setQuery(""); inputRef.current?.focus(); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      ) : (
+        /* ── Placeholder button (closed, nothing selected) ── */
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-left text-sm font-medium text-neutral-400 hover:border-neutral-400 hover:text-neutral-500 transition-colors"
+        >
+          <span className="flex-1 truncate">{placeholder}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
+        </button>
+      )}
+
+      {showDropdown && (
+        <div className="absolute left-0 right-0 z-30 mt-1.5 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
+          <ul className="max-h-52 overflow-y-auto py-1">
+            {filtered.map((o) => {
+              const isActive = selected?.value === o.value;
+              return (
+                <li key={o.value}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); pick(o); }}
+                    className={`group flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors cursor-pointer
+                      ${isActive
+                        ? "bg-neutral-900 text-white"
+                        : "text-neutral-700 hover:bg-neutral-900 hover:text-white"
+                      }`}
+                  >
+                    {o.dot && (
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${o.dot}`} />
+                    )}
+                    {isActive
+                      ? <Check className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
+                      : <span className="h-3.5 w-3.5 shrink-0" />
+                    }
+                    <span className="flex-1 truncate">{o.label}</span>
+                    {o.meta && (
+                      <span className={`shrink-0 text-xs ${isActive ? "text-neutral-300" : "text-neutral-400 group-hover:text-neutral-300"}`}>
+                        {o.meta}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {showCreate && (
+            <div className="border-t border-neutral-100">
+              <button
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); pickCustom(query.trim()); }}
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors cursor-pointer"
+              >
+                <div className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-blue-400">
+                  <Plus className="h-2.5 w-2.5" />
+                </div>
+                <span>Use <span className="font-medium">&ldquo;{query.trim()}&rdquo;</span></span>
+              </button>
+            </div>
+          )}
+
+          {filtered.length === 0 && !showCreate && (
+            <p className="px-3 py-3 text-sm text-neutral-400">No results</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CompanyCombobox ──────────────────────────────────────────────────────────
 
 type CompanySelection =
   | { type: "existing"; id: string; name: string }
@@ -296,6 +492,7 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
     (c) => c.name.toLowerCase() === query.trim().toLowerCase()
   );
   const showCreate = query.trim().length > 0 && !hasExactMatch;
+  const showDropdown = open && !selected && (filtered.length > 0 || showCreate);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -326,8 +523,6 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
-  const showDropdown = open && !selected && (filtered.length > 0 || showCreate);
-
   return (
     <div ref={containerRef} className="relative">
       {selected?.type === "existing" && (
@@ -338,30 +533,27 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
       )}
 
       {selected ? (
-        /* Selected state */
-        <div className="flex items-center gap-3 rounded-md border border-green-200 bg-green-50 px-3 py-2.5">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100">
-            {selected.type === "new"
-              ? <Plus className="h-3 w-3 text-green-600" />
-              : <Check className="h-3 w-3 text-green-600" />
-            }
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-neutral-800 truncate">{selected.name}</p>
-            <p className="text-xs text-green-600">
-              {selected.type === "new" ? "New company — will be created" : "Existing company"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={clear}
-            className="shrink-0 rounded p-0.5 text-neutral-400 hover:bg-green-100 hover:text-neutral-600 transition-colors"
+        <button
+          type="button"
+          onClick={clear}
+          className="group flex w-full items-center gap-2.5 rounded-md border border-neutral-900 bg-white px-3 py-2 text-left transition-colors hover:bg-neutral-900"
+        >
+          <Check className="h-3.5 w-3.5 shrink-0 text-neutral-500 group-hover:text-neutral-300" />
+          <span className="flex-1 truncate text-sm font-medium text-neutral-800 group-hover:text-white">
+            {selected.name}
+          </span>
+          {selected.type === "new" && (
+            <span className="shrink-0 text-xs text-neutral-400 group-hover:text-neutral-300">new</span>
+          )}
+          <span
+            role="button"
+            onClick={(e) => { e.stopPropagation(); clear(); }}
+            className="ml-auto shrink-0 rounded p-0.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 group-hover:hover:bg-neutral-700 group-hover:text-neutral-300"
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+            <X className="h-3.5 w-3.5" />
+          </span>
+        </button>
       ) : (
-        /* Search input */
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 pointer-events-none" />
           <input
@@ -372,7 +564,7 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
-            className="w-full rounded-md border border-neutral-200 bg-white py-2 pl-9 pr-3 text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+            className="w-full rounded-md border border-neutral-300 bg-white py-2 pl-9 pr-3 text-sm font-medium text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
           />
           {query && (
             <button
@@ -388,7 +580,6 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
 
       {showDropdown && (
         <div className="absolute left-0 right-0 z-30 mt-1.5 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
-          {/* Existing companies */}
           {filtered.length > 0 && (
             <ul className="max-h-48 overflow-y-auto py-1">
               {filtered.map((c) => (
@@ -405,8 +596,6 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
               ))}
             </ul>
           )}
-
-          {/* Create new option */}
           {showCreate && (
             <div className={filtered.length > 0 ? "border-t border-neutral-100" : ""}>
               <button
@@ -421,7 +610,6 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
               </button>
             </div>
           )}
-
           {filtered.length === 0 && !showCreate && (
             <p className="px-3 py-3 text-sm text-neutral-400">No companies found</p>
           )}
@@ -431,10 +619,11 @@ function CompanyCombobox({ companies }: { companies: Company[] }) {
   );
 }
 
-/* Remove overflow-hidden from FormSection so the combobox dropdown can escape the card */
+// ─── Layout helpers ───────────────────────────────────────────────────────────
+
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white">
+    <div className="rounded-lg border border-neutral-300 bg-white">
       <h2 className="rounded-t-lg px-5 py-3 text-xs font-medium text-neutral-500 uppercase tracking-wide border-b border-neutral-100 bg-neutral-50">
         {title}
       </h2>
@@ -455,10 +644,4 @@ function Field({ label, required, children }: { label: string; required?: boolea
 }
 
 const inputClass =
-  "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent";
-
-const selectClass =
-  "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent";
-
-const linkClass =
-  "text-xs text-neutral-400 hover:text-neutral-600 transition-colors underline-offset-2 hover:underline";
+  "w-full rounded-md border border-neutral-900 bg-white px-3 py-2 text-sm font-medium text-neutral-800 placeholder-shown:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent";
