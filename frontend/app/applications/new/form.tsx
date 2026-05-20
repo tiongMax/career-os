@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, Check, Building2, Plus, ChevronDown, Layers, Briefcase, MapPin, Globe, FileText } from "lucide-react";
-import type { Company, ResumeVersion } from "@/lib/api";
+import type { Company, ResumeVersion, RoleTrack } from "@/lib/api";
+import { createRoleTrack } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
@@ -15,14 +16,6 @@ interface Option {
   dot?: string;
 }
 
-const TRACK_OPTIONS: Option[] = [
-  { value: "backend",   label: "Backend"   },
-  { value: "ai",        label: "AI"        },
-  { value: "quant",     label: "Quant"     },
-  { value: "general",   label: "General"   },
-  { value: "fullstack", label: "Fullstack" },
-  { value: "platform",  label: "Platform"  },
-];
 
 const STATUS_OPTIONS: Option[] = [
   { value: "saved",            label: "Saved",            dot: "bg-slate-400"   },
@@ -58,14 +51,21 @@ const LOCATION_OPTIONS: Option[] = [
 export function NewApplicationForm({
   companies,
   resumes,
+  tracks,
 }: {
   companies: Company[];
   resumes: ResumeVersion[];
+  tracks: RoleTrack[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+
+  const trackOptions: Option[] = tracks.map((t) => ({
+    value: t.name,
+    label: t.name.charAt(0).toUpperCase() + t.name.slice(1),
+  }));
 
   const resumeOptions: Option[] = resumes.map((r) => ({
     value: r.id,
@@ -107,6 +107,13 @@ export function NewApplicationForm({
 
       const track = fd.get("role_track") as string;
       if (!track) throw new Error("Track is required");
+
+      const isKnownTrack = tracks.some((t) => t.name === track);
+      if (!isKnownTrack) {
+        await createRoleTrack(track).catch((err) => {
+          if (!String(err).includes("409")) throw err;
+        });
+      }
 
       const body: Record<string, unknown> = {
         company_id: companyId,
@@ -170,7 +177,7 @@ export function NewApplicationForm({
           <Field label="Track" required>
             <OptionCombobox
               name="role_track"
-              options={TRACK_OPTIONS}
+              options={trackOptions}
               placeholder="Select track…"
               allowCustom
               required

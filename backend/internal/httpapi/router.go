@@ -14,6 +14,7 @@ import (
 	jdsvc "careeros/backend/internal/services/jobdescriptions"
 	remindersvc "careeros/backend/internal/services/reminders"
 	resumesvc "careeros/backend/internal/services/resumes"
+	roletracksvc "careeros/backend/internal/services/roletracks"
 	searchsvc "careeros/backend/internal/services/search"
 
 	"github.com/go-chi/chi/v5"
@@ -38,6 +39,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		Reminders:       remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
 		Search:          searchsvc.New(store),
 		Analytics:       analyticssvc.New(store),
+		RoleTracks:      roletracksvc.New(store),
 	})
 
 	r.Use(corsMiddleware)
@@ -102,6 +104,8 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Post("/{id}/cancel", handler.cancelReminder)
 			r.Post("/{id}/retry", handler.retryReminder)
 		})
+
+		collection(r, "/tracks", handler.createRoleTrack, handler.listRoleTracks, func(r chi.Router) {})
 
 		r.Get("/search", handler.search)
 

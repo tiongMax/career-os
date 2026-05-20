@@ -11,6 +11,7 @@ import (
 	jdsvc "careeros/backend/internal/services/jobdescriptions"
 	remindersvc "careeros/backend/internal/services/reminders"
 	resumesvc "careeros/backend/internal/services/resumes"
+	roletracksvc "careeros/backend/internal/services/roletracks"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -22,7 +23,6 @@ func (h Handler) writeServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, appsvc.ErrInvalidTransition):
 		writeError(w, http.StatusConflict, err.Error())
 	case errors.Is(err, appsvc.ErrInvalidStatus),
-		errors.Is(err, appsvc.ErrInvalidTrack),
 		errors.Is(err, appsvc.ErrTitleRequired),
 		errors.Is(err, companysvc.ErrNameRequired),
 		errors.Is(err, contactsvc.ErrNameRequired),
@@ -31,10 +31,13 @@ func (h Handler) writeServiceError(w http.ResponseWriter, err error) {
 		errors.Is(err, resumesvc.ErrNameRequired),
 		errors.Is(err, jdsvc.ErrRawTextRequired),
 		errors.Is(err, remindersvc.ErrTitleRequired),
-		errors.Is(err, remindersvc.ErrDueAtRequired):
+		errors.Is(err, remindersvc.ErrDueAtRequired),
+		errors.Is(err, roletracksvc.ErrNameRequired):
 		writeError(w, http.StatusBadRequest, err.Error())
+	case pgErrorCode(err, "23505"):
+		writeError(w, http.StatusConflict, "already exists")
 	case pgErrorCode(err, "23503"):
-		writeError(w, http.StatusConflict, "request conflicts with existing related data")
+		writeError(w, http.StatusBadRequest, "invalid role track")
 	case pgErrorCode(err, "23514"), pgErrorCode(err, "22P02"):
 		writeError(w, http.StatusBadRequest, "request violates data constraints")
 	default:

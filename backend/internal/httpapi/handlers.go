@@ -18,6 +18,7 @@ type Handler struct {
 	reminders       reminderService
 	searchSvc       searchService
 	analytics       analyticsService
+	roleTracks      roleTrackService
 }
 
 type Services struct {
@@ -30,6 +31,7 @@ type Services struct {
 	Reminders       reminderService
 	Search          searchService
 	Analytics       analyticsService
+	RoleTracks      roleTrackService
 }
 
 type companyService interface {
@@ -110,6 +112,11 @@ type analyticsService interface {
 	Upcoming(context.Context) (analyticssvc.UpcomingResult, error)
 }
 
+type roleTrackService interface {
+	Create(context.Context, string) (queries.RoleTrack, error)
+	List(context.Context) ([]queries.RoleTrack, error)
+}
+
 func NewHandler(services Services) Handler {
 	return Handler{
 		companies:       services.Companies,
@@ -121,5 +128,6 @@ func NewHandler(services Services) Handler {
 		reminders:       services.Reminders,
 		searchSvc:       services.Search,
 		analytics:       services.Analytics,
+		roleTracks:      services.RoleTracks,
 	}
 }

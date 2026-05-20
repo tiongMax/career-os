@@ -10,13 +10,6 @@ import (
 
 var (
 	ErrTitleRequired = errors.New("application title is required")
-	ErrInvalidTrack  = errors.New("application role_track must be one of backend, ai, quant, general")
-	allowedRoleTrack = map[string]struct{}{
-		"backend": {},
-		"ai":      {},
-		"quant":   {},
-		"general": {},
-	}
 )
 
 type Store interface {
@@ -46,9 +39,6 @@ func (s *Service) Create(ctx context.Context, arg queries.CreateApplicationParam
 	if strings.TrimSpace(arg.Title) == "" {
 		return queries.Application{}, ErrTitleRequired
 	}
-	if !validRoleTrack(arg.RoleTrack) {
-		return queries.Application{}, ErrInvalidTrack
-	}
 	if arg.Status != nil {
 		if _, ok := allowedTransitions[*arg.Status]; !ok {
 			return queries.Application{}, ErrInvalidStatus
@@ -68,9 +58,6 @@ func (s *Service) Get(ctx context.Context, id string) (queries.Application, erro
 func (s *Service) Update(ctx context.Context, arg queries.UpdateApplicationParams) (queries.Application, error) {
 	if arg.Title != nil && strings.TrimSpace(*arg.Title) == "" {
 		return queries.Application{}, ErrTitleRequired
-	}
-	if arg.RoleTrack != nil && !validRoleTrack(*arg.RoleTrack) {
-		return queries.Application{}, ErrInvalidTrack
 	}
 	return s.store.UpdateApplication(ctx, arg)
 }
@@ -94,7 +81,3 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.store.DeleteApplication(ctx, id)
 }
 
-func validRoleTrack(track string) bool {
-	_, ok := allowedRoleTrack[track]
-	return ok
-}
