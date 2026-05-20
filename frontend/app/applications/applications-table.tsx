@@ -186,7 +186,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900">Applications</h1>
           <p className="mt-1 text-sm text-neutral-500">
@@ -195,49 +195,49 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
               : `${applications.length} total`}
           </p>
         </div>
+        <Link
+          href="/applications/new"
+          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors whitespace-nowrap"
+        >
+          + New Application
+        </Link>
+      </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search roles..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-sm rounded-md border border-neutral-200 bg-white text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent w-56"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <CompanyFilter companies={allCompanies} selected={companyFilter} onToggle={toggleCompany} onClear={() => setCompanyFilter([])} />
-          <TrackFilter tracks={allTracks} selected={trackFilter} onToggle={toggleTrack} onClear={() => setTrackFilter([])} />
-          <StatusFilter selected={statusFilter} onToggle={toggleStatus} onClear={() => setStatusFilter([])} />
-          <DateFilter selected={dateFilter} onChange={setDateFilter} />
-
-          {hasFilters && (
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search roles..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-neutral-200 bg-white text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent"
+          />
+          {search && (
             <button
-              onClick={clearAll}
-              className="animate-fade-in flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-700 rounded-md border border-neutral-200 hover:border-neutral-300 transition-colors"
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
             >
-              <X className="w-3 h-3" /> Clear
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
-
-          <Link
-            href="/applications/new"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors whitespace-nowrap"
-          >
-            + New Application
-          </Link>
         </div>
+
+        <CompanyFilter companies={allCompanies} selected={companyFilter} onToggle={toggleCompany} onClear={() => setCompanyFilter([])} />
+        <TrackFilter tracks={allTracks} selected={trackFilter} onToggle={toggleTrack} onClear={() => setTrackFilter([])} />
+        <StatusFilter selected={statusFilter} onToggle={toggleStatus} onClear={() => setStatusFilter([])} />
+        <DateFilter selected={dateFilter} onChange={setDateFilter} />
+
+        {hasFilters && (
+          <button
+            onClick={clearAll}
+            className="animate-fade-in flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-700 rounded-md border border-neutral-200 hover:border-neutral-300 transition-colors"
+          >
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
       </div>
 
       {/* Table */}

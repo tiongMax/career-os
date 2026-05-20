@@ -2,22 +2,20 @@ export default function ApplicationsLoading() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 justify-between">
+      <div className="flex items-center justify-between">
         <div className="space-y-2">
           <div className="h-7 w-36 rounded-md bg-neutral-200 animate-pulse" />
           <div className="h-4 w-16 rounded-md bg-neutral-100 animate-pulse" />
         </div>
+        <div className="h-9 w-36 rounded-md bg-neutral-200 animate-pulse" />
+      </div>
 
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {/* Search bar */}
-          <div className="h-8 w-56 rounded-md bg-neutral-200 animate-pulse" />
-          {/* Filter buttons */}
-          {["w-24", "w-20", "w-20", "w-20"].map((w, i) => (
-            <div key={i} className={`h-8 ${w} rounded-md bg-neutral-200 animate-pulse`} />
-          ))}
-          {/* New Application button */}
-          <div className="h-9 w-36 rounded-md bg-neutral-200 animate-pulse" />
-        </div>
+      {/* Filters */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="h-8 flex-1 rounded-md bg-neutral-200 animate-pulse" />
+        {["w-24", "w-20", "w-20", "w-20"].map((w, i) => (
+          <div key={i} className={`h-8 ${w} rounded-md bg-neutral-200 animate-pulse`} />
+        ))}
       </div>
 
       {/* Table */}
