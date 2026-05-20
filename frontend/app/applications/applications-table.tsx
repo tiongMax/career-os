@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Search, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
 import type { Application } from "@/lib/api";
@@ -80,10 +80,18 @@ function SortIcon({ col, sortCol, sortDir }: { col: SortCol; sortCol: SortCol; s
 
 export function ApplicationsTable({ applications, companyMap }: Props) {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState<string[]>([]);
   const [dateFilter, setDateFilter] = useState<string>("");
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(id);
+  }, [search]);
+
+  const isPending = search !== debouncedSearch;
   const [sortCol, setSortCol] = useState<SortCol>("applied");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -118,8 +126,8 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
   const filtered = useMemo(() => {
     let list = applications;
 
-    if (search.trim()) {
-      list = list.filter((a) => fuzzyMatch(search.trim(), a.title));
+    if (debouncedSearch.trim()) {
+      list = list.filter((a) => fuzzyMatch(debouncedSearch.trim(), a.title));
     }
 
     if (trackFilter.length > 0)
@@ -163,7 +171,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [applications, companyMap, search, trackFilter, statusFilter, companyFilter, dateFilter, sortCol, sortDir]);
+  }, [applications, companyMap, debouncedSearch, trackFilter, statusFilter, companyFilter, dateFilter, sortCol, sortDir]);
 
   const hasFilters = search.trim() || trackFilter.length > 0 || statusFilter.length > 0 || companyFilter.length > 0 || dateFilter;
 
@@ -217,7 +225,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           {hasFilters && (
             <button
               onClick={clearAll}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-700 rounded-md border border-neutral-200 hover:border-neutral-300 transition-colors"
+              className="animate-fade-in flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-neutral-500 hover:text-neutral-700 rounded-md border border-neutral-200 hover:border-neutral-300 transition-colors"
             >
               <X className="w-3 h-3" /> Clear
             </button>
@@ -241,7 +249,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           </button>
         </div>
       ) : (
-        <div className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
+        <div className={`rounded-lg border border-neutral-200 bg-white overflow-hidden transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-100 bg-neutral-50">
