@@ -40,6 +40,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		Analytics:       analyticssvc.New(store),
 	})
 
+	r.Use(corsMiddleware)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(requestLogger(log))
@@ -131,6 +132,19 @@ func collection(
 		r.Post("/", create)
 		r.Get("/", list)
 		nested(r)
+	})
+}
+
+func corsMiddleware(next nethttp.Handler) nethttp.Handler {
+	return nethttp.HandlerFunc(func(w nethttp.ResponseWriter, r *nethttp.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == nethttp.MethodOptions {
+			w.WriteHeader(nethttp.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
