@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, X, Check, Building2, Plus, ChevronDown, Layers, Briefcase, MapPin, Globe, FileText } from "lucide-react";
@@ -105,7 +105,7 @@ export function NewApplicationForm({
         companyId = existingCompanyId;
       }
 
-      const track = fd.get("role_track") as string;
+      const track = (fd.get("role_track") as string).trim().toLowerCase();
       if (!track) throw new Error("Track is required");
 
       const isKnownTrack = tracks.some((t) => t.name === track);
@@ -323,6 +323,21 @@ function OptionCombobox({
   const showCreate = allowCustom && query.trim().length > 0 && !hasExactMatch && !selected;
   const showDropdown = open && (filtered.length > 0 || showCreate);
 
+  function pick(option: Option) {
+    setSelected(option);
+    setQuery("");
+    setOpen(false);
+    onSelect?.(option.value);
+  }
+
+  const pickCustom = useCallback((raw: string) => {
+    const opt: Option = { value: raw, label: raw };
+    setSelected(opt);
+    setQuery("");
+    setOpen(false);
+    onSelect?.(opt.value);
+  }, [onSelect]);
+
   useEffect(() => {
     function handleOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -338,22 +353,7 @@ function OptionCombobox({
     }
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
-  }, [selected, query, allowCustom]);
-
-  function pick(option: Option) {
-    setSelected(option);
-    setQuery("");
-    setOpen(false);
-    onSelect?.(option.value);
-  }
-
-  function pickCustom(raw: string) {
-    const opt: Option = { value: raw, label: raw };
-    setSelected(opt);
-    setQuery("");
-    setOpen(false);
-    onSelect?.(opt.value);
-  }
+  }, [selected, query, allowCustom, pickCustom]);
 
   function clear() {
     setSelected(null);

@@ -142,8 +142,8 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
     if (dateFilter) {
       const threshold = dateThreshold(dateFilter);
       list = list.filter((a) => {
-        const d = new Date(a.applied_at ?? a.created_at);
-        return d >= threshold;
+        if (!a.applied_at) return false;
+        return new Date(a.applied_at) >= threshold;
       });
     }
 
