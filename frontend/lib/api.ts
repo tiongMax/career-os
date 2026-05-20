@@ -125,6 +125,21 @@ export interface AuditLog {
   created_at: string;
 }
 
+// ─── Role Tracks ─────────────────────────────────────────────────────────────
+
+export interface RoleTrack {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export const getRoleTracks = () => apiFetch<RoleTrack[]>("/tracks");
+export const createRoleTrack = (name: string) =>
+  apiFetch<RoleTrack>("/tracks", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+
 // ─── Companies ──────────────────────────────────────────────────────────────
 
 export const getCompanies = () => apiFetch<Company[]>("/companies");

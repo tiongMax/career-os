@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { getCompanies, getResumeVersions } from "@/lib/api";
+import { getCompanies, getResumeVersions, getRoleTracks } from "@/lib/api";
 import { NewApplicationForm } from "./form";
 
 export default async function NewApplicationPage() {
-  const [companies, resumes] = await Promise.all([
+  const [companies, resumes, tracks] = await Promise.all([
     getCompanies().catch(() => []),
     getResumeVersions().catch(() => []),
+    getRoleTracks().catch(() => []),
   ]);
 
   return (
@@ -22,7 +23,7 @@ export default async function NewApplicationPage() {
         <h1 className="text-2xl font-semibold text-neutral-900">New Application</h1>
         <p className="mt-1 text-sm text-neutral-500">Track a new job application</p>
       </div>
-      <NewApplicationForm companies={companies} resumes={resumes} />
+      <NewApplicationForm companies={companies} resumes={resumes} tracks={tracks} />
     </div>
   );
 }
