@@ -421,6 +421,7 @@ function OptionCombobox({
           onClick={() => setOpen(true)}
           className="flex w-full items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-left text-sm font-medium text-neutral-400 hover:border-neutral-400 hover:text-neutral-500 transition-colors"
         >
+          <Search className="h-4 w-4 shrink-0 text-neutral-400" />
           <span className="flex-1 truncate">{placeholder}</span>
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
         </button>
