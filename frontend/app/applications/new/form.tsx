@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, X, Check, Building2, Plus, ChevronDown } from "lucide-react";
+import { Search, X, Check, Building2, Plus, ChevronDown, Layers, Briefcase, MapPin, Globe, FileText } from "lucide-react";
 import type { Company, ResumeVersion } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
@@ -174,6 +174,7 @@ export function NewApplicationForm({
               placeholder="Select track…"
               allowCustom
               required
+              icon={Layers}
             />
           </Field>
           <Field label="Status">
@@ -193,6 +194,7 @@ export function NewApplicationForm({
               name="employment_type"
               options={EMPLOYMENT_OPTIONS}
               placeholder="Select type…"
+              icon={Briefcase}
             />
           </Field>
           {status && status !== "saved" && (
@@ -215,6 +217,7 @@ export function NewApplicationForm({
             name="resume_version_id"
             options={resumeOptions}
             placeholder="Search resumes…"
+            icon={FileText}
           />
         </Field>
       </FormSection>
@@ -228,6 +231,7 @@ export function NewApplicationForm({
               options={SOURCE_OPTIONS}
               placeholder="LinkedIn, referral…"
               allowCustom
+              icon={Globe}
             />
           </Field>
           <Field label="Location">
@@ -236,6 +240,7 @@ export function NewApplicationForm({
               options={LOCATION_OPTIONS}
               placeholder="San Francisco, Remote…"
               allowCustom
+              icon={MapPin}
             />
           </Field>
         </div>
@@ -262,7 +267,7 @@ export function NewApplicationForm({
         </button>
         <Link
           href="/applications"
-          className="rounded-md border border-neutral-200 px-5 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className="rounded-md border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
         >
           Cancel
         </Link>
@@ -284,6 +289,7 @@ function OptionCombobox({
   required = false,
   allowCustom = false,
   onSelect,
+  icon: Icon,
 }: {
   name: string;
   options: Option[];
@@ -292,6 +298,7 @@ function OptionCombobox({
   required?: boolean;
   allowCustom?: boolean;
   onSelect?: (value: string) => void;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -433,7 +440,9 @@ function OptionCombobox({
                     )}
                     {isActive
                       ? <Check className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
-                      : <span className="h-3.5 w-3.5 shrink-0" />
+                      : Icon
+                        ? <Icon className="h-3.5 w-3.5 shrink-0 text-neutral-400 group-hover:text-neutral-300" />
+                        : <span className="h-3.5 w-3.5 shrink-0" />
                     }
                     <span className="flex-1 truncate">{o.label}</span>
                     {o.meta && (
