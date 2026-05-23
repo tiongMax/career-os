@@ -25,6 +25,8 @@ type Store interface {
 	GetResumeVersion(context.Context, string) (queries.ResumeVersion, error)
 	UpdateResumeVersion(context.Context, queries.UpdateResumeVersionParams) (queries.ResumeVersion, error)
 	DeleteResumeVersion(context.Context, string) error
+	StorePDF(context.Context, string, []byte) error
+	GetPDF(context.Context, string) ([]byte, error)
 }
 
 type Service struct {
@@ -71,6 +73,14 @@ func (s *Service) Update(ctx context.Context, arg queries.UpdateResumeVersionPar
 
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.store.DeleteResumeVersion(ctx, id)
+}
+
+func (s *Service) StorePDF(ctx context.Context, id string, data []byte) error {
+	return s.store.StorePDF(ctx, id, data)
+}
+
+func (s *Service) GetPDF(ctx context.Context, id string) ([]byte, error) {
+	return s.store.GetPDF(ctx, id)
 }
 
 func validTrack(track string) bool {

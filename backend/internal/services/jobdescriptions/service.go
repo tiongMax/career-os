@@ -185,9 +185,6 @@ func matchKeywords(keywords []string, resume queries.ResumeVersion) queries.Resu
 func resumeSearchText(rv queries.ResumeVersion) string {
 	parts := []string{rv.Name, rv.Track}
 	parts = append(parts, rv.Tags...)
-	if rv.ContentText != nil {
-		parts = append(parts, *rv.ContentText)
-	}
 	return strings.Join(parts, " ")
 }
 

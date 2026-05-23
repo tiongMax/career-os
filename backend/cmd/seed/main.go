@@ -168,12 +168,10 @@ func main() {
 
 	resumes := make([]queries.ResumeVersion, 0, len(resumeSpecs))
 	for _, spec := range resumeSpecs {
-		ct := spec.content
 		rv, err := store.CreateResumeVersion(ctx, queries.CreateResumeVersionParams{
-			Name:        spec.name,
-			Track:       spec.track,
-			Tags:        spec.tags,
-			ContentText: &ct,
+			Name:  spec.name,
+			Track: spec.track,
+			Tags:  spec.tags,
 		})
 		if err != nil {
 			log.Printf("insert resume %q: %v", spec.name, err)

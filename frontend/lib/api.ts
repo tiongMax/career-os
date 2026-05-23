@@ -30,8 +30,7 @@ export interface ResumeVersion {
   id: string;
   name: string;
   track: string;
-  file_path?: string;
-  content_text?: string;
+  has_pdf: boolean;
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -150,6 +149,30 @@ export const getCompany = (id: string) => apiFetch<Company>(`/companies/${id}`);
 export const getResumeVersions = () => apiFetch<ResumeVersion[]>("/resume-versions");
 export const getResumeVersion = (id: string) =>
   apiFetch<ResumeVersion>(`/resume-versions/${id}`);
+export const createResumeVersion = (body: {
+  name: string;
+  track: string;
+  tags?: string[];
+}) => apiFetch<ResumeVersion>("/resume-versions", { method: "POST", body: JSON.stringify(body) });
+export const updateResumeVersion = (id: string, body: {
+  name?: string;
+  track?: string;
+  tags?: string[];
+}) => apiFetch<ResumeVersion>(`/resume-versions/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+export const deleteResumeVersion = (id: string) =>
+  apiFetch<void>(`/resume-versions/${id}`, { method: "DELETE" });
+
+export const uploadResumePDF = async (id: string, file: File): Promise<void> => {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${BASE}/resume-versions/${id}/pdf`, { method: "POST", body: form });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`API ${res.status}: ${text}`);
+  }
+};
+
+export const getResumePDFUrl = (id: string) => `${BASE}/resume-versions/${id}/pdf`;
 
 // ─── Applications ────────────────────────────────────────────────────────────
 

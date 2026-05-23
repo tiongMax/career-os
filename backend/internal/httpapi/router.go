@@ -61,6 +61,8 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Get("/{id}", handler.getResumeVersion)
 			r.Patch("/{id}", handler.updateResumeVersion)
 			r.Delete("/{id}", handler.deleteResumeVersion)
+			r.Post("/{id}/pdf", handler.uploadResumePDF)
+			r.Get("/{id}/pdf", handler.serveResumePDF)
 		})
 
 		collection(r, "/applications", handler.createApplication, handler.listApplications, func(r chi.Router) {
