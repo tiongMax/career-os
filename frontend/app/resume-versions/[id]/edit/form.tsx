@@ -93,9 +93,9 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
             onClick={() => tagInputRef.current?.focus()}
           >
             {tags.map((tag) => (
-              <span key={tag} className="flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">
+              <span key={tag} className="group flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600 hover:bg-blue-100 transition-colors">
                 {tag}
-                <button type="button" onClick={() => setTags((p) => p.filter((t) => t !== tag))} className="text-blue-400 hover:text-blue-700">
+                <button type="button" onClick={() => setTags((p) => p.filter((t) => t !== tag))} className="cursor-pointer text-blue-400 hover:text-blue-700">
                   <X className="h-3 w-3" />
                 </button>
               </span>
