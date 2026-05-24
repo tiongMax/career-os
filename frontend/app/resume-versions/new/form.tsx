@@ -3,7 +3,7 @@
 import { useState, useRef, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { X, Paperclip } from "lucide-react";
+import { X, Paperclip, FileText } from "lucide-react";
 import { createResumeVersion, uploadResumePDF } from "@/lib/api";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 
@@ -94,17 +94,24 @@ export function NewResumeForm() {
         </Field>
         <Field label="Resume PDF">
           <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
-          >
-            <Paperclip className="h-4 w-4" />
-            {pdfFile ? pdfFile.name : "Attach PDF"}
-          </button>
-          {pdfFile && (
-            <button type="button" onClick={() => setPdfFile(null)} className="ml-2 text-xs text-neutral-400 hover:text-neutral-700">
-              Remove
+          {pdfFile ? (
+            <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
+                <span className="truncate text-sm text-neutral-700">{pdfFile.name}</span>
+              </div>
+              <button type="button" onClick={() => setPdfFile(null)} className="ml-3 shrink-0 text-xs text-neutral-400 hover:text-red-500 transition-colors">
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-neutral-300 bg-white px-3 py-4 text-sm text-neutral-400 hover:border-neutral-400 hover:text-neutral-600 transition-colors"
+            >
+              <Paperclip className="h-4 w-4" />
+              Click to attach a PDF
             </button>
           )}
         </Field>

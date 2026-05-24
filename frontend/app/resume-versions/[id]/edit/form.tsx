@@ -113,33 +113,44 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
           </div>
         </Field>
         <Field label="Resume PDF">
-          <div className="flex items-center gap-3">
-            {resume.has_pdf && !pdfFile && (
-              <a
-                href={getResumePDFUrl(resume.id)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-md border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                View PDF
-              </a>
-            )}
-            <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />
+          <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />
+          {pdfFile ? (
+            <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
+                <span className="truncate text-sm text-neutral-700">{pdfFile.name}</span>
+              </div>
+              <button type="button" onClick={() => setPdfFile(null)} className="ml-3 shrink-0 text-xs text-neutral-400 hover:text-red-500 transition-colors">
+                Remove
+              </button>
+            </div>
+          ) : resume.has_pdf ? (
+            <div className="flex items-center justify-between rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
+                <a
+                  href={getResumePDFUrl(resume.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-neutral-700 hover:text-neutral-900 hover:underline"
+                >
+                  View attached PDF
+                </a>
+              </div>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="ml-3 shrink-0 text-xs text-neutral-400 hover:text-neutral-700 transition-colors">
+                Replace
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-neutral-300 bg-white px-3 py-4 text-sm text-neutral-400 hover:border-neutral-400 hover:text-neutral-600 transition-colors"
             >
               <Paperclip className="h-4 w-4" />
-              {pdfFile ? pdfFile.name : resume.has_pdf ? "Replace PDF" : "Attach PDF"}
+              Click to attach a PDF
             </button>
-            {pdfFile && (
-              <button type="button" onClick={() => setPdfFile(null)} className="text-xs text-neutral-400 hover:text-neutral-700">
-                Remove
-              </button>
-            )}
-          </div>
+          )}
         </Field>
       </FormSection>
 
