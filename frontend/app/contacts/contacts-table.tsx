@@ -175,7 +175,7 @@ function RelationshipFilter({
       {open && (
         <>
           <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-[170px]">
+          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-42.5">
             {selected.length > 0 && (
               <button
                 onClick={() => { onClear(); setOpen(false); }}
