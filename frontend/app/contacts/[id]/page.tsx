@@ -53,11 +53,19 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
               {[contact.role, company?.name].filter(Boolean).join(" · ") || "—"}
             </p>
           </div>
-          {contact.relationship && (
-            <span className={`ml-auto inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${RELATIONSHIP_BADGE[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
-              {contact.relationship.replace(/_/g, " ")}
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {contact.relationship && (
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${RELATIONSHIP_BADGE[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
+                {contact.relationship.replace(/_/g, " ")}
+              </span>
+            )}
+            <Link
+              href={`/contacts/${id}/edit`}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:border-neutral-400 transition-colors"
+            >
+              Edit
+            </Link>
+          </div>
         </div>
       </div>
 
