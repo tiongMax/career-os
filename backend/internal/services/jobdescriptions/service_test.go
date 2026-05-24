@@ -68,3 +68,28 @@ func (f *fakeStore) UpdateJobDescription(_ context.Context, arg queries.UpdateJo
 	f.updated = arg
 	return queries.JobDescription{ExtractedKeywords: arg.ExtractedKeywords}, nil
 }
+
+func (f *fakeStore) GetJobDescriptionByID(context.Context, string) (queries.JobDescription, error) {
+	return queries.JobDescription{}, nil
+}
+func (f *fakeStore) GetApplication(context.Context, string) (queries.Application, error) {
+	return queries.Application{}, nil
+}
+func (f *fakeStore) GetCompany(context.Context, string) (queries.Company, error) {
+	return queries.Company{}, nil
+}
+func (f *fakeStore) ListResumeVersions(context.Context) ([]queries.ResumeVersion, error) {
+	return nil, nil
+}
+func (f *fakeStore) GetResumeVersion(context.Context, string) (queries.ResumeVersion, error) {
+	return queries.ResumeVersion{}, nil
+}
+func (f *fakeStore) ListInterviewRoundsByApplication(context.Context, string) ([]queries.InterviewRound, error) {
+	return nil, nil
+}
+func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]queries.AuditLog, error) {
+	return nil, nil
+}
+func (f *fakeStore) ListContactsByCompany(context.Context, string) ([]queries.Contact, error) {
+	return nil, nil
+}

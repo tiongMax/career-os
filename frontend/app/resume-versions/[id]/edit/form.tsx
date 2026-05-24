@@ -89,7 +89,7 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
         </Field>
         <Field label="Tags">
           <div
-            className="flex min-h-[38px] flex-wrap gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-2 cursor-text focus-within:ring-2 focus-within:ring-neutral-900 focus-within:border-transparent"
+            className="flex min-h-9.5 flex-wrap gap-1.5 rounded-md border border-neutral-300 bg-white px-3 py-2 cursor-text focus-within:ring-2 focus-within:ring-neutral-900 focus-within:border-transparent"
             onClick={() => tagInputRef.current?.focus()}
           >
             {tags.map((tag) => (
@@ -108,7 +108,7 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
               onKeyDown={handleTagKeyDown}
               onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
               placeholder={tags.length === 0 ? "typescript, react, go… (Enter or comma to add)" : ""}
-              className="min-w-[120px] flex-1 bg-transparent text-sm text-neutral-800 placeholder-neutral-400 outline-none"
+              className="min-w-30 flex-1 bg-transparent text-sm text-neutral-800 placeholder-neutral-400 outline-none"
             />
           </div>
         </Field>

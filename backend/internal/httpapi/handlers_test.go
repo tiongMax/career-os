@@ -262,6 +262,9 @@ func (f *fakeResumeService) Delete(context.Context, string) error {
 	return nil
 }
 
+func (f *fakeResumeService) StorePDF(context.Context, string, []byte) error { return nil }
+func (f *fakeResumeService) GetPDF(context.Context, string) ([]byte, error) { return nil, nil }
+
 type fakeApplicationService struct {
 	changedStatus   appsvc.ChangeStatusParams
 	changeStatusErr error
@@ -316,6 +319,22 @@ func (f *fakeJobDescriptionService) GetByApplication(context.Context, string) (q
 func (f *fakeJobDescriptionService) Update(_ context.Context, arg queries.UpdateJobDescriptionParams) (queries.JobDescription, error) {
 	f.updated = arg
 	return queries.JobDescription{ID: arg.ID, ApplicationID: testUUID, RawText: "Go backend role", ExtractedKeywords: arg.ExtractedKeywords}, nil
+}
+
+func (f *fakeJobDescriptionService) ExtractKeywords(context.Context, string) (queries.JobDescription, error) {
+	return queries.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
+}
+func (f *fakeJobDescriptionService) CompareResume(context.Context, string, string) (queries.ResumeMatchResult, error) {
+	return queries.ResumeMatchResult{}, nil
+}
+func (f *fakeJobDescriptionService) RecommendedResume(context.Context, string) (queries.RecommendedResumeResult, error) {
+	return queries.RecommendedResumeResult{}, nil
+}
+func (f *fakeJobDescriptionService) PrepContext(context.Context, string) (queries.PrepContext, error) {
+	return queries.PrepContext{}, nil
+}
+func (f *fakeJobDescriptionService) GeneratePrepBrief(context.Context, string) (queries.PrepBrief, error) {
+	return queries.PrepBrief{}, nil
 }
 
 type fakeContactService struct {
@@ -405,6 +424,14 @@ func (f *fakeReminderService) Update(_ context.Context, arg queries.UpdateRemind
 
 func (f *fakeReminderService) Cancel(context.Context, string) (queries.Reminder, error) {
 	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "cancelled"}, nil
+}
+
+func (f *fakeReminderService) Retry(context.Context, string) (queries.Reminder, error) {
+	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
+}
+
+func (f *fakeReminderService) ListFailed(context.Context) ([]queries.FailedReminderJob, error) {
+	return nil, nil
 }
 
 func (f *fakeReminderService) Delete(context.Context, string) error {

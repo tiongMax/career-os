@@ -77,3 +77,6 @@ func (f *fakeStore) UpdateResumeVersion(_ context.Context, arg queries.UpdateRes
 func (f *fakeStore) DeleteResumeVersion(context.Context, string) error {
 	return nil
 }
+
+func (f *fakeStore) StorePDF(context.Context, string, []byte) error { return nil }
+func (f *fakeStore) GetPDF(context.Context, string) ([]byte, error) { return nil, nil }
