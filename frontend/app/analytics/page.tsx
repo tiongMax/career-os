@@ -1,3 +1,4 @@
+import { ExportSection } from "./export-section";
 import {
   getAnalyticsSummary,
   getAnalyticsByStatus,
@@ -208,6 +209,8 @@ export default async function AnalyticsPage() {
           </div>
         )}
       </section>
+
+      <ExportSection />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section>
