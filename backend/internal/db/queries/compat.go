@@ -259,7 +259,7 @@ func (q *Queries) ListAuditLogsForEntity(ctx context.Context, entityType string,
 
 func (q *Queries) CreateResumeVersion(ctx context.Context, arg CreateResumeVersionParams) (ResumeVersion, error) {
 	row, err := q.CreateResumeVersionSQL(ctx, arg)
-	return resumeVersionFrom(row.ID, row.Name, row.Track, row.FilePath, row.ContentText, row.Tags, row.CreatedAt, row.UpdatedAt), err
+	return resumeVersionFrom(row.ID, row.Name, row.Track, row.HasPDF, row.Tags, row.CreatedAt, row.UpdatedAt), err
 }
 
 func (q *Queries) ListResumeVersions(ctx context.Context) ([]ResumeVersion, error) {
@@ -269,23 +269,34 @@ func (q *Queries) ListResumeVersions(ctx context.Context) ([]ResumeVersion, erro
 	}
 	resumes := make([]ResumeVersion, 0, len(rows))
 	for _, row := range rows {
-		resumes = append(resumes, resumeVersionFrom(row.ID, row.Name, row.Track, row.FilePath, row.ContentText, row.Tags, row.CreatedAt, row.UpdatedAt))
+		resumes = append(resumes, resumeVersionFrom(row.ID, row.Name, row.Track, row.HasPDF, row.Tags, row.CreatedAt, row.UpdatedAt))
 	}
 	return resumes, nil
 }
 
 func (q *Queries) GetResumeVersion(ctx context.Context, id string) (ResumeVersion, error) {
 	row, err := q.GetResumeVersionSQL(ctx, id)
-	return resumeVersionFrom(row.ID, row.Name, row.Track, row.FilePath, row.ContentText, row.Tags, row.CreatedAt, row.UpdatedAt), err
+	return resumeVersionFrom(row.ID, row.Name, row.Track, row.HasPDF, row.Tags, row.CreatedAt, row.UpdatedAt), err
 }
 
 func (q *Queries) UpdateResumeVersion(ctx context.Context, arg UpdateResumeVersionParams) (ResumeVersion, error) {
 	row, err := q.UpdateResumeVersionSQL(ctx, arg)
-	return resumeVersionFrom(row.ID, row.Name, row.Track, row.FilePath, row.ContentText, row.Tags, row.CreatedAt, row.UpdatedAt), err
+	return resumeVersionFrom(row.ID, row.Name, row.Track, row.HasPDF, row.Tags, row.CreatedAt, row.UpdatedAt), err
 }
 
 func (q *Queries) DeleteResumeVersion(ctx context.Context, id string) error {
 	return ensureRows(q.DeleteResumeVersionRowCount(ctx, id))
+}
+
+func (q *Queries) StorePDF(ctx context.Context, id string, data []byte) error {
+	_, err := q.db.Exec(ctx, "UPDATE resume_versions SET pdf_data = $1, updated_at = now() WHERE id = $2::uuid", data, id)
+	return err
+}
+
+func (q *Queries) GetPDF(ctx context.Context, id string) ([]byte, error) {
+	var data []byte
+	err := q.db.QueryRow(ctx, "SELECT pdf_data FROM resume_versions WHERE id = $1::uuid", id).Scan(&data)
+	return data, err
 }
 
 func (q *Queries) CreateContact(ctx context.Context, arg CreateContactParams) (Contact, error) {
@@ -612,11 +623,11 @@ func auditLogFrom(id, entityType, entityID, action string, oldValue, newValue []
 	return AuditLog{ID: id, EntityType: entityType, EntityID: entityID, Action: action, OldValue: oldValue, NewValue: newValue, CreatedAt: timeFrom(createdAt)}
 }
 
-func resumeVersionFrom(id, name, track string, filePath, contentText *string, tags []string, createdAt, updatedAt pgtype.Timestamptz) ResumeVersion {
+func resumeVersionFrom(id, name, track string, hasPDF bool, tags []string, createdAt, updatedAt pgtype.Timestamptz) ResumeVersion {
 	if tags == nil {
 		tags = []string{}
 	}
-	return ResumeVersion{ID: id, Name: name, Track: track, FilePath: filePath, ContentText: contentText, Tags: tags, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
+	return ResumeVersion{ID: id, Name: name, Track: track, HasPDF: hasPDF, Tags: tags, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
 }
 
 func contactFrom(id, companyID, name string, role, email, linkedinURL, relationship, notes *string, createdAt, updatedAt pgtype.Timestamptz) Contact {

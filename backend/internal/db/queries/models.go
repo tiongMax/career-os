@@ -23,14 +23,13 @@ type Company struct {
 }
 
 type ResumeVersion struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Track       string    `json:"track"`
-	FilePath    *string   `json:"file_path,omitempty"`
-	ContentText *string   `json:"content_text,omitempty"`
-	Tags        []string  `json:"tags"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Track     string    `json:"track"`
+	HasPDF    bool      `json:"has_pdf"`
+	Tags      []string  `json:"tags"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Application struct {

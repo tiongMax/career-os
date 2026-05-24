@@ -48,6 +48,8 @@ type resumeService interface {
 	Get(context.Context, string) (queries.ResumeVersion, error)
 	Update(context.Context, queries.UpdateResumeVersionParams) (queries.ResumeVersion, error)
 	Delete(context.Context, string) error
+	StorePDF(context.Context, string, []byte) error
+	GetPDF(context.Context, string) ([]byte, error)
 }
 
 type applicationService interface {

@@ -100,6 +100,14 @@ func (f *fakeStore) DeleteReminder(context.Context, string) error {
 	return nil
 }
 
+func (f *fakeStore) ListFailedReminderJobs(context.Context) ([]queries.FailedReminderJob, error) {
+	return nil, nil
+}
+
+func (f *fakeStore) ResetReminderForRetry(context.Context, string) (queries.Reminder, error) {
+	return queries.Reminder{}, nil
+}
+
 type fakeScheduler struct {
 	scheduled   queries.Reminder
 	unscheduled string
