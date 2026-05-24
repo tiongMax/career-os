@@ -114,6 +114,12 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 
 		r.Get("/search", handler.search)
 
+		r.Route("/exports", func(r chi.Router) {
+			r.Get("/applications.csv", handler.exportApplicationsCSV)
+			r.Get("/contacts.csv", handler.exportContactsCSV)
+			r.Get("/reminders.csv", handler.exportRemindersCSV)
+		})
+
 		r.Route("/analytics", func(r chi.Router) {
 			r.Get("/summary", handler.getAnalyticsSummary)
 			r.Get("/by-status", handler.getAnalyticsByStatus)
