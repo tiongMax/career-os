@@ -51,6 +51,9 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", HealthHandler{Postgres: postgres, Redis: redisClient}.ServeHTTP)
 
+		r.Get("/openapi.yaml", serveOpenAPISpec)
+		r.Get("/docs", serveSwaggerUI)
+
 		collection(r, "/companies", handler.createCompany, handler.listCompanies, func(r chi.Router) {
 			r.Get("/{id}", handler.getCompany)
 			r.Patch("/{id}", handler.updateCompany)
