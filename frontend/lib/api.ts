@@ -232,6 +232,33 @@ export const generatePrepBrief = (applicationId: string) =>
 // ─── Contacts ────────────────────────────────────────────────────────────────
 
 export const getContacts = () => apiFetch<Contact[]>("/contacts");
+export const getContact = (id: string) => apiFetch<Contact>(`/contacts/${id}`);
+
+export interface CreateContactPayload {
+  company_id: string;
+  name: string;
+  role?: string;
+  email?: string;
+  linkedin_url?: string;
+  relationship?: string;
+  notes?: string;
+}
+
+export const createContact = (payload: CreateContactPayload) =>
+  apiFetch<Contact>("/contacts", { method: "POST", body: JSON.stringify(payload) });
+
+export interface UpdateContactPayload {
+  company_id?: string;
+  name?: string;
+  role?: string;
+  email?: string;
+  linkedin_url?: string;
+  relationship?: string;
+  notes?: string;
+}
+
+export const updateContact = (id: string, payload: UpdateContactPayload) =>
+  apiFetch<Contact>(`/contacts/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
