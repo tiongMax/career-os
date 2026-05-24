@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, X } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, ChevronsUpDown, X } from "lucide-react";
 import type { Contact } from "@/lib/api";
 
 const AVATAR_COLORS = [
@@ -29,6 +29,16 @@ const RELATIONSHIP_OPTIONS = [
   { value: "interviewer",    label: "Interviewer" },
   { value: "connection",     label: "Connection" },
 ];
+
+type SortCol = "name" | "role" | "company" | "relationship";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ col, sortCol, sortDir }: { col: SortCol; sortCol: SortCol; sortDir: SortDir }) {
+  if (sortCol !== col) return <ChevronsUpDown className="w-3.5 h-3.5 ml-1 opacity-40" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="w-3.5 h-3.5 ml-1 text-neutral-700" />
+    : <ChevronDown className="w-3.5 h-3.5 ml-1 text-neutral-700" />;
+}
 
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
@@ -189,6 +199,17 @@ export function ContactsTable({ contacts, companyMap }: Props) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [companyFilter, setCompanyFilter] = useState<string[]>([]);
   const [relationshipFilter, setRelationshipFilter] = useState<string[]>([]);
+  const [sortCol, setSortCol] = useState<SortCol>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  };
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 200);
@@ -223,8 +244,17 @@ export function ContactsTable({ contacts, companyMap }: Props) {
     if (relationshipFilter.length > 0)
       list = list.filter((c) => c.relationship && relationshipFilter.includes(c.relationship));
 
-    return list;
-  }, [contacts, debouncedSearch, companyFilter, relationshipFilter]);
+    return [...list].sort((a, b) => {
+      let cmp = 0;
+      switch (sortCol) {
+        case "name":         cmp = a.name.localeCompare(b.name); break;
+        case "role":         cmp = (a.role ?? "").localeCompare(b.role ?? ""); break;
+        case "company":      cmp = (companyMap.get(a.company_id) ?? "").localeCompare(companyMap.get(b.company_id) ?? ""); break;
+        case "relationship": cmp = (a.relationship ?? "").localeCompare(b.relationship ?? ""); break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [contacts, companyMap, debouncedSearch, companyFilter, relationshipFilter, sortCol, sortDir]);
 
   const hasFilters = search.trim() || companyFilter.length > 0 || relationshipFilter.length > 0;
 
@@ -301,11 +331,33 @@ export function ContactsTable({ contacts, companyMap }: Props) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-100 bg-neutral-50">
-                <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Name</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Role</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Company</th>
+                {(
+                  [
+                    { col: "name"         as SortCol, label: "Name" },
+                    { col: "role"         as SortCol, label: "Role" },
+                    { col: "company"      as SortCol, label: "Company" },
+                  ] as const
+                ).map(({ col, label }) => (
+                  <th key={col} className="px-5 py-3 text-left">
+                    <button
+                      onClick={() => handleSort(col)}
+                      className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+                    >
+                      {label}
+                      <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
+                    </button>
+                  </th>
+                ))}
                 <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Email</th>
-                <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">Relationship</th>
+                <th className="px-5 py-3 text-left">
+                  <button
+                    onClick={() => handleSort("relationship")}
+                    className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+                  >
+                    Relationship
+                    <SortIcon col="relationship" sortCol={sortCol} sortDir={sortDir} />
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">

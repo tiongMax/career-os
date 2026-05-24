@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mail, Linkedin } from "lucide-react";
+import { Mail, ExternalLink } from "lucide-react";
 import { getContact, getCompany } from "@/lib/api";
 import { notFound } from "next/navigation";
 
@@ -35,7 +35,7 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
     <div className="space-y-6 max-w-2xl">
       {/* Breadcrumb + header */}
       <div>
-        <div className="flex items-center gap-1.5 text-sm text-neutral-400 mb-2">
+        <div className="flex items-center gap-1.5 text-sm text-neutral-400 mb-4">
           <Link href="/contacts" className="hover:text-neutral-600 transition-colors">
             Contacts
           </Link>
@@ -43,7 +43,7 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
           <span className="text-neutral-600">{contact.name}</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-1">
           <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-semibold shrink-0 ${colorClass}`}>
             {initials}
           </div>
@@ -87,7 +87,7 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
               >
-                <Linkedin className="w-3.5 h-3.5" />
+                <ExternalLink className="w-3.5 h-3.5" />
                 LinkedIn
               </a>
             )}
