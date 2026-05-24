@@ -6,26 +6,11 @@ import { Search, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react"
 import type { Application } from "@/lib/api";
 import { formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
-
-const TRACK_BADGE: Record<string, string> = {
-  backend:   "bg-blue-50 text-blue-700",
-  ai:        "bg-purple-50 text-purple-700",
-  quant:     "bg-amber-50 text-amber-700",
-  general:   "bg-neutral-100 text-neutral-600",
-  fullstack: "bg-cyan-50 text-cyan-700",
-  platform:  "bg-indigo-50 text-indigo-700",
-};
-
-const STATUS_OPTIONS = [
-  { value: "saved",            label: "Saved" },
-  { value: "applied",          label: "Applied" },
-  { value: "recruiter_screen", label: "Recruiter Screen" },
-  { value: "technical_screen", label: "Technical Screen" },
-  { value: "onsite",           label: "Onsite" },
-  { value: "offer",            label: "Offer" },
-  { value: "rejected",         label: "Rejected" },
-  { value: "withdrawn",        label: "Withdrawn" },
-];
+import {
+  APPLICATION_STATUS_OPTIONS,
+  APPLICATION_STATUS_ORDER,
+  TRACK_BADGE_CLASSES,
+} from "@/lib/domain/applications";
 
 const DATE_OPTIONS = [
   { value: "today",   label: "Today" },
@@ -37,8 +22,6 @@ const DATE_OPTIONS = [
 
 type SortCol = "title" | "company" | "track" | "status" | "applied";
 type SortDir = "asc" | "desc";
-
-const STATUS_ORDER = ["saved", "applied", "recruiter_screen", "technical_screen", "onsite", "offer", "rejected", "withdrawn"];
 
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
@@ -160,7 +143,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           cmp = a.role_track.localeCompare(b.role_track);
           break;
         case "status":
-          cmp = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+          cmp = APPLICATION_STATUS_ORDER.indexOf(a.status) - APPLICATION_STATUS_ORDER.indexOf(b.status);
           break;
         case "applied": {
           const da = new Date(a.applied_at ?? a.created_at).getTime();
@@ -289,7 +272,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
                     {companyMap[app.company_id] ?? "—"}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE[app.role_track] ?? "bg-neutral-100 text-neutral-600"}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[app.role_track] ?? "bg-neutral-100 text-neutral-600"}`}>
                       {app.role_track}
                     </span>
                   </td>
@@ -485,7 +468,7 @@ function StatusFilter({
                 <X className="w-3 h-3" /> Clear status filter
               </button>
             )}
-            {STATUS_OPTIONS.map(({ value, label: optLabel }) => (
+            {APPLICATION_STATUS_OPTIONS.map(({ value, label: optLabel }) => (
               <CheckRow key={value} checked={selected.includes(value)} label={optLabel} onClick={() => onToggle(value)} />
             ))}
           </div>
