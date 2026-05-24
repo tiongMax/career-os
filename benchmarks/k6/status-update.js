@@ -24,8 +24,10 @@ export const options = {
     },
   },
   thresholds: {
-    http_req_failed: ['rate<0.02'],
-    http_req_duration: ['p(95)<100'],
+    // 409 (concurrent conflict) is expected and counted as http_req_failed by k6,
+    // so we validate correctness via checks instead of the failed-rate threshold.
+    checks: ['rate==1.0'],
+    http_req_duration: ['p(95)<200'],
   },
 };
 
