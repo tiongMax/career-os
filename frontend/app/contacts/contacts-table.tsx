@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { Search, ChevronDown, X } from "lucide-react";
 import type { Contact } from "@/lib/api";
 
@@ -235,6 +236,24 @@ export function ContactsTable({ contacts, companyMap }: Props) {
 
   return (
     <>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-neutral-900">Contacts</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            {filtered.length !== contacts.length
+              ? `${filtered.length} of ${contacts.length} total`
+              : `${contacts.length} total`}
+          </p>
+        </div>
+        <Link
+          href="/contacts/new"
+          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors whitespace-nowrap"
+        >
+          + New Contact
+        </Link>
+      </div>
+
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1">
@@ -268,13 +287,6 @@ export function ContactsTable({ contacts, companyMap }: Props) {
           </button>
         )}
       </div>
-
-      {/* Count */}
-      <p className="text-sm text-neutral-500">
-        {filtered.length !== contacts.length
-          ? `${filtered.length} of ${contacts.length} total`
-          : `${contacts.length} total`}
-      </p>
 
       {/* Table */}
       {filtered.length === 0 ? (
