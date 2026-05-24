@@ -233,6 +233,19 @@ export const generatePrepBrief = (applicationId: string) =>
 
 export const getContacts = () => apiFetch<Contact[]>("/contacts");
 
+export interface CreateContactPayload {
+  company_id: string;
+  name: string;
+  role?: string;
+  email?: string;
+  linkedin_url?: string;
+  relationship?: string;
+  notes?: string;
+}
+
+export const createContact = (payload: CreateContactPayload) =>
+  apiFetch<Contact>("/contacts", { method: "POST", body: JSON.stringify(payload) });
+
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
