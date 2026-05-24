@@ -1,14 +1,7 @@
 import { getReminders, getFailedReminders } from "@/lib/api";
+import { REMINDER_STATUS_BADGE_CLASSES } from "@/lib/domain/reminders";
 import { formatDate } from "@/lib/utils";
 import { RetryButton } from "./retry-button";
-
-const REMINDER_STATUS_STYLES: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-700",
-  processing: "bg-blue-100 text-blue-700",
-  sent: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-600",
-  cancelled: "bg-neutral-100 text-neutral-500",
-};
 
 export default async function RemindersPage() {
   const reminders = await getReminders().catch(() => []);
@@ -51,7 +44,7 @@ export default async function RemindersPage() {
                   </td>
                   <td className="px-5 py-3 text-neutral-500 text-xs">{formatDate(r.due_at)}</td>
                   <td className="px-5 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${REMINDER_STATUS_STYLES[r.status] ?? "bg-neutral-100 text-neutral-600"}`}>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${REMINDER_STATUS_BADGE_CLASSES[r.status] ?? "bg-neutral-100 text-neutral-600"}`}>
                       {r.status}
                     </span>
                   </td>

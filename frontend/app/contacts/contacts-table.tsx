@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Search, ChevronDown, ChevronUp, ChevronsUpDown, X } from "lucide-react";
 import type { Contact } from "@/lib/api";
+import { RELATIONSHIP_BADGE_CLASSES, RELATIONSHIP_OPTIONS } from "@/lib/domain/contacts";
 
 const AVATAR_COLORS = [
   "bg-blue-100 text-blue-700",
@@ -12,22 +13,6 @@ const AVATAR_COLORS = [
   "bg-orange-100 text-orange-700",
   "bg-pink-100 text-pink-700",
   "bg-cyan-100 text-cyan-700",
-];
-
-const RELATIONSHIP_BADGE: Record<string, string> = {
-  recruiter:      "bg-blue-50 text-blue-700",
-  referral:       "bg-green-50 text-green-700",
-  hiring_manager: "bg-purple-50 text-purple-700",
-  interviewer:    "bg-orange-50 text-orange-700",
-  connection:     "bg-neutral-100 text-neutral-600",
-};
-
-const RELATIONSHIP_OPTIONS = [
-  { value: "recruiter",      label: "Recruiter" },
-  { value: "referral",       label: "Referral" },
-  { value: "hiring_manager", label: "Hiring Manager" },
-  { value: "interviewer",    label: "Interviewer" },
-  { value: "connection",     label: "Connection" },
 ];
 
 type SortCol = "name" | "role" | "company" | "relationship";
@@ -387,7 +372,7 @@ export function ContactsTable({ contacts, companyMap }: Props) {
                     </td>
                     <td className="px-5 py-3.5">
                       {contact.relationship ? (
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${RELATIONSHIP_BADGE[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${RELATIONSHIP_BADGE_CLASSES[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
                           {contact.relationship.replace(/_/g, " ")}
                         </span>
                       ) : "—"}

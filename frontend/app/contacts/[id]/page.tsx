@@ -1,15 +1,8 @@
 import Link from "next/link";
 import { Mail, ExternalLink } from "lucide-react";
 import { getContact, getCompany } from "@/lib/api";
+import { RELATIONSHIP_BADGE_CLASSES } from "@/lib/domain/contacts";
 import { notFound } from "next/navigation";
-
-const RELATIONSHIP_BADGE: Record<string, string> = {
-  recruiter:      "bg-blue-50 text-blue-700",
-  referral:       "bg-green-50 text-green-700",
-  hiring_manager: "bg-purple-50 text-purple-700",
-  interviewer:    "bg-orange-50 text-orange-700",
-  connection:     "bg-neutral-100 text-neutral-600",
-};
 
 const AVATAR_COLORS = [
   "bg-blue-100 text-blue-700",
@@ -55,7 +48,7 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
           </div>
           <div className="ml-auto flex items-center gap-2">
             {contact.relationship && (
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${RELATIONSHIP_BADGE[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${RELATIONSHIP_BADGE_CLASSES[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
                 {contact.relationship.replace(/_/g, " ")}
               </span>
             )}
