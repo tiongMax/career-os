@@ -232,6 +232,7 @@ export const generatePrepBrief = (applicationId: string) =>
 // ─── Contacts ────────────────────────────────────────────────────────────────
 
 export const getContacts = () => apiFetch<Contact[]>("/contacts");
+export const getContact = (id: string) => apiFetch<Contact>(`/contacts/${id}`);
 
 export interface CreateContactPayload {
   company_id: string;

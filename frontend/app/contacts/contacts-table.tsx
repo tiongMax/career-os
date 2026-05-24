@@ -313,20 +313,20 @@ export function ContactsTable({ contacts, companyMap }: Props) {
                 const initials = contact.name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
                 const colorClass = AVATAR_COLORS[contact.name.charCodeAt(0) % AVATAR_COLORS.length];
                 return (
-                  <tr key={contact.id} className="hover:bg-neutral-50 transition-colors">
+                  <tr key={contact.id} className="hover:bg-neutral-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/contacts/${contact.id}`}>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${colorClass}`}>
                           {initials}
                         </div>
-                        <span className="font-medium text-neutral-800">{contact.name}</span>
+                        <span className="font-medium text-neutral-800 hover:text-blue-600 transition-colors">{contact.name}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-neutral-600">{contact.role ?? "—"}</td>
                     <td className="px-5 py-3.5 text-neutral-600">
                       {companyMap.get(contact.company_id) ?? "—"}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                       {contact.email ? (
                         <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline text-xs">
                           {contact.email}
