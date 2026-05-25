@@ -1,0 +1,62 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - revive
+    - bodyclose
+    - errorlint
+    - gosec
+    - nilerr
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - whitespace
+
+linters-settings:
+  goimports:
+    local-prefixes: careeros
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: range
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: superfluous-else
+      - name: time-naming
+      - name: unexported-return
+      - name: unreachable-code
+      - name: var-declaration
+      - name: var-naming
+  gosec:
+    excludes:
+      - G104
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+    - path: backend/cmd/seed/
+      linters:
+        - gosec
+  max-issues-per-linter: 0
+  max-same-issues: 0
