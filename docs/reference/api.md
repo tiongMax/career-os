@@ -10,9 +10,7 @@ The canonical machine-readable spec is served at `GET /api/v1/openapi.yaml`, and
 
 ## Authentication
 
-No authentication or authorization is currently implemented. The API sets permissive CORS headers and accepts an `Authorization` header, but handlers do not validate it.
-
-<!-- TODO: clarify intended auth model with team before production use -->
+No authentication or authorization is currently implemented. The API sets permissive CORS headers and accepts an `Authorization` header, but handlers do not validate it. The project is intentionally single-user; adding multi-tenant auth is tracked as the top item in [improvements.md](../development/improvements.md).
 
 ## Response and Error Format
 
@@ -401,9 +399,6 @@ Response:
 
 Required fields: `name`.
 
-Note: `backend/internal/httpapi/openapi.yaml` currently describes `slug` and `label` for this endpoint, but the handler and frontend client use `name`.
-
-<!-- TODO: update OpenAPI role track schema or align implementation. -->
 
 ## Search
 

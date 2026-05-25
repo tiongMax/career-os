@@ -46,4 +46,6 @@ REDIS_URL=redis://redis:6379
 
 `REMINDER_WORKER_POLL_INTERVAL_MS` and `REMINDER_MAX_RETRIES` are parsed as integers at startup. Invalid values cause startup to fail.
 
-<!-- TODO: clarify production secret management and required deployment variables with team. -->
+## Production Secrets
+
+The `.env` file is loaded in development only. In production, inject `DATABASE_URL`, `REDIS_URL`, and any future credentials (email provider, auth signing keys) via your platform's secret manager — never bake them into the image. The `.env.example` is the source of truth for required variables; treat any new variable as required to be set in the deployment environment before the binary starts.

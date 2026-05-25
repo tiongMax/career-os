@@ -134,4 +134,10 @@ The Dockerfile builds three backend binaries: `api`, `worker`, and `migrate`. In
 
 The frontend is not included in the backend Dockerfile. Production frontend deployment needs separate hosting or a frontend container.
 
-<!-- TODO: clarify production deployment topology with team -->
+A production topology is straightforward given the stack:
+
+- API and worker containers (built from `backend/Dockerfile`) on any container runtime (Fly.io, Render, Cloud Run, ECS).
+- A managed PostgreSQL 16 instance (e.g. RDS, Neon, Supabase).
+- A managed Redis 7 instance (e.g. Upstash, ElastiCache).
+- Frontend deployed separately to a static host (Vercel is the obvious fit for Next.js).
+- Migrations run as a one-shot pre-deploy step or via the `./migrate up && ./api` chain already used in the `full` Compose profile.
