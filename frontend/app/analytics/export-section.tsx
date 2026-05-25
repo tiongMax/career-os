@@ -1,25 +1,24 @@
 "use client";
 
 import { Download } from "lucide-react";
-
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+import { getExportUrl } from "@/lib/api";
 
 const EXPORTS = [
   {
     label: "Applications",
-    href: `${BASE}/exports/applications.csv`,
+    href: getExportUrl("applications"),
     filename: "applications.csv",
     description: "All applications with company names and statuses",
   },
   {
     label: "Contacts",
-    href: `${BASE}/exports/contacts.csv`,
+    href: getExportUrl("contacts"),
     filename: "contacts.csv",
     description: "Recruiter and referral contacts",
   },
   {
     label: "Reminders",
-    href: `${BASE}/exports/reminders.csv`,
+    href: getExportUrl("reminders"),
     filename: "reminders.csv",
     description: "Follow-up reminders and delivery status",
   },

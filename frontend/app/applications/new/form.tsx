@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Briefcase, FileText, Globe, Layers, MapPin } from "lucide-react";
 import type { Company, ResumeVersion, RoleTrack } from "@/lib/api";
-import { createRoleTrack } from "@/lib/api";
+import { createApplication, createCompany, createRoleTrack, type CreateApplicationPayload } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 import { APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
-
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
@@ -75,16 +73,9 @@ export function NewApplicationForm({
 
       let companyId: string;
       if (newCompanyName) {
-        const res = await fetch(`${BASE}/companies`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: newCompanyName }),
+        const company = await createCompany({ name: newCompanyName }).catch((err) => {
+          throw new Error(`Failed to create company: ${err instanceof Error ? err.message : String(err)}`);
         });
-        if (!res.ok) {
-          const text = await res.text().catch(() => res.statusText);
-          throw new Error(`Failed to create company: ${text}`);
-        }
-        const company = await res.json();
         companyId = company.id;
       } else {
         companyId = existingCompanyId;
@@ -100,32 +91,23 @@ export function NewApplicationForm({
         });
       }
 
-      const body: Record<string, unknown> = {
+      const body: CreateApplicationPayload = {
         company_id: companyId,
-        title: fd.get("title"),
+        title: (fd.get("title") as string).trim(),
         role_track: track,
-        status: fd.get("status") || "saved",
+        status: (fd.get("status") as string) || "saved",
       };
-      if (fd.get("resume_version_id")) body.resume_version_id = fd.get("resume_version_id");
-      if (fd.get("source")) body.source = fd.get("source");
-      if (fd.get("location")) body.location = fd.get("location");
-      if (fd.get("job_url")) body.job_url = fd.get("job_url");
-      if (fd.get("notes")) body.notes = fd.get("notes");
-      if (fd.get("employment_type")) body.employment_type = fd.get("employment_type");
+      if (fd.get("resume_version_id")) body.resume_version_id = fd.get("resume_version_id") as string;
+      if (fd.get("source")) body.source = fd.get("source") as string;
+      if (fd.get("location")) body.location = fd.get("location") as string;
+      if (fd.get("job_url")) body.job_url = fd.get("job_url") as string;
+      if (fd.get("notes")) body.notes = fd.get("notes") as string;
+      if (fd.get("employment_type")) body.employment_type = fd.get("employment_type") as string;
       if (fd.get("applied_at")) {
         body.applied_at = new Date(fd.get("applied_at") as string).toISOString();
       }
 
-      const res = await fetch(`${BASE}/applications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => res.statusText);
-        throw new Error(text);
-      }
-      const app = await res.json();
+      const app = await createApplication(body);
       router.push(`/applications/${app.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

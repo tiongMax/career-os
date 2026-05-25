@@ -4,12 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { Company, Contact } from "@/lib/api";
-import { updateContact } from "@/lib/api";
+import { createCompany, updateContact } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { RelationshipSelect } from "@/components/relationship-select";
-
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 
 export function EditContactForm({ contact, companies }: { contact: Contact; companies: Company[] }) {
   const router = useRouter();
@@ -31,13 +29,10 @@ export function EditContactForm({ contact, companies }: { contact: Contact; comp
 
       let companyId = existingCompanyId;
       if (newCompanyName) {
-        const res = await fetch(`${BASE}/companies`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: newCompanyName }),
+        const company = await createCompany({ name: newCompanyName }).catch((err) => {
+          throw new Error(`Failed to create company: ${err instanceof Error ? err.message : String(err)}`);
         });
-        if (!res.ok) throw new Error(`Failed to create company: ${await res.text().catch(() => res.statusText)}`);
-        companyId = (await res.json()).id;
+        companyId = company.id;
       }
 
       const payload: Parameters<typeof updateContact>[1] = {};
