@@ -1,25 +1,16 @@
 # Application Workflow
 
-Applications are the center of CareerOS. This doc explains the intended status
-lifecycle and where the code should enforce it.
+Applications are the center of CareerOS. This doc explains the implemented
+status lifecycle and where the code enforces it.
 
-## Current Implementation Status
+## Implementation
 
-The database already constrains application status values, but the service-layer
-state machine is not implemented yet.
+Application status rules are implemented in:
 
-Implemented now:
-
-- `applications.status` column.
-- Status check constraint.
-- `audit_logs` table.
-
-Planned:
-
-- Application service layer.
-- Allowed status transition validation.
-- Transactional status update plus audit log insert.
-- Tests for valid and invalid transitions.
+- `backend/internal/services/applications/status.go`
+- `backend/internal/services/applications/service.go`
+- `backend/internal/db/queries/applications.sql.go`
+- `backend/internal/httpapi/applications.go`
 
 ## Status Values
 
@@ -34,29 +25,28 @@ Planned:
 | `rejected` | Company rejected or process ended negatively. |
 | `withdrawn` | You withdrew or decided not to continue. |
 
-Terminal statuses:
+Terminal statuses in the current state machine:
 
-- `offer`
 - `rejected`
 - `withdrawn`
 
-## Recommended Transition Rules
+`offer` is not terminal because the code allows it to move to `rejected` or
+`withdrawn`.
 
-Use these as the starting service rules unless the product direction changes:
+## Transition Rules
 
 | From | Allowed next statuses |
 | --- | --- |
 | `saved` | `applied`, `withdrawn` |
 | `applied` | `recruiter_screen`, `technical_screen`, `rejected`, `withdrawn` |
-| `recruiter_screen` | `technical_screen`, `onsite`, `rejected`, `withdrawn` |
-| `technical_screen` | `onsite`, `offer`, `rejected`, `withdrawn` |
+| `recruiter_screen` | `technical_screen`, `rejected`, `withdrawn` |
+| `technical_screen` | `onsite`, `rejected`, `withdrawn` |
 | `onsite` | `offer`, `rejected`, `withdrawn` |
-| `offer` | none |
+| `offer` | `withdrawn`, `rejected` |
 | `rejected` | none |
 | `withdrawn` | none |
 
-If you later want to reopen terminal applications, add that deliberately as a
-new decision in `decisions.md`.
+Invalid transitions return HTTP `409` from `PATCH /api/v1/applications/{id}/status`.
 
 ## Transactional Update Rule
 
@@ -71,8 +61,8 @@ begin transaction
 commit transaction
 ```
 
-If any step fails, roll back. A status change without an audit log would make the
-history unreliable.
+If any step fails, the query layer rolls back. A status change without an audit
+log would make the history unreliable.
 
 ## Audit Log Shape
 
@@ -95,12 +85,13 @@ For status changes, use a predictable audit event:
 The `audit_logs` table is intentionally generic, so consistency in
 `entity_type` and `action` strings matters.
 
-## Where This Should Live
+## Layering
 
-Recommended future layout:
+Keep the workflow split like this:
 
 ```text
-backend/internal/services/applications.go
+backend/internal/services/applications/status.go
+backend/internal/services/applications/service.go
 backend/internal/httpapi/applications.go
 backend/queries/applications.sql
 ```
@@ -110,7 +101,7 @@ the service result.
 
 ## Test Checklist
 
-When implemented, test at least:
+Coverage should include:
 
 - Valid forward transitions.
 - Invalid skipped transitions.

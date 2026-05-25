@@ -1,36 +1,39 @@
 # CareerOS Docs
 
-This folder is the orientation layer for CareerOS. Use it when the generated
-code starts feeling like a maze and you need a fast mental model before editing.
+Start at the repo root when setting up the app:
 
-## Start Here
+- [README](../README.md) - setup, commands, and basic usage.
+- [Contributing](../CONTRIBUTING.md) - development workflow and conventions.
 
-1. [Architecture](architecture.md) - the big picture: processes, dependencies,
-   and request flow.
-2. [Database Schema](database-schema.md) - tables, relationships, constraints,
-   and delete behavior.
-3. [Backend Guide](backend-guide.md) - how the Go backend is laid out and how
-   runtime wiring works.
-4. [Application Workflow](application-workflow.md) - status lifecycle and audit
-   logging rules.
+This folder keeps the reference, development, and product docs.
 
-## Reference Docs
+## Reference
 
-- [API Reference](api-reference.md) - endpoints that exist now, plus planned API
-  groups from the PRD.
-- [Frontend Guide](frontend-guide.md) - current frontend status and the intended
-  shape once implementation starts.
-- [Testing Guide](testing-guide.md) - how to think about unit, HTTP,
-  integration, worker, and manual tests.
-- [Decisions](decisions.md) - lightweight engineering journal for choices that
-  should not get rediscovered later.
+- [Architecture](reference/architecture.md) - system structure and runtime flow.
+- [API Reference](reference/api.md) - implemented endpoints and examples.
+- [Environment Variables](reference/environment.md) - runtime configuration.
+- [Database Schema](reference/database-schema.md) - tables, relationships, constraints,
+  and delete behavior.
 
-## Product Planning Docs
+## Development
 
-- [CareerOS Detailed PRD](CareerOS_Detailed_PRD.md)
-- [CareerOS 1-Week Roadmap](CareerOS_1_Week_Roadmap.md)
+- [Backend Guide](development/backend-guide.md) - backend layout, layers, runtime wiring,
+  migrations, and worker process.
+- [Application Workflow](development/application-workflow.md) - application statuses,
+  transition rules, and audit logging.
+- [Reminder Worker](development/reminder-worker.md) - Redis scheduling, delivery,
+  retries, and dead-lettering.
+- [Testing Guide](development/testing-guide.md) - unit, HTTP, integration, worker, and
+  manual testing notes.
+- [Decisions](development/decisions.md) - lightweight engineering journal.
+
+## Product
+
+- [Product Requirements](product/prd.md)
+- [Roadmap](product/roadmap.md)
 
 ## Documentation Rule
 
-Keep these docs practical and truthful. If a feature is not implemented yet,
-label it as planned instead of describing it as live behavior.
+Keep docs practical and current. Put stable reference material in
+`docs/reference/`, implementation guidance in `docs/development/`, and planning
+material in `docs/product/`.

@@ -1,8 +1,7 @@
 # Database Schema
 
-The source of truth is
-`backend/migrations/20260514143000_initial_schema.sql`. This doc explains the
-tables in plain English so you can understand the domain before reading SQL.
+The source of truth is `backend/migrations/`. This doc explains the tables in
+plain English so you can understand the domain before reading SQL.
 
 ## Mental Model
 
@@ -19,6 +18,9 @@ companies
        -> reminders
 
 resume_versions
+  -> applications
+
+role_tracks
   -> applications
 
 reminders
@@ -58,9 +60,8 @@ Important fields:
 
 - `name` labels the resume version.
 - `track` must be one of `backend`, `ai`, `quant`, or `general`.
-- `file_path` can point to a stored file.
-- `content_text` can store extracted text for matching/search later.
 - `tags` is a text array for flexible labels.
+- `pdf_data` stores an optional uploaded resume PDF.
 
 Relationships:
 
@@ -80,7 +81,7 @@ Important fields:
 - `company_id` is required.
 - `resume_version_id` is optional.
 - `title` is required.
-- `role_track` must be one of `backend`, `ai`, `quant`, or `general`.
+- `role_track` references `role_tracks.name`.
 - `status` defaults to `saved`.
 - `applied_at` and `deadline_at` track key dates.
 - `search_vector` is a generated PostgreSQL full-text search column.
@@ -100,6 +101,20 @@ Delete behavior:
 
 - Deleting an application cascades to job descriptions, interview rounds, and
   reminders.
+
+### `role_tracks`
+
+Stores role track names available to applications.
+
+Important fields:
+
+- `name` is required and unique.
+- Default seed rows include `backend`, `ai`, `quant`, `general`, `fullstack`,
+  and `platform`.
+
+Relationships:
+
+- `applications.role_track` references `role_tracks.name`.
 
 ### `job_descriptions`
 
@@ -240,4 +255,5 @@ High-signal indexes:
   define automatic `updated_at` triggers.
 - Search vectors are generated columns, which keeps search data consistent with
   row content.
-- Check constraints encode the allowed enums directly in PostgreSQL.
+- Application role tracks are configurable through `role_tracks`; other enum-like
+  values still use PostgreSQL check constraints.

@@ -38,7 +38,7 @@ Each script defines `thresholds` so a CI run fails when latency regresses.
 ## Targets
 
 Targets are aspirational against the seeded data set described in
-`docs/CareerOS_Detailed_PRD.md` §21:
+`docs/product/prd.md` §21:
 
 | Area | Target |
 |---|---|

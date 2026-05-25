@@ -11,18 +11,18 @@ backend/
   cmd/
     api/       starts the HTTP API server
     migrate/   runs Goose migrations
-    seed/      future seed-data entry point
+    seed/      demo data seed command
     worker/    starts the reminder worker
   internal/
     config/    environment config
     db/        PostgreSQL and Redis client constructors
       queries/ hand-written query methods and scan helpers
-    http/      router, middleware, handlers
+    httpapi/   router, middleware, handlers
     services/  business rules and workflow coordination
     logger/    zerolog setup
     workers/   background worker code
   migrations/  database schema migrations
-  sqlc.yaml    sqlc config placeholder
+  sqlc.yaml    sqlc configuration
 ```
 
 ## API Startup
@@ -58,19 +58,33 @@ Current route group:
 ```text
 /api/v1
   GET /health
+  GET /openapi.yaml
+  GET /docs
   CRUD /companies
   CRUD /resume-versions
+  POST,GET /resume-versions/{id}/pdf
   CRUD /applications
   PATCH /applications/{id}/status
   GET /applications/{id}/audit-logs
+  GET /applications/{id}/recommended-resume
+  GET /applications/{id}/prep-context
+  POST /applications/{id}/generate-prep-brief
   POST,GET /applications/{id}/job-description
   PATCH /job-descriptions/{id}
+  POST /job-descriptions/{id}/extract-keywords
+  POST /job-descriptions/{id}/compare-resume/{resumeVersionId}
   CRUD /contacts
   POST,GET /applications/{id}/interviews
   PATCH,DELETE /interviews/{id}
   CRUD /reminders
   GET /reminders/due
+  GET /reminders/failed
   POST /reminders/{id}/cancel
+  POST /reminders/{id}/retry
+  GET,POST /tracks
+  GET /search
+  GET /exports/*.csv
+  GET /analytics/*
 ```
 
 The request logger records method, path, status, bytes written, duration, and
@@ -85,14 +99,18 @@ methods own SQL.
 Current services:
 
 - `companies`: company CRUD validation.
-- `resumes`: resume version validation and tag update semantics.
+- `resumes`: resume version validation, tag update semantics, and PDF storage.
 - `applications`: application validation, status transition rules, and audit
   log creation.
-- `jobdescriptions`: job description validation and keyword update semantics.
+- `jobdescriptions`: job description validation, keyword extraction, resume
+  comparison, prep context, and prep brief generation.
 - `contacts`: contact name validation.
 - `interviews`: interview `round_type` validation.
-- `reminders`: reminder validation, idempotency-key creation, and Redis
-  scheduling coordination.
+- `reminders`: reminder validation, idempotency-key creation, Redis scheduling
+  coordination, failed job listing, and retry.
+- `search`: PostgreSQL full-text search.
+- `analytics`: dashboard aggregates and CSV-adjacent reporting data.
+- `roletracks`: configurable application role tracks.
 
 Keep business rules out of HTTP handlers. If an endpoint needs validation,
 state transitions, scheduling, or transactions, put that behavior in the

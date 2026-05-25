@@ -10,13 +10,13 @@ Status: accepted
 Why:
 
 - One giant doc becomes hard to revisit.
-- Separate docs match the questions you will ask while working: schema, backend,
-  API, workflow, frontend, testing, and decisions.
+- Root docs cover onboarding topics. The `docs/` folder keeps deeper notes for
+  schema, backend internals, workflow, worker behavior, testing, and decisions.
 - Generated code is easier to understand when each doc has one job.
 
 ## Decision: Use A Service Layer For Business Rules
 
-Status: planned
+Status: accepted
 
 Why:
 
@@ -28,7 +28,7 @@ Why:
 
 ## Decision: Keep Application Status Changes Transactional
 
-Status: planned
+Status: accepted
 
 Why:
 
@@ -59,13 +59,15 @@ Why:
 - PostgreSQL full-text search is enough for the MVP and avoids adding another
   infrastructure dependency too early.
 
-## Decision: Start Frontend After Backend Foundation
+## Decision: Build The Frontend As An Operational App
 
 Status: accepted
 
 Why:
 
-- The frontend currently has a placeholder only.
-- Building screens against stable API contracts will reduce churn.
-- The first useful frontend should be the actual application dashboard, not a
-  landing page.
+- CareerOS is a repeated-use job search tool, so the first screen should be the
+  dashboard and working navigation.
+- UI code should call `frontend/lib/api.ts` instead of scattering raw API URLs
+  through pages.
+- Product screens should prioritize dense, scannable workflows over marketing
+  copy.
