@@ -1192,7 +1192,7 @@ careeros/
     architecture.md
     api.md
     search-design.md
-    reminder-worker.md
+    development/reminder-worker.md
     benchmark-results.md
     future-roadmap.md
   docker-compose.yml
@@ -1337,4 +1337,3 @@ The project is considered successful if:
 11. It includes benchmark scripts and honest results.
 12. It has a polished README and architecture diagram.
 13. It produces 2-4 strong backend resume bullets.
-

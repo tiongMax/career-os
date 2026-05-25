@@ -990,7 +990,7 @@ Create:
 docs/architecture.md
 docs/api.md
 docs/search-design.md
-docs/reminder-worker.md
+docs/development/reminder-worker.md
 docs/benchmark-results.md
 docs/future-roadmap.md
 ```
