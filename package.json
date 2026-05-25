@@ -7,7 +7,8 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev": "concurrently --names \"api,web\" --prefix-colors \"cyan,magenta\" \"go run ./backend/cmd/api\" \"npm run dev --prefix frontend\""
+    "build:api": "go build -o backend\\api.exe .\\backend\\cmd\\api",
+    "dev": "docker compose up -d && dotenv -e .env -- concurrently --names \"api,web\" --prefix-colors \"cyan,magenta\" \".\\backend\\api.exe\" \"npm run dev --prefix frontend\""
   },
   "repository": {
     "type": "git",
@@ -22,6 +23,7 @@
   },
   "homepage": "https://github.com/tiongMax/career-os#readme",
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "dotenv-cli": "^11.0.0"
   }
 }
