@@ -1,16 +1,33 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+const DEFAULT_TIMEOUT_MS = 5_000;
+
+export function apiUrl(path: string): string {
+  return `${BASE}${path}`;
+}
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new Error(`API ${res.status}: ${text}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(apiUrl(path), {
+      ...init,
+      headers: { "Content-Type": "application/json", ...init?.headers },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      throw new Error(`API ${res.status}: ${text}`);
+    }
+    if (res.status === 204) {
+      return undefined as T;
+    }
+    return res.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeout);
   }
-  return res.json() as Promise<T>;
 }
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -144,6 +161,17 @@ export const createRoleTrack = (name: string) =>
 export const getCompanies = () => apiFetch<Company[]>("/companies");
 export const getCompany = (id: string) => apiFetch<Company>(`/companies/${id}`);
 
+export interface CreateCompanyPayload {
+  name: string;
+  website?: string;
+  industry?: string;
+  location?: string;
+  notes?: string;
+}
+
+export const createCompany = (payload: CreateCompanyPayload) =>
+  apiFetch<Company>("/companies", { method: "POST", body: JSON.stringify(payload) });
+
 // ─── Resume Versions ─────────────────────────────────────────────────────────
 
 export const getResumeVersions = () => apiFetch<ResumeVersion[]>("/resume-versions");
@@ -165,20 +193,37 @@ export const deleteResumeVersion = (id: string) =>
 export const uploadResumePDF = async (id: string, file: File): Promise<void> => {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${BASE}/resume-versions/${id}/pdf`, { method: "POST", body: form });
+  const res = await fetch(apiUrl(`/resume-versions/${id}/pdf`), { method: "POST", body: form });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`API ${res.status}: ${text}`);
   }
 };
 
-export const getResumePDFUrl = (id: string) => `${BASE}/resume-versions/${id}/pdf`;
+export const getResumePDFUrl = (id: string) => apiUrl(`/resume-versions/${id}/pdf`);
 
 // ─── Applications ────────────────────────────────────────────────────────────
 
 export const getApplications = () => apiFetch<Application[]>("/applications");
 export const getApplication = (id: string) =>
   apiFetch<Application>(`/applications/${id}`);
+export interface CreateApplicationPayload {
+  company_id: string;
+  resume_version_id?: string;
+  title: string;
+  role_track: string;
+  source?: string;
+  status?: string;
+  location?: string;
+  employment_type?: string;
+  job_url?: string;
+  applied_at?: string;
+  deadline_at?: string;
+  notes?: string;
+}
+
+export const createApplication = (payload: CreateApplicationPayload) =>
+  apiFetch<Application>("/applications", { method: "POST", body: JSON.stringify(payload) });
 export const getApplicationAuditLogs = (id: string) =>
   apiFetch<AuditLog[]>(`/applications/${id}/audit-logs`);
 export const getApplicationJobDescription = (id: string) =>
@@ -354,3 +399,7 @@ export const getAnalyticsByResumeVersion = () => apiFetch<ResumeVersionPerforman
 export const getAnalyticsSourcePerformance = () => apiFetch<SourcePerformance[]>("/analytics/source-performance");
 export const getAnalyticsFunnel = () => apiFetch<FunnelStep[]>("/analytics/funnel");
 export const getAnalyticsUpcoming = () => apiFetch<UpcomingData>("/analytics/upcoming");
+
+export type ExportKind = "applications" | "contacts" | "reminders";
+
+export const getExportUrl = (kind: ExportKind) => apiUrl(`/exports/${kind}.csv`);
