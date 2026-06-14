@@ -50,6 +50,46 @@ func TestUpdateRejectsBlankRawTextAndDefaultsExplicitNilKeywords(t *testing.T) {
 	}
 }
 
+func TestMatchKeywordsUsesResumeContentTextAsStrongEvidence(t *testing.T) {
+	content := "Built Redis-backed reminder workers with PostgreSQL audit logs."
+	result := matchKeywords([]string{"Redis", "PostgreSQL", "Kubernetes"}, queries.ResumeVersion{
+		Name:        "Backend Resume",
+		Track:       "backend",
+		ContentText: &content,
+		Tags:        []string{"go"},
+	})
+
+	if result.Score != 2.0/3.0 {
+		t.Fatalf("expected weighted score 2/3, got %v", result.Score)
+	}
+	if result.ComparedKeywords != 3 {
+		t.Fatalf("expected 3 compared keywords, got %d", result.ComparedKeywords)
+	}
+	if len(result.Evidence) != 2 {
+		t.Fatalf("expected 2 evidence entries, got %d", len(result.Evidence))
+	}
+	for _, ev := range result.Evidence {
+		if ev.Source != "content_text" || ev.Weight != 1.0 {
+			t.Fatalf("expected content_text evidence with weight 1.0, got %+v", ev)
+		}
+	}
+}
+
+func TestMatchKeywordsWeightsTagsBelowContentText(t *testing.T) {
+	result := matchKeywords([]string{"Kafka"}, queries.ResumeVersion{
+		Name:  "Backend Resume",
+		Track: "backend",
+		Tags:  []string{"kafka"},
+	})
+
+	if result.Score != 0.85 {
+		t.Fatalf("expected tag-only score 0.85, got %v", result.Score)
+	}
+	if len(result.Evidence) != 1 || result.Evidence[0].Source != "tags" {
+		t.Fatalf("expected tag evidence, got %+v", result.Evidence)
+	}
+}
+
 type fakeStore struct {
 	created queries.CreateJobDescriptionParams
 	updated queries.UpdateJobDescriptionParams

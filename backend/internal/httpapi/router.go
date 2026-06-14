@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"careeros/backend/internal/db/queries"
+	aianalysissvc "careeros/backend/internal/services/aianalysis"
 	analyticssvc "careeros/backend/internal/services/analytics"
 	appsvc "careeros/backend/internal/services/applications"
 	companysvc "careeros/backend/internal/services/companies"
@@ -40,6 +41,7 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 		Search:          searchsvc.New(store),
 		Analytics:       analyticssvc.New(store),
 		RoleTracks:      roletracksvc.New(store),
+		AnalysisJobs:    aianalysissvc.New(store),
 	})
 
 	r.Use(corsMiddleware)
@@ -81,6 +83,13 @@ func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Cl
 			r.Get("/{id}/recommended-resume", handler.recommendedResume)
 			r.Get("/{id}/prep-context", handler.prepContext)
 			r.Post("/{id}/generate-prep-brief", handler.generatePrepBrief)
+			r.Post("/{id}/ai-analysis-jobs", handler.createAnalysisJob)
+			r.Get("/{id}/ai-analysis-jobs", handler.listApplicationAnalysisJobs)
+		})
+
+		r.Route("/ai-analysis-jobs", func(r chi.Router) {
+			r.Get("/", handler.listAnalysisJobs)
+			r.Get("/{id}", handler.getAnalysisJob)
 		})
 
 		r.Route("/job-descriptions", func(r chi.Router) {

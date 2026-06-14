@@ -160,11 +160,15 @@ func (s *Service) RecommendedResume(ctx context.Context, applicationID string) (
 }
 
 func matchKeywords(keywords []string, resume queries.ResumeVersion) queries.ResumeMatchResult {
-	haystack := strings.ToLower(resumeSearchText(resume))
 	var matched, missing []string
+	var evidence []queries.SkillEvidence
+	scoreTotal := 0.0
 	for _, kw := range keywords {
-		if strings.Contains(haystack, strings.ToLower(kw)) {
+		source, weight := bestKeywordEvidence(kw, resume)
+		if weight > 0 {
 			matched = append(matched, kw)
+			evidence = append(evidence, queries.SkillEvidence{Keyword: kw, Source: source, Weight: weight})
+			scoreTotal += weight
 		} else {
 			missing = append(missing, kw)
 		}
@@ -175,15 +179,43 @@ func matchKeywords(keywords []string, resume queries.ResumeVersion) queries.Resu
 	if missing == nil {
 		missing = []string{}
 	}
+	if evidence == nil {
+		evidence = []queries.SkillEvidence{}
+	}
 	score := 0.0
 	if len(keywords) > 0 {
-		score = float64(len(matched)) / float64(len(keywords))
+		score = scoreTotal / float64(len(keywords))
 	}
-	return queries.ResumeMatchResult{Matched: matched, Missing: missing, Score: score}
+	return queries.ResumeMatchResult{Matched: matched, Missing: missing, Score: score, ComparedKeywords: len(keywords), Evidence: evidence}
+}
+
+func bestKeywordEvidence(keyword string, resume queries.ResumeVersion) (string, float64) {
+	if resume.ContentText != nil && containsSkill(*resume.ContentText, keyword) {
+		return "content_text", 1.0
+	}
+	for _, tag := range resume.Tags {
+		if containsSkill(tag, keyword) {
+			return "tags", 0.85
+		}
+	}
+	if containsSkill(resume.Name, keyword) {
+		return "name", 0.6
+	}
+	if containsSkill(resume.Track, keyword) {
+		return "track", 0.4
+	}
+	return "", 0
+}
+
+func containsSkill(text, keyword string) bool {
+	return strings.Contains(strings.ToLower(text), strings.ToLower(keyword))
 }
 
 func resumeSearchText(rv queries.ResumeVersion) string {
 	parts := []string{rv.Name, rv.Track}
+	if rv.ContentText != nil {
+		parts = append(parts, *rv.ContentText)
+	}
 	parts = append(parts, rv.Tags...)
 	return strings.Join(parts, " ")
 }

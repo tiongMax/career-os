@@ -9,20 +9,23 @@ import {
   getResumeVersions,
   getRecommendedResume,
   getPrepContext,
+  getApplicationAnalysisJobs,
 } from "@/lib/api";
 import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { ExtractKeywordsButton } from "./extract-keywords-button";
 import { PrepBriefCard } from "./prep-brief-card";
 import { CompareResumeCard } from "./compare-resume-card";
+import { AnalysisJobsCard } from "./analysis-jobs-card";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
 
-  const [app, auditLogs, interviews] = await Promise.all([
+  const [app, auditLogs, interviews, analysisJobs] = await Promise.all([
     getApplication(id),
     getApplicationAuditLogs(id).catch(() => []),
     getApplicationInterviews(id).catch(() => []),
+    getApplicationAnalysisJobs(id).catch(() => []),
   ]);
 
   const [company, resume, jobDescription, prepContext, allResumeVersions] = await Promise.all([
@@ -168,6 +171,10 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
 
           <Card title="Prep Brief">
             <PrepBriefCard applicationId={id} />
+          </Card>
+
+          <Card title={`AI Analysis Jobs (${analysisJobs.length})`}>
+            <AnalysisJobsCard applicationId={id} initialJobs={analysisJobs} />
           </Card>
         </section>
 

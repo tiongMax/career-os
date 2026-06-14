@@ -114,6 +114,7 @@ const listCompaniesSQL = `-- name: ListCompaniesSQL :many
 SELECT id::text, name, website, industry, location, notes, created_at, updated_at
 FROM companies
 ORDER BY created_at DESC
+LIMIT 200
 `
 
 type ListCompaniesSQLRow struct {
