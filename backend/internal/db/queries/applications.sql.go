@@ -180,6 +180,7 @@ SELECT id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resu
     status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
 FROM applications
 ORDER BY created_at DESC
+LIMIT 200
 `
 
 type ListApplicationsSQLRow struct {

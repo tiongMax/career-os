@@ -14,7 +14,8 @@ RETURNING id::text, company_id::text, name, role, email, linkedin_url, relations
 -- name: ListContactsSQL :many
 SELECT id::text, company_id::text, name, role, email, linkedin_url, relationship, notes, created_at, updated_at
 FROM contacts
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT 200;
 
 -- name: GetContactSQL :one
 SELECT id::text, company_id::text, name, role, email, linkedin_url, relationship, notes, created_at, updated_at

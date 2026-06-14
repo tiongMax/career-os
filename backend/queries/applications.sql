@@ -34,7 +34,8 @@ RETURNING id::text, company_id::text, COALESCE(resume_version_id::text, '') AS r
 SELECT id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
     status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
 FROM applications
-ORDER BY created_at DESC;
+ORDER BY created_at DESC
+LIMIT 200;
 
 -- name: GetApplicationSQL :one
 SELECT id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,

@@ -273,6 +273,7 @@ SELECT id::text, application_id::text, COALESCE(contact_id::text, '') AS contact
     idempotency_key, retry_count, last_error, delivered_at, created_at, updated_at
 FROM reminders
 ORDER BY due_at ASC, created_at DESC
+LIMIT 200
 `
 
 type ListRemindersSQLRow struct {
