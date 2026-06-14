@@ -24,6 +24,7 @@ tags:
   - name: Contacts
   - name: Reminders
   - name: Role Tracks
+  - name: AI Analysis
   - name: Search
   - name: Analytics
 
@@ -385,6 +386,62 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PrepBrief" }
+
+  /applications/{id}/ai-analysis-jobs:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [AI Analysis]
+      summary: List AI analysis jobs for an application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AnalysisJob" }
+    post:
+      tags: [AI Analysis]
+      summary: Queue an async AI analysis job for an application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisJobInput" }
+      responses:
+        "201":
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisJob" }
+
+  /ai-analysis-jobs:
+    get:
+      tags: [AI Analysis]
+      summary: List recent AI analysis jobs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AnalysisJob" }
+
+  /ai-analysis-jobs/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [AI Analysis]
+      summary: Get an AI analysis job and persisted result
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisJob" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /job-descriptions/{id}:
     parameters:
@@ -835,6 +892,7 @@ components:
         id:        { type: string, format: uuid }
         name:      { type: string }
         track:     { type: string }
+        content_text: { type: string, nullable: true }
         has_pdf:   { type: boolean }
         tags:
           type: array
@@ -848,6 +906,7 @@ components:
       properties:
         name:  { type: string }
         track: { type: string }
+        content_text: { type: string, nullable: true }
         tags:
           type: array
           items: { type: string }
@@ -1006,6 +1065,80 @@ components:
         slug:  { type: string }
         label: { type: string }
       required: [slug, label]
+
+    AnalysisJobInput:
+      type: object
+      required: [job_type]
+      properties:
+        job_type:
+          type: string
+          enum: [resume_match, jd_extract, prep_brief]
+    AnalysisJob:
+      type: object
+      properties:
+        id:              { type: string, format: uuid }
+        application_id:  { type: string, format: uuid }
+        job_type:        { type: string, enum: [resume_match, jd_extract, prep_brief] }
+        status:          { type: string, enum: [queued, processing, completed, failed] }
+        input_snapshot:  { type: object, additionalProperties: true }
+        result:          { $ref: "#/components/schemas/AnalysisResult" }
+        error_message:   { type: string, nullable: true }
+        retry_count:     { type: integer }
+        idempotency_key: { type: string }
+        started_at:      { type: string, format: date-time, nullable: true }
+        completed_at:    { type: string, format: date-time, nullable: true }
+        created_at:      { type: string, format: date-time }
+        updated_at:      { type: string, format: date-time }
+      required: [id, application_id, job_type, status, input_snapshot, retry_count, idempotency_key, created_at, updated_at]
+    AnalysisResult:
+      type: object
+      properties:
+        summary:                 { type: string }
+        recommended_resume_id:   { type: string, format: uuid }
+        recommended_resume_name: { type: string }
+        match_score:             { type: number, format: double }
+        matched_skills:
+          type: array
+          items: { type: string }
+        missing_skills:
+          type: array
+          items: { type: string }
+        extracted_keywords:
+          type: array
+          items: { type: string }
+        core_requirements:
+          type: array
+          items: { type: string }
+        responsibilities:
+          type: array
+          items: { type: string }
+        seniority: { type: string }
+        resume_feedback:
+          type: array
+          items: { type: string }
+        interview_focus:
+          type: array
+          items: { type: string }
+        prep_plan:
+          type: array
+          items: { type: string }
+        talking_points:
+          type: array
+          items: { type: string }
+        suggested_questions:
+          type: array
+          items: { type: string }
+        embedding_matches:
+          type: array
+          items: { $ref: "#/components/schemas/EmbeddingMatch" }
+        generated_at: { type: string, format: date-time }
+    EmbeddingMatch:
+      type: object
+      properties:
+        resume_version_id:   { type: string, format: uuid }
+        resume_version_name: { type: string }
+        similarity:          { type: number, format: double }
+      required: [resume_version_id, resume_version_name, similarity]
 
     SearchResult:
       type: object

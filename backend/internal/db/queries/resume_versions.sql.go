@@ -12,31 +12,33 @@ import (
 )
 
 const createResumeVersionSQL = `-- name: CreateResumeVersionSQL :one
-INSERT INTO resume_versions (name, track, tags)
-VALUES ($1, $2, $3)
-RETURNING id::text, name, track, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
+INSERT INTO resume_versions (name, track, content_text, tags)
+VALUES ($1, $2, $3, $4)
+RETURNING id::text, name, track, content_text, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
 `
 
 type CreateResumeVersionSQLParams struct {
-	Name  string   `json:"name"`
-	Track string   `json:"track"`
-	Tags  []string `json:"tags"`
+	Name        string   `json:"name"`
+	Track       string   `json:"track"`
+	ContentText *string  `json:"content_text"`
+	Tags        []string `json:"tags"`
 }
 
 type CreateResumeVersionSQLRow struct {
-	ID        string             `json:"id"`
-	Name      string             `json:"name"`
-	Track     string             `json:"track"`
-	Tags      []string           `json:"tags"`
-	HasPDF    bool               `json:"has_pdf"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Track       string             `json:"track"`
+	ContentText *string            `json:"content_text"`
+	Tags        []string           `json:"tags"`
+	HasPDF      bool               `json:"has_pdf"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) CreateResumeVersionSQL(ctx context.Context, arg CreateResumeVersionSQLParams) (CreateResumeVersionSQLRow, error) {
-	row := q.db.QueryRow(ctx, createResumeVersionSQL, arg.Name, arg.Track, arg.Tags)
+	row := q.db.QueryRow(ctx, createResumeVersionSQL, arg.Name, arg.Track, arg.ContentText, arg.Tags)
 	var i CreateResumeVersionSQLRow
-	err := row.Scan(&i.ID, &i.Name, &i.Track, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt)
+	err := row.Scan(&i.ID, &i.Name, &i.Track, &i.ContentText, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt)
 	return i, err
 }
 
@@ -54,42 +56,45 @@ func (q *Queries) DeleteResumeVersionRowCount(ctx context.Context, dollar_1 stri
 }
 
 const getResumeVersionSQL = `-- name: GetResumeVersionSQL :one
-SELECT id::text, name, track, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
+SELECT id::text, name, track, content_text, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
 FROM resume_versions
 WHERE id = $1::uuid
 `
 
 type GetResumeVersionSQLRow struct {
-	ID        string             `json:"id"`
-	Name      string             `json:"name"`
-	Track     string             `json:"track"`
-	Tags      []string           `json:"tags"`
-	HasPDF    bool               `json:"has_pdf"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Track       string             `json:"track"`
+	ContentText *string            `json:"content_text"`
+	Tags        []string           `json:"tags"`
+	HasPDF      bool               `json:"has_pdf"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) GetResumeVersionSQL(ctx context.Context, id string) (GetResumeVersionSQLRow, error) {
 	row := q.db.QueryRow(ctx, getResumeVersionSQL, id)
 	var i GetResumeVersionSQLRow
-	err := row.Scan(&i.ID, &i.Name, &i.Track, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt)
+	err := row.Scan(&i.ID, &i.Name, &i.Track, &i.ContentText, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt)
 	return i, err
 }
 
 const listResumeVersionsSQL = `-- name: ListResumeVersionsSQL :many
-SELECT id::text, name, track, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
+SELECT id::text, name, track, content_text, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
 FROM resume_versions
 ORDER BY created_at DESC
+LIMIT 200
 `
 
 type ListResumeVersionsSQLRow struct {
-	ID        string             `json:"id"`
-	Name      string             `json:"name"`
-	Track     string             `json:"track"`
-	Tags      []string           `json:"tags"`
-	HasPDF    bool               `json:"has_pdf"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Track       string             `json:"track"`
+	ContentText *string            `json:"content_text"`
+	Tags        []string           `json:"tags"`
+	HasPDF      bool               `json:"has_pdf"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) ListResumeVersionsSQL(ctx context.Context) ([]ListResumeVersionsSQLRow, error) {
@@ -101,7 +106,7 @@ func (q *Queries) ListResumeVersionsSQL(ctx context.Context) ([]ListResumeVersio
 	items := []ListResumeVersionsSQLRow{}
 	for rows.Next() {
 		var i ListResumeVersionsSQLRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Track, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name, &i.Track, &i.ContentText, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -117,33 +122,36 @@ UPDATE resume_versions
 SET
     name = COALESCE($1, name),
     track = COALESCE($2, track),
-    tags = CASE WHEN $3::boolean THEN $4 ELSE tags END,
+    content_text = COALESCE($3, content_text),
+    tags = CASE WHEN $4::boolean THEN $5 ELSE tags END,
     updated_at = now()
-WHERE id = $5::uuid
-RETURNING id::text, name, track, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
+WHERE id = $6::uuid
+RETURNING id::text, name, track, content_text, tags, (pdf_data IS NOT NULL) AS has_pdf, created_at, updated_at
 `
 
 type UpdateResumeVersionSQLParams struct {
-	Name    *string  `json:"name"`
-	Track   *string  `json:"track"`
-	SetTags bool     `json:"set_tags"`
-	Tags    []string `json:"tags"`
-	ID      string   `json:"id"`
+	Name        *string  `json:"name"`
+	Track       *string  `json:"track"`
+	ContentText *string  `json:"content_text"`
+	SetTags     bool     `json:"set_tags"`
+	Tags        []string `json:"tags"`
+	ID          string   `json:"id"`
 }
 
 type UpdateResumeVersionSQLRow struct {
-	ID        string             `json:"id"`
-	Name      string             `json:"name"`
-	Track     string             `json:"track"`
-	Tags      []string           `json:"tags"`
-	HasPDF    bool               `json:"has_pdf"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	Track       string             `json:"track"`
+	ContentText *string            `json:"content_text"`
+	Tags        []string           `json:"tags"`
+	HasPDF      bool               `json:"has_pdf"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) UpdateResumeVersionSQL(ctx context.Context, arg UpdateResumeVersionSQLParams) (UpdateResumeVersionSQLRow, error) {
-	row := q.db.QueryRow(ctx, updateResumeVersionSQL, arg.Name, arg.Track, arg.SetTags, arg.Tags, arg.ID)
+	row := q.db.QueryRow(ctx, updateResumeVersionSQL, arg.Name, arg.Track, arg.ContentText, arg.SetTags, arg.Tags, arg.ID)
 	var i UpdateResumeVersionSQLRow
-	err := row.Scan(&i.ID, &i.Name, &i.Track, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt)
+	err := row.Scan(&i.ID, &i.Name, &i.Track, &i.ContentText, &i.Tags, &i.HasPDF, &i.CreatedAt, &i.UpdatedAt)
 	return i, err
 }

@@ -47,6 +47,7 @@ export interface ResumeVersion {
   id: string;
   name: string;
   track: string;
+  content_text?: string;
   has_pdf: boolean;
   tags: string[];
   created_at: string;
@@ -141,6 +142,51 @@ export interface AuditLog {
   created_at: string;
 }
 
+export type AnalysisJobType = "resume_match" | "jd_extract" | "prep_brief";
+export type AnalysisJobStatus = "queued" | "processing" | "completed" | "failed";
+
+export interface EmbeddingMatch {
+  resume_version_id: string;
+  resume_version_name: string;
+  similarity: number;
+}
+
+export interface AnalysisResult {
+  summary?: string;
+  recommended_resume_id?: string;
+  recommended_resume_name?: string;
+  match_score?: number;
+  matched_skills?: string[];
+  missing_skills?: string[];
+  extracted_keywords?: string[];
+  core_requirements?: string[];
+  responsibilities?: string[];
+  seniority?: string;
+  resume_feedback?: string[];
+  interview_focus?: string[];
+  prep_plan?: string[];
+  talking_points?: string[];
+  suggested_questions?: string[];
+  embedding_matches?: EmbeddingMatch[];
+  generated_at?: string;
+}
+
+export interface AnalysisJob {
+  id: string;
+  application_id: string;
+  job_type: AnalysisJobType;
+  status: AnalysisJobStatus;
+  input_snapshot: unknown;
+  result?: AnalysisResult;
+  error_message?: string;
+  retry_count: number;
+  idempotency_key: string;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Role Tracks ─────────────────────────────────────────────────────────────
 
 export interface RoleTrack {
@@ -180,11 +226,13 @@ export const getResumeVersion = (id: string) =>
 export const createResumeVersion = (body: {
   name: string;
   track: string;
+  content_text?: string;
   tags?: string[];
 }) => apiFetch<ResumeVersion>("/resume-versions", { method: "POST", body: JSON.stringify(body) });
 export const updateResumeVersion = (id: string, body: {
   name?: string;
   track?: string;
+  content_text?: string;
   tags?: string[];
 }) => apiFetch<ResumeVersion>(`/resume-versions/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 export const deleteResumeVersion = (id: string) =>
@@ -237,6 +285,8 @@ export interface ResumeMatchResult {
   matched: string[];
   missing: string[];
   score: number;
+  compared_keywords: number;
+  evidence: Array<{ keyword: string; source: string; weight: number }>;
 }
 
 export interface RecommendedResumeResult {
@@ -273,6 +323,13 @@ export const getPrepContext = (applicationId: string) =>
   apiFetch<PrepContext>(`/applications/${applicationId}/prep-context`);
 export const generatePrepBrief = (applicationId: string) =>
   apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, { method: "POST" });
+export const getApplicationAnalysisJobs = (applicationId: string) =>
+  apiFetch<AnalysisJob[]>(`/applications/${applicationId}/ai-analysis-jobs`);
+export const createAnalysisJob = (applicationId: string, jobType: AnalysisJobType) =>
+  apiFetch<AnalysisJob>(`/applications/${applicationId}/ai-analysis-jobs`, {
+    method: "POST",
+    body: JSON.stringify({ job_type: jobType }),
+  });
 
 // ─── Contacts ────────────────────────────────────────────────────────────────
 

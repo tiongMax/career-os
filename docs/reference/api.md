@@ -118,6 +118,7 @@ Create/update request:
 {
   "name": "Backend Resume",
   "track": "backend",
+  "content_text": "Built Go APIs with PostgreSQL, Redis workers, and full-text search.",
   "tags": ["go", "postgres"]
 }
 ```
@@ -129,6 +130,7 @@ Response:
   "id": "00000000-0000-4000-8000-000000000000",
   "name": "Backend Resume",
   "track": "backend",
+  "content_text": "Built Go APIs with PostgreSQL, Redis workers, and full-text search.",
   "has_pdf": false,
   "tags": ["go", "postgres"],
   "created_at": "2026-05-25T00:00:00Z",
@@ -152,6 +154,8 @@ Required fields: `name`, `track`.
 | `GET` | `/applications/{id}/recommended-resume` | Return the best resume match for an application JD. |
 | `GET` | `/applications/{id}/prep-context` | Aggregate interview prep context. |
 | `POST` | `/applications/{id}/generate-prep-brief` | Generate a deterministic prep brief. |
+| `POST` | `/applications/{id}/ai-analysis-jobs` | Queue a Gemini-backed AI analysis job for an application. |
+| `GET` | `/applications/{id}/ai-analysis-jobs` | List AI analysis jobs for an application. |
 
 Create/update request:
 
@@ -211,6 +215,43 @@ Status transition request:
 ```
 
 Invalid transitions return `409`.
+
+## AI Analysis Jobs
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/applications/{id}/ai-analysis-jobs` | Queue an async AI analysis job. |
+| `GET` | `/applications/{id}/ai-analysis-jobs` | List jobs for one application. |
+| `GET` | `/ai-analysis-jobs` | List the latest 100 analysis jobs. |
+| `GET` | `/ai-analysis-jobs/{id}` | Get one analysis job and its result. |
+
+Create request:
+
+```json
+{
+  "job_type": "resume_match"
+}
+```
+
+Supported `job_type` values:
+
+```text
+resume_match, jd_extract, prep_brief
+```
+
+Job statuses:
+
+```text
+queued, processing, completed, failed
+```
+
+Completed jobs include a persisted `result` JSON object. The shape depends on `job_type`:
+
+- `resume_match`: uses Gemini embeddings to rank resume versions, then returns `recommended_resume_id`, `match_score`, `matched_skills`, `missing_skills`, `resume_feedback`, `interview_focus`, and `embedding_matches`.
+- `jd_extract`: extracts `extracted_keywords`, `core_requirements`, `responsibilities`, `seniority`, and `summary`. Extracted keywords and summary are also written back to the job description.
+- `prep_brief`: returns `prep_plan`, `talking_points`, `suggested_questions`, `matched_skills`, `missing_skills`, and `interview_focus`.
+
+The worker processes queued jobs with Gemini when `GEMINI_API_KEY` is set.
 
 ## Job Descriptions
 
