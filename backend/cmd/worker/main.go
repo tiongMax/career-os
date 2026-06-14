@@ -10,7 +10,9 @@ import (
 
 	"careeros/backend/internal/config"
 	"careeros/backend/internal/db"
+	"careeros/backend/internal/db/queries"
 	"careeros/backend/internal/logger"
+	aianalysissvc "careeros/backend/internal/services/aianalysis"
 	"careeros/backend/internal/workers"
 )
 
@@ -47,7 +49,27 @@ func main() {
 		MaxRetries:   cfg.ReminderMaxRetries,
 	}
 
-	if err := worker.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	errCh := make(chan error, 2)
+	go func() {
+		errCh <- worker.Run(ctx)
+	}()
+
+	if cfg.GeminiAPIKey == "" {
+		log.Warn().Msg("analysis worker disabled because GEMINI_API_KEY is not set")
+	} else {
+		store := queries.New(postgres)
+		provider := aianalysissvc.NewGeminiProviderWithEmbeddingAndTimeout(cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiEmbeddingModel, cfg.GeminiBaseURL, cfg.GeminiTimeout)
+		analysisWorker := workers.AnalysisWorker{
+			Service:      aianalysissvc.NewProcessor(store, provider, cfg.AIAnalysisMaxRetries),
+			Logger:       log,
+			PollInterval: cfg.AIAnalysisWorkerPollInterval,
+		}
+		go func() {
+			errCh <- analysisWorker.Run(ctx)
+		}()
+	}
+
+	if err := <-errCh; err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal().Err(err).Msg("worker failed")
 	}
 }

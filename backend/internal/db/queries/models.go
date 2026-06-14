@@ -23,13 +23,14 @@ type Company struct {
 }
 
 type ResumeVersion struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Track     string    `json:"track"`
-	HasPDF    bool      `json:"has_pdf"`
-	Tags      []string  `json:"tags"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Track       string    `json:"track"`
+	ContentText *string   `json:"content_text,omitempty"`
+	HasPDF      bool      `json:"has_pdf"`
+	Tags        []string  `json:"tags"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Application struct {
@@ -118,6 +119,22 @@ type FailedReminderJob struct {
 	FailedAt     time.Time       `json:"failed_at"`
 }
 
+type AnalysisJob struct {
+	ID             string          `json:"id"`
+	ApplicationID  string          `json:"application_id"`
+	JobType        string          `json:"job_type"`
+	Status         string          `json:"status"`
+	InputSnapshot  json.RawMessage `json:"input_snapshot"`
+	Result         json.RawMessage `json:"result,omitempty"`
+	ErrorMessage   *string         `json:"error_message,omitempty"`
+	RetryCount     int32           `json:"retry_count"`
+	IdempotencyKey string          `json:"idempotency_key"`
+	StartedAt      *time.Time      `json:"started_at,omitempty"`
+	CompletedAt    *time.Time      `json:"completed_at,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+}
+
 type AuditLog struct {
 	ID         string          `json:"id"`
 	EntityType string          `json:"entity_type"`
@@ -197,9 +214,17 @@ type UpcomingReminder struct {
 }
 
 type ResumeMatchResult struct {
-	Matched []string `json:"matched"`
-	Missing []string `json:"missing"`
-	Score   float64  `json:"score"`
+	Matched          []string        `json:"matched"`
+	Missing          []string        `json:"missing"`
+	Score            float64         `json:"score"`
+	ComparedKeywords int             `json:"compared_keywords"`
+	Evidence         []SkillEvidence `json:"evidence"`
+}
+
+type SkillEvidence struct {
+	Keyword string  `json:"keyword"`
+	Source  string  `json:"source"`
+	Weight  float64 `json:"weight"`
 }
 
 type RecommendedResumeResult struct {
@@ -226,4 +251,3 @@ type PrepBrief struct {
 	TalkingPoints []string  `json:"talking_points"`
 	GeneratedAt   time.Time `json:"generated_at"`
 }
-

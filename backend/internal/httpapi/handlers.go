@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"careeros/backend/internal/db/queries"
-	appsvc "careeros/backend/internal/services/applications"
 	analyticssvc "careeros/backend/internal/services/analytics"
+	appsvc "careeros/backend/internal/services/applications"
 )
 
 type Handler struct {
@@ -19,6 +19,7 @@ type Handler struct {
 	searchSvc       searchService
 	analytics       analyticsService
 	roleTracks      roleTrackService
+	analysisJobs    analysisJobService
 }
 
 type Services struct {
@@ -32,6 +33,7 @@ type Services struct {
 	Search          searchService
 	Analytics       analyticsService
 	RoleTracks      roleTrackService
+	AnalysisJobs    analysisJobService
 }
 
 type companyService interface {
@@ -119,6 +121,13 @@ type roleTrackService interface {
 	List(context.Context) ([]queries.RoleTrack, error)
 }
 
+type analysisJobService interface {
+	Create(context.Context, string, string) (queries.AnalysisJob, error)
+	List(context.Context) ([]queries.AnalysisJob, error)
+	ListByApplication(context.Context, string) ([]queries.AnalysisJob, error)
+	Get(context.Context, string) (queries.AnalysisJob, error)
+}
+
 func NewHandler(services Services) Handler {
 	return Handler{
 		companies:       services.Companies,
@@ -131,5 +140,6 @@ func NewHandler(services Services) Handler {
 		searchSvc:       services.Search,
 		analytics:       services.Analytics,
 		roleTracks:      services.RoleTracks,
+		analysisJobs:    services.AnalysisJobs,
 	}
 }

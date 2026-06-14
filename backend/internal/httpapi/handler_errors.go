@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	aianalysissvc "careeros/backend/internal/services/aianalysis"
 	appsvc "careeros/backend/internal/services/applications"
 	companysvc "careeros/backend/internal/services/companies"
 	contactsvc "careeros/backend/internal/services/contacts"
@@ -32,7 +33,8 @@ func (h Handler) writeServiceError(w http.ResponseWriter, err error) {
 		errors.Is(err, jdsvc.ErrRawTextRequired),
 		errors.Is(err, remindersvc.ErrTitleRequired),
 		errors.Is(err, remindersvc.ErrDueAtRequired),
-		errors.Is(err, roletracksvc.ErrNameRequired):
+		errors.Is(err, roletracksvc.ErrNameRequired),
+		errors.Is(err, aianalysissvc.ErrUnsupportedJobType):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case pgErrorCode(err, "23505"):
 		writeError(w, http.StatusConflict, "already exists")

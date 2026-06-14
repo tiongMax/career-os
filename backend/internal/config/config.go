@@ -28,6 +28,21 @@ type Config struct {
 	// ReminderMaxRetries is the maximum number of delivery attempts before a
 	// reminder job should be treated as exhausted.
 	ReminderMaxRetries int
+	// AIAnalysisWorkerPollInterval controls how often the AI analysis worker
+	// checks for queued jobs.
+	AIAnalysisWorkerPollInterval time.Duration
+	// AIAnalysisMaxRetries is the maximum analysis attempts before failure.
+	AIAnalysisMaxRetries int
+	// GeminiAPIKey authenticates calls to the Gemini API.
+	GeminiAPIKey string
+	// GeminiModel is the Gemini model used for structured analysis.
+	GeminiModel string
+	// GeminiEmbeddingModel is the Gemini model used for resume/JD embeddings.
+	GeminiEmbeddingModel string
+	// GeminiBaseURL is the Gemini API base URL, mostly useful for tests.
+	GeminiBaseURL string
+	// GeminiTimeout controls how long the worker waits for a Gemini response.
+	GeminiTimeout time.Duration
 	// LogLevel controls zerolog verbosity.
 	LogLevel string
 }
@@ -45,14 +60,36 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	aiPollIntervalMS, err := getInt("AI_ANALYSIS_WORKER_POLL_INTERVAL_MS", 1000)
+	if err != nil {
+		return Config{}, err
+	}
+
+	aiMaxRetries, err := getInt("AI_ANALYSIS_MAX_RETRIES", 3)
+	if err != nil {
+		return Config{}, err
+	}
+
+	geminiTimeoutMS, err := getInt("GEMINI_TIMEOUT_MS", 90000)
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{
-		AppEnv:                     getString("APP_ENV", "development"),
-		APIPort:                    getString("API_PORT", "8080"),
-		DatabaseURL:                getString("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable"),
-		RedisURL:                   getString("REDIS_URL", "redis://localhost:6379"),
-		ReminderWorkerPollInterval: time.Duration(pollIntervalMS) * time.Millisecond,
-		ReminderMaxRetries:         maxRetries,
-		LogLevel:                   getString("LOG_LEVEL", "info"),
+		AppEnv:                       getString("APP_ENV", "development"),
+		APIPort:                      getString("API_PORT", "8080"),
+		DatabaseURL:                  getString("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable"),
+		RedisURL:                     getString("REDIS_URL", "redis://localhost:6379"),
+		ReminderWorkerPollInterval:   time.Duration(pollIntervalMS) * time.Millisecond,
+		ReminderMaxRetries:           maxRetries,
+		AIAnalysisWorkerPollInterval: time.Duration(aiPollIntervalMS) * time.Millisecond,
+		AIAnalysisMaxRetries:         aiMaxRetries,
+		GeminiAPIKey:                 getString("GEMINI_API_KEY", ""),
+		GeminiModel:                  getString("GEMINI_MODEL", "gemini-3.5-flash"),
+		GeminiEmbeddingModel:         getString("GEMINI_EMBEDDING_MODEL", "gemini-embedding-001"),
+		GeminiBaseURL:                getString("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"),
+		GeminiTimeout:                time.Duration(geminiTimeoutMS) * time.Millisecond,
+		LogLevel:                     getString("LOG_LEVEL", "info"),
 	}
 
 	return cfg, nil
