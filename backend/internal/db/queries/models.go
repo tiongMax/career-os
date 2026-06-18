@@ -44,6 +44,8 @@ type Application struct {
 	Location        *string    `json:"location,omitempty"`
 	EmploymentType  *string    `json:"employment_type,omitempty"`
 	JobURL          *string    `json:"job_url,omitempty"`
+	PortalAccount   *string    `json:"portal_account,omitempty"`
+	PortalPassword  *string    `json:"portal_password,omitempty"`
 	AppliedAt       *time.Time `json:"applied_at,omitempty"`
 	DeadlineAt      *time.Time `json:"deadline_at,omitempty"`
 	Notes           *string    `json:"notes,omitempty"`

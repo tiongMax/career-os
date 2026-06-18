@@ -59,6 +59,11 @@ func (s *Service) Update(ctx context.Context, arg queries.UpdateApplicationParam
 	if arg.Title != nil && strings.TrimSpace(*arg.Title) == "" {
 		return queries.Application{}, ErrTitleRequired
 	}
+	if arg.Status != nil {
+		if _, ok := allowedTransitions[*arg.Status]; !ok {
+			return queries.Application{}, ErrInvalidStatus
+		}
+	}
 	return s.store.UpdateApplication(ctx, arg)
 }
 
@@ -80,4 +85,3 @@ func (s *Service) ListAuditLogs(ctx context.Context, applicationID string) ([]qu
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.store.DeleteApplication(ctx, id)
 }
-

@@ -924,6 +924,8 @@ components:
         location:            { type: string, nullable: true }
         employment_type:     { type: string, nullable: true }
         job_url:             { type: string, nullable: true }
+        portal_account:      { type: string, nullable: true }
+        portal_password:     { type: string, nullable: true }
         applied_at:          { type: string, format: date-time, nullable: true }
         deadline_at:         { type: string, format: date-time, nullable: true }
         notes:               { type: string, nullable: true }
@@ -943,6 +945,8 @@ components:
         location:          { type: string, nullable: true }
         employment_type:   { type: string, nullable: true }
         job_url:           { type: string, nullable: true }
+        portal_account:    { type: string, nullable: true }
+        portal_password:   { type: string, nullable: true }
         applied_at:        { type: string, format: date-time, nullable: true }
         deadline_at:       { type: string, format: date-time, nullable: true }
         notes:             { type: string, nullable: true }

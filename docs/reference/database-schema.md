@@ -83,6 +83,8 @@ Important fields:
 - `title` is required.
 - `role_track` references `role_tracks.name`.
 - `status` defaults to `saved`.
+- `portal_account` and `portal_password` optionally store the account details
+  used for an application portal. Treat these as sensitive local data.
 - `applied_at` and `deadline_at` track key dates.
 - `search_vector` is a generated PostgreSQL full-text search column.
 

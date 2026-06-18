@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Briefcase, FileText, Globe, Layers, MapPin } from "lucide-react";
-import type { Company, ResumeVersion, RoleTrack } from "@/lib/api";
-import { createApplication, createCompany, createRoleTrack, type CreateApplicationPayload } from "@/lib/api";
+import type { Application, Company, ResumeVersion, RoleTrack, UpdateApplicationPayload } from "@/lib/api";
+import { createCompany, createRoleTrack, updateApplication, updateApplicationStatus } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
-import { APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
@@ -29,11 +29,23 @@ const LOCATION_OPTIONS: Option[] = [
   "Singapore",
 ].map((location) => ({ value: location, label: location }));
 
-export function NewApplicationForm({
+function dateInputValue(value?: string): string {
+  if (!value) return "";
+  return new Date(value).toISOString().split("T")[0];
+}
+
+function optionForValue(options: Option[], value?: string): Option | undefined {
+  if (!value) return undefined;
+  return options.find((option) => option.value === value) ?? { value, label: value };
+}
+
+export function EditApplicationForm({
+  application,
   companies,
   resumes,
   tracks,
 }: {
+  application: Application;
   companies: Company[];
   resumes: ResumeVersion[];
   tracks: RoleTrack[];
@@ -41,7 +53,9 @@ export function NewApplicationForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(application.status);
+
+  const defaultCompanyName = companies.find((company) => company.id === application.company_id)?.name ?? "";
 
   const trackOptions: Option[] = tracks.map((track) => ({
     value: track.name,
@@ -69,14 +83,12 @@ export function NewApplicationForm({
         throw new Error("Please select or create a company");
       }
 
-      let companyId: string;
+      let companyId = existingCompanyId;
       if (newCompanyName) {
         const company = await createCompany({ name: newCompanyName }).catch((err) => {
           throw new Error(`Failed to create company: ${err instanceof Error ? err.message : String(err)}`);
         });
         companyId = company.id;
-      } else {
-        companyId = existingCompanyId;
       }
 
       const track = (fd.get("role_track") as string).trim().toLowerCase();
@@ -89,26 +101,35 @@ export function NewApplicationForm({
         });
       }
 
-      const body: CreateApplicationPayload = {
+      const payload: UpdateApplicationPayload = {
         company_id: companyId,
         title: (fd.get("title") as string).trim(),
         role_track: track,
-        status: (fd.get("status") as string) || "saved",
+        source: ((fd.get("source") as string) || "").trim(),
+        location: ((fd.get("location") as string) || "").trim(),
+        job_url: ((fd.get("job_url") as string) || "").trim(),
+        portal_account: ((fd.get("portal_account") as string) || "").trim(),
+        portal_password: ((fd.get("portal_password") as string) || "").trim(),
+        notes: ((fd.get("notes") as string) || "").trim(),
+        employment_type: (fd.get("employment_type") as string) || "",
       };
-      if (fd.get("resume_version_id")) body.resume_version_id = fd.get("resume_version_id") as string;
-      if (fd.get("source")) body.source = fd.get("source") as string;
-      if (fd.get("location")) body.location = fd.get("location") as string;
-      if (fd.get("job_url")) body.job_url = fd.get("job_url") as string;
-      if (fd.get("portal_account")) body.portal_account = fd.get("portal_account") as string;
-      if (fd.get("portal_password")) body.portal_password = fd.get("portal_password") as string;
-      if (fd.get("notes")) body.notes = fd.get("notes") as string;
-      if (fd.get("employment_type")) body.employment_type = fd.get("employment_type") as string;
-      if (fd.get("applied_at")) {
-        body.applied_at = new Date(fd.get("applied_at") as string).toISOString();
-      }
 
-      const app = await createApplication(body);
-      router.push(`/applications/${app.id}`);
+      const resumeVersionId = fd.get("resume_version_id") as string;
+      if (resumeVersionId) payload.resume_version_id = resumeVersionId;
+
+      const appliedAt = fd.get("applied_at") as string;
+      if (appliedAt) payload.applied_at = new Date(appliedAt).toISOString();
+
+      const deadlineAt = fd.get("deadline_at") as string;
+      if (deadlineAt) payload.deadline_at = new Date(deadlineAt).toISOString();
+
+      await updateApplication(application.id, payload);
+      const nextStatus = (fd.get("status") as string) || "saved";
+      if (nextStatus !== application.status) {
+        await updateApplicationStatus(application.id, nextStatus);
+      }
+      router.push(`/applications/${application.id}`);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
@@ -125,12 +146,17 @@ export function NewApplicationForm({
 
       <FormSection title="Position">
         <Field label="Company" required>
-          <CompanyCombobox companies={companies} />
+          <CompanyCombobox
+            companies={companies}
+            defaultId={application.company_id}
+            defaultName={defaultCompanyName}
+          />
         </Field>
         <Field label="Role Title" required>
           <input
             name="title"
             required
+            defaultValue={application.title}
             placeholder="e.g. Backend Engineer Intern"
             className={inputClass}
           />
@@ -144,6 +170,7 @@ export function NewApplicationForm({
               name="role_track"
               options={trackOptions}
               placeholder="Select track..."
+              defaultOption={optionForValue(trackOptions, application.role_track)}
               allowCustom
               required
               icon={Layers}
@@ -154,6 +181,11 @@ export function NewApplicationForm({
               name="status"
               options={APPLICATION_STATUS_OPTIONS}
               placeholder="Select status..."
+              defaultOption={{
+                value: application.status,
+                label: APPLICATION_STATUS_LABELS[application.status] ?? application.status,
+                dot: APPLICATION_STATUS_OPTIONS.find((option) => option.value === application.status)?.dot,
+              }}
               required
               onSelect={setStatus}
             />
@@ -166,6 +198,7 @@ export function NewApplicationForm({
               name="employment_type"
               options={EMPLOYMENT_OPTIONS}
               placeholder="Select type..."
+              defaultOption={optionForValue(EMPLOYMENT_OPTIONS, application.employment_type)}
               icon={Briefcase}
             />
           </Field>
@@ -174,7 +207,7 @@ export function NewApplicationForm({
               <input
                 name="applied_at"
                 type="date"
-                defaultValue={new Date().toISOString().split("T")[0]}
+                defaultValue={dateInputValue(application.applied_at)}
                 className={inputClass}
               />
             </Field>
@@ -188,6 +221,7 @@ export function NewApplicationForm({
             name="resume_version_id"
             options={resumeOptions}
             placeholder="Search resumes..."
+            defaultOption={optionForValue(resumeOptions, application.resume_version_id)}
             icon={FileText}
           />
         </Field>
@@ -200,6 +234,7 @@ export function NewApplicationForm({
               name="source"
               options={SOURCE_OPTIONS}
               placeholder="LinkedIn, referral..."
+              defaultOption={optionForValue(SOURCE_OPTIONS, application.source)}
               allowCustom
               icon={Globe}
             />
@@ -209,18 +244,20 @@ export function NewApplicationForm({
               name="location"
               options={LOCATION_OPTIONS}
               placeholder="San Francisco, Remote..."
+              defaultOption={optionForValue(LOCATION_OPTIONS, application.location)}
               allowCustom
               icon={MapPin}
             />
           </Field>
         </div>
         <Field label="Job URL">
-          <input name="job_url" type="url" placeholder="https://..." className={inputClass} />
+          <input name="job_url" type="url" defaultValue={application.job_url ?? ""} placeholder="https://..." className={inputClass} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
           <Field label="Portal Account">
             <input
               name="portal_account"
+              defaultValue={application.portal_account ?? ""}
               placeholder="email or username used"
               autoComplete="username"
               className={inputClass}
@@ -229,14 +266,19 @@ export function NewApplicationForm({
           <Field label="Portal Password">
             <PasswordInput
               name="portal_password"
+              defaultValue={application.portal_password ?? ""}
               placeholder="password used"
             />
           </Field>
         </div>
+        <Field label="Deadline">
+          <input name="deadline_at" type="date" defaultValue={dateInputValue(application.deadline_at)} className={inputClass} />
+        </Field>
         <Field label="Notes">
           <textarea
             name="notes"
             rows={3}
+            defaultValue={application.notes ?? ""}
             placeholder="Any notes..."
             className={`${inputClass} resize-none`}
           />
@@ -249,10 +291,10 @@ export function NewApplicationForm({
           disabled={loading}
           className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
         >
-          {loading ? "Saving..." : "Create Application"}
+          {loading ? "Saving..." : "Save Changes"}
         </button>
         <Link
-          href="/applications"
+          href={`/applications/${application.id}`}
           className="rounded-md border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
         >
           Cancel

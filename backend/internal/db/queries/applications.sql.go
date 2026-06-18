@@ -23,6 +23,8 @@ INSERT INTO applications (
     location,
     employment_type,
     job_url,
+    portal_account,
+    portal_password,
     applied_at,
     deadline_at,
     notes
@@ -39,10 +41,12 @@ VALUES (
     $9,
     $10,
     $11,
-    $12
+    $12,
+    $13,
+    $14
 )
 RETURNING id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
-    status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
+    status, location, employment_type, job_url, portal_account, portal_password, applied_at, deadline_at, notes, created_at, updated_at
 `
 
 type CreateApplicationSQLParams struct {
@@ -55,6 +59,8 @@ type CreateApplicationSQLParams struct {
 	Location        *string     `json:"location"`
 	EmploymentType  *string     `json:"employment_type"`
 	JobUrl          *string     `json:"job_url"`
+	PortalAccount   *string     `json:"portal_account"`
+	PortalPassword  *string     `json:"portal_password"`
 	AppliedAt       *time.Time  `json:"applied_at"`
 	DeadlineAt      *time.Time  `json:"deadline_at"`
 	Notes           *string     `json:"notes"`
@@ -71,6 +77,8 @@ type CreateApplicationSQLRow struct {
 	Location        *string            `json:"location"`
 	EmploymentType  *string            `json:"employment_type"`
 	JobUrl          *string            `json:"job_url"`
+	PortalAccount   *string            `json:"portal_account"`
+	PortalPassword  *string            `json:"portal_password"`
 	AppliedAt       *time.Time         `json:"applied_at"`
 	DeadlineAt      *time.Time         `json:"deadline_at"`
 	Notes           *string            `json:"notes"`
@@ -89,6 +97,8 @@ func (q *Queries) CreateApplicationSQL(ctx context.Context, arg CreateApplicatio
 		arg.Location,
 		arg.EmploymentType,
 		arg.JobUrl,
+		arg.PortalAccount,
+		arg.PortalPassword,
 		arg.AppliedAt,
 		arg.DeadlineAt,
 		arg.Notes,
@@ -105,6 +115,8 @@ func (q *Queries) CreateApplicationSQL(ctx context.Context, arg CreateApplicatio
 		&i.Location,
 		&i.EmploymentType,
 		&i.JobUrl,
+		&i.PortalAccount,
+		&i.PortalPassword,
 		&i.AppliedAt,
 		&i.DeadlineAt,
 		&i.Notes,
@@ -129,7 +141,7 @@ func (q *Queries) DeleteApplicationRowCount(ctx context.Context, dollar_1 string
 
 const getApplicationSQL = `-- name: GetApplicationSQL :one
 SELECT id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
-    status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
+    status, location, employment_type, job_url, portal_account, portal_password, applied_at, deadline_at, notes, created_at, updated_at
 FROM applications
 WHERE id = $1::uuid
 `
@@ -145,6 +157,8 @@ type GetApplicationSQLRow struct {
 	Location        *string            `json:"location"`
 	EmploymentType  *string            `json:"employment_type"`
 	JobUrl          *string            `json:"job_url"`
+	PortalAccount   *string            `json:"portal_account"`
+	PortalPassword  *string            `json:"portal_password"`
 	AppliedAt       *time.Time         `json:"applied_at"`
 	DeadlineAt      *time.Time         `json:"deadline_at"`
 	Notes           *string            `json:"notes"`
@@ -166,6 +180,8 @@ func (q *Queries) GetApplicationSQL(ctx context.Context, id string) (GetApplicat
 		&i.Location,
 		&i.EmploymentType,
 		&i.JobUrl,
+		&i.PortalAccount,
+		&i.PortalPassword,
 		&i.AppliedAt,
 		&i.DeadlineAt,
 		&i.Notes,
@@ -177,7 +193,7 @@ func (q *Queries) GetApplicationSQL(ctx context.Context, id string) (GetApplicat
 
 const listApplicationsSQL = `-- name: ListApplicationsSQL :many
 SELECT id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
-    status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
+    status, location, employment_type, job_url, portal_account, portal_password, applied_at, deadline_at, notes, created_at, updated_at
 FROM applications
 ORDER BY created_at DESC
 LIMIT 200
@@ -194,6 +210,8 @@ type ListApplicationsSQLRow struct {
 	Location        *string            `json:"location"`
 	EmploymentType  *string            `json:"employment_type"`
 	JobUrl          *string            `json:"job_url"`
+	PortalAccount   *string            `json:"portal_account"`
+	PortalPassword  *string            `json:"portal_password"`
 	AppliedAt       *time.Time         `json:"applied_at"`
 	DeadlineAt      *time.Time         `json:"deadline_at"`
 	Notes           *string            `json:"notes"`
@@ -221,6 +239,8 @@ func (q *Queries) ListApplicationsSQL(ctx context.Context) ([]ListApplicationsSQ
 			&i.Location,
 			&i.EmploymentType,
 			&i.JobUrl,
+			&i.PortalAccount,
+			&i.PortalPassword,
 			&i.AppliedAt,
 			&i.DeadlineAt,
 			&i.Notes,
@@ -244,17 +264,20 @@ SET
     resume_version_id = COALESCE($2::uuid, resume_version_id),
     title = COALESCE($3, title),
     role_track = COALESCE($4, role_track),
-    source = COALESCE($5, source),
-    location = COALESCE($6, location),
-    employment_type = COALESCE($7, employment_type),
-    job_url = COALESCE($8, job_url),
-    applied_at = COALESCE($9, applied_at),
-    deadline_at = COALESCE($10, deadline_at),
-    notes = COALESCE($11, notes),
+    status = COALESCE($5, status),
+    source = COALESCE($6, source),
+    location = COALESCE($7, location),
+    employment_type = COALESCE($8, employment_type),
+    job_url = COALESCE($9, job_url),
+    portal_account = COALESCE($10, portal_account),
+    portal_password = COALESCE($11, portal_password),
+    applied_at = COALESCE($12, applied_at),
+    deadline_at = COALESCE($13, deadline_at),
+    notes = COALESCE($14, notes),
     updated_at = now()
-WHERE id = $12::uuid
+WHERE id = $15::uuid
 RETURNING id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
-    status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
+    status, location, employment_type, job_url, portal_account, portal_password, applied_at, deadline_at, notes, created_at, updated_at
 `
 
 type UpdateApplicationSQLParams struct {
@@ -262,10 +285,13 @@ type UpdateApplicationSQLParams struct {
 	ResumeVersionID *string    `json:"resume_version_id"`
 	Title           *string    `json:"title"`
 	RoleTrack       *string    `json:"role_track"`
+	Status          *string    `json:"status"`
 	Source          *string    `json:"source"`
 	Location        *string    `json:"location"`
 	EmploymentType  *string    `json:"employment_type"`
 	JobUrl          *string    `json:"job_url"`
+	PortalAccount   *string    `json:"portal_account"`
+	PortalPassword  *string    `json:"portal_password"`
 	AppliedAt       *time.Time `json:"applied_at"`
 	DeadlineAt      *time.Time `json:"deadline_at"`
 	Notes           *string    `json:"notes"`
@@ -283,6 +309,8 @@ type UpdateApplicationSQLRow struct {
 	Location        *string            `json:"location"`
 	EmploymentType  *string            `json:"employment_type"`
 	JobUrl          *string            `json:"job_url"`
+	PortalAccount   *string            `json:"portal_account"`
+	PortalPassword  *string            `json:"portal_password"`
 	AppliedAt       *time.Time         `json:"applied_at"`
 	DeadlineAt      *time.Time         `json:"deadline_at"`
 	Notes           *string            `json:"notes"`
@@ -296,10 +324,13 @@ func (q *Queries) UpdateApplicationSQL(ctx context.Context, arg UpdateApplicatio
 		arg.ResumeVersionID,
 		arg.Title,
 		arg.RoleTrack,
+		arg.Status,
 		arg.Source,
 		arg.Location,
 		arg.EmploymentType,
 		arg.JobUrl,
+		arg.PortalAccount,
+		arg.PortalPassword,
 		arg.AppliedAt,
 		arg.DeadlineAt,
 		arg.Notes,
@@ -317,6 +348,8 @@ func (q *Queries) UpdateApplicationSQL(ctx context.Context, arg UpdateApplicatio
 		&i.Location,
 		&i.EmploymentType,
 		&i.JobUrl,
+		&i.PortalAccount,
+		&i.PortalPassword,
 		&i.AppliedAt,
 		&i.DeadlineAt,
 		&i.Notes,
@@ -331,7 +364,7 @@ UPDATE applications
 SET status = $1, updated_at = now()
 WHERE id = $2::uuid
 RETURNING id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
-    status, location, employment_type, job_url, applied_at, deadline_at, notes, created_at, updated_at
+    status, location, employment_type, job_url, portal_account, portal_password, applied_at, deadline_at, notes, created_at, updated_at
 `
 
 type UpdateApplicationStatusSQLParams struct {
@@ -350,6 +383,8 @@ type UpdateApplicationStatusSQLRow struct {
 	Location        *string            `json:"location"`
 	EmploymentType  *string            `json:"employment_type"`
 	JobUrl          *string            `json:"job_url"`
+	PortalAccount   *string            `json:"portal_account"`
+	PortalPassword  *string            `json:"portal_password"`
 	AppliedAt       *time.Time         `json:"applied_at"`
 	DeadlineAt      *time.Time         `json:"deadline_at"`
 	Notes           *string            `json:"notes"`
@@ -371,6 +406,8 @@ func (q *Queries) UpdateApplicationStatusSQL(ctx context.Context, arg UpdateAppl
 		&i.Location,
 		&i.EmploymentType,
 		&i.JobUrl,
+		&i.PortalAccount,
+		&i.PortalPassword,
 		&i.AppliedAt,
 		&i.DeadlineAt,
 		&i.Notes,
