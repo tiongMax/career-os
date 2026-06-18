@@ -92,6 +92,25 @@ func TestUpdateApplicationStatusUsesPathIDAndReturnsConflict(t *testing.T) {
 	}
 }
 
+func TestUpdateApplicationUsesPathIDAndAcceptsStatus(t *testing.T) {
+	handler, fakes := newTestHandler()
+
+	req := requestWithPathParam(http.MethodPatch, "/applications/"+testUUID, `{"title":"Updated","status":"applied"}`, "id", testUUID)
+	rec := httptest.NewRecorder()
+
+	handler.updateApplication(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d: %s", http.StatusOK, rec.Code, rec.Body.String())
+	}
+	if fakes.applications.updated.ID != testUUID {
+		t.Fatalf("expected path id %q, got %q", testUUID, fakes.applications.updated.ID)
+	}
+	if fakes.applications.updated.Status == nil || *fakes.applications.updated.Status != appsvc.StatusApplied {
+		t.Fatalf("expected requested status %q, got %#v", appsvc.StatusApplied, fakes.applications.updated.Status)
+	}
+}
+
 func TestUpdateResumeVersionDistinguishesEmptyTagsFromMissingTags(t *testing.T) {
 	handler, fakes := newTestHandler()
 
@@ -268,6 +287,7 @@ func (f *fakeResumeService) GetPDF(context.Context, string) ([]byte, error) { re
 type fakeApplicationService struct {
 	changedStatus   appsvc.ChangeStatusParams
 	changeStatusErr error
+	updated         queries.UpdateApplicationParams
 }
 
 func (f *fakeApplicationService) Create(context.Context, queries.CreateApplicationParams) (queries.Application, error) {
@@ -282,8 +302,17 @@ func (f *fakeApplicationService) Get(context.Context, string) (queries.Applicati
 	return queries.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
 }
 
-func (f *fakeApplicationService) Update(context.Context, queries.UpdateApplicationParams) (queries.Application, error) {
-	return queries.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
+func (f *fakeApplicationService) Update(_ context.Context, arg queries.UpdateApplicationParams) (queries.Application, error) {
+	f.updated = arg
+	title := "Backend Engineer"
+	if arg.Title != nil {
+		title = *arg.Title
+	}
+	status := appsvc.StatusSaved
+	if arg.Status != nil {
+		status = *arg.Status
+	}
+	return queries.Application{ID: arg.ID, CompanyID: testUUID, Title: title, RoleTrack: "backend", Status: status}, nil
 }
 
 func (f *fakeApplicationService) ChangeStatus(_ context.Context, arg appsvc.ChangeStatusParams) (queries.Application, error) {

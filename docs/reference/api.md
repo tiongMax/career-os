@@ -170,6 +170,8 @@ Create/update request:
   "location": "Remote",
   "employment_type": "full_time",
   "job_url": "https://example.com/jobs/backend",
+  "portal_account": "me@example.com",
+  "portal_password": "password used for this portal",
   "applied_at": "2026-05-25T00:00:00Z",
   "deadline_at": "2026-06-01T00:00:00Z",
   "notes": "Strong fit"
@@ -190,6 +192,8 @@ Response:
   "location": "Remote",
   "employment_type": "full_time",
   "job_url": "https://example.com/jobs/backend",
+  "portal_account": "me@example.com",
+  "portal_password": "password used for this portal",
   "applied_at": "2026-05-25T00:00:00Z",
   "deadline_at": "2026-06-01T00:00:00Z",
   "notes": "Strong fit",

@@ -40,6 +40,8 @@ type CreateApplicationParams struct {
 	Location        *string    `json:"location"`
 	EmploymentType  *string    `json:"employment_type"`
 	JobURL          *string    `json:"job_url"`
+	PortalAccount   *string    `json:"portal_account"`
+	PortalPassword  *string    `json:"portal_password"`
 	AppliedAt       *time.Time `json:"applied_at"`
 	DeadlineAt      *time.Time `json:"deadline_at"`
 	Notes           *string    `json:"notes"`
@@ -51,10 +53,13 @@ type UpdateApplicationParams struct {
 	ResumeVersionID *string    `json:"resume_version_id"`
 	Title           *string    `json:"title"`
 	RoleTrack       *string    `json:"role_track"`
+	Status          *string    `json:"status"`
 	Source          *string    `json:"source"`
 	Location        *string    `json:"location"`
 	EmploymentType  *string    `json:"employment_type"`
 	JobURL          *string    `json:"job_url"`
+	PortalAccount   *string    `json:"portal_account"`
+	PortalPassword  *string    `json:"portal_password"`
 	AppliedAt       *time.Time `json:"applied_at"`
 	DeadlineAt      *time.Time `json:"deadline_at"`
 	Notes           *string    `json:"notes"`
@@ -169,11 +174,13 @@ func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationPa
 		Location:        arg.Location,
 		EmploymentType:  arg.EmploymentType,
 		JobUrl:          arg.JobURL,
+		PortalAccount:   arg.PortalAccount,
+		PortalPassword:  arg.PortalPassword,
 		AppliedAt:       arg.AppliedAt,
 		DeadlineAt:      arg.DeadlineAt,
 		Notes:           arg.Notes,
 	})
-	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
+	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
 }
 
 func (q *Queries) ListApplications(ctx context.Context) ([]Application, error) {
@@ -183,14 +190,14 @@ func (q *Queries) ListApplications(ctx context.Context) ([]Application, error) {
 	}
 	applications := make([]Application, 0, len(rows))
 	for _, row := range rows {
-		applications = append(applications, applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt))
+		applications = append(applications, applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt))
 	}
 	return applications, nil
 }
 
 func (q *Queries) GetApplication(ctx context.Context, id string) (Application, error) {
 	row, err := q.GetApplicationSQL(ctx, id)
-	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
+	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
 }
 
 func (q *Queries) UpdateApplication(ctx context.Context, arg UpdateApplicationParams) (Application, error) {
@@ -199,16 +206,19 @@ func (q *Queries) UpdateApplication(ctx context.Context, arg UpdateApplicationPa
 		ResumeVersionID: arg.ResumeVersionID,
 		Title:           arg.Title,
 		RoleTrack:       arg.RoleTrack,
+		Status:          arg.Status,
 		Source:          arg.Source,
 		Location:        arg.Location,
 		EmploymentType:  arg.EmploymentType,
 		JobUrl:          arg.JobURL,
+		PortalAccount:   arg.PortalAccount,
+		PortalPassword:  arg.PortalPassword,
 		AppliedAt:       arg.AppliedAt,
 		DeadlineAt:      arg.DeadlineAt,
 		Notes:           arg.Notes,
 		ID:              arg.ID,
 	})
-	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
+	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
 }
 
 func (q *Queries) UpdateApplicationStatusWithAudit(ctx context.Context, id string, oldStatus string, newStatus string) (Application, error) {
@@ -247,7 +257,7 @@ func (q *Queries) UpdateApplicationStatusWithAudit(ctx context.Context, id strin
 	if err := tx.Commit(ctx); err != nil {
 		return Application{}, err
 	}
-	return applicationFrom(updatedRow.ID, updatedRow.CompanyID, updatedRow.ResumeVersionID, updatedRow.Title, updatedRow.RoleTrack, updatedRow.Source, updatedRow.Status, updatedRow.Location, updatedRow.EmploymentType, updatedRow.JobUrl, updatedRow.AppliedAt, updatedRow.DeadlineAt, updatedRow.Notes, updatedRow.CreatedAt, updatedRow.UpdatedAt), nil
+	return applicationFrom(updatedRow.ID, updatedRow.CompanyID, updatedRow.ResumeVersionID, updatedRow.Title, updatedRow.RoleTrack, updatedRow.Source, updatedRow.Status, updatedRow.Location, updatedRow.EmploymentType, updatedRow.JobUrl, updatedRow.PortalAccount, updatedRow.PortalPassword, updatedRow.AppliedAt, updatedRow.DeadlineAt, updatedRow.Notes, updatedRow.CreatedAt, updatedRow.UpdatedAt), nil
 }
 
 func (q *Queries) DeleteApplication(ctx context.Context, id string) error {
@@ -641,8 +651,8 @@ func companyFrom(id, name string, website, industry, location, notes *string, cr
 	return Company{ID: id, Name: name, Website: website, Industry: industry, Location: location, Notes: notes, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
 }
 
-func applicationFrom(id, companyID string, resumeVersionID any, title, roleTrack string, source *string, status string, location, employmentType, jobURL *string, appliedAt, deadlineAt *time.Time, notes *string, createdAt, updatedAt pgtype.Timestamptz) Application {
-	return Application{ID: id, CompanyID: companyID, ResumeVersionID: ptrFromString(resumeVersionID), Title: title, RoleTrack: roleTrack, Source: source, Status: status, Location: location, EmploymentType: employmentType, JobURL: jobURL, AppliedAt: appliedAt, DeadlineAt: deadlineAt, Notes: notes, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
+func applicationFrom(id, companyID string, resumeVersionID any, title, roleTrack string, source *string, status string, location, employmentType, jobURL, portalAccount, portalPassword *string, appliedAt, deadlineAt *time.Time, notes *string, createdAt, updatedAt pgtype.Timestamptz) Application {
+	return Application{ID: id, CompanyID: companyID, ResumeVersionID: ptrFromString(resumeVersionID), Title: title, RoleTrack: roleTrack, Source: source, Status: status, Location: location, EmploymentType: employmentType, JobURL: jobURL, PortalAccount: portalAccount, PortalPassword: portalPassword, AppliedAt: appliedAt, DeadlineAt: deadlineAt, Notes: notes, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
 }
 
 func auditLogFrom(id, entityType, entityID, action string, oldValue, newValue []byte, createdAt pgtype.Timestamptz) AuditLog {
