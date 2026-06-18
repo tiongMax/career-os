@@ -65,6 +65,8 @@ export interface Application {
   location?: string;
   employment_type?: string;
   job_url?: string;
+  portal_account?: string;
+  portal_password?: string;
   applied_at?: string;
   deadline_at?: string;
   notes?: string;
@@ -265,6 +267,8 @@ export interface CreateApplicationPayload {
   location?: string;
   employment_type?: string;
   job_url?: string;
+  portal_account?: string;
+  portal_password?: string;
   applied_at?: string;
   deadline_at?: string;
   notes?: string;
@@ -272,6 +276,14 @@ export interface CreateApplicationPayload {
 
 export const createApplication = (payload: CreateApplicationPayload) =>
   apiFetch<Application>("/applications", { method: "POST", body: JSON.stringify(payload) });
+export type UpdateApplicationPayload = Partial<CreateApplicationPayload>;
+export const updateApplication = (id: string, payload: UpdateApplicationPayload) =>
+  apiFetch<Application>(`/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export const updateApplicationStatus = (id: string, status: string) =>
+  apiFetch<Application>(`/applications/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 export const getApplicationAuditLogs = (id: string) =>
   apiFetch<AuditLog[]>(`/applications/${id}/audit-logs`);
 export const getApplicationJobDescription = (id: string) =>

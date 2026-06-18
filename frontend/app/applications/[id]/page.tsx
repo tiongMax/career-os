@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import {
   getApplication,
   getApplicationAuditLogs,
@@ -17,6 +18,7 @@ import { ExtractKeywordsButton } from "./extract-keywords-button";
 import { PrepBriefCard } from "./prep-brief-card";
 import { CompareResumeCard } from "./compare-resume-card";
 import { AnalysisJobsCard } from "./analysis-jobs-card";
+import { PortalPassword } from "./portal-password";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -54,7 +56,16 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
           <h1 className="text-2xl font-semibold text-neutral-900">{app.title}</h1>
           <p className="mt-1 text-sm text-neutral-500">{company?.name ?? "Unknown company"}</p>
         </div>
-        <StatusBadge status={app.status} />
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/applications/${app.id}/edit`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </Link>
+          <StatusBadge status={app.status} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -85,6 +96,20 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               )}
             </dl>
           </Card>
+
+          {(app.portal_account || app.portal_password) && (
+            <Card title="Portal Login">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+                <Detail label="Account" value={app.portal_account} />
+                <Detail
+                  label="Password"
+                  value={
+                    app.portal_password ? <PortalPassword value={app.portal_password} /> : null
+                  }
+                />
+              </dl>
+            </Card>
+          )}
 
           {jobDescription && (
             <Card title="Job Description">
