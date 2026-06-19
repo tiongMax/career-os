@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Building2, Check, Plus, Search, X } from "lucide-react";
+import { Building2, Check, Plus, Search, Trash2, X } from "lucide-react";
 import type { Company } from "@/lib/api";
+import { deleteCompany } from "@/lib/api";
 
 type CompanySelection =
   | { type: "existing"; id: string; name: string }
@@ -19,6 +20,9 @@ export function CompanyCombobox({
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<CompanySelection | null>(
     defaultId ? { type: "existing", id: defaultId, name: defaultName } : null
   );
@@ -26,11 +30,12 @@ export function CompanyCombobox({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const trimmedQuery = query.trim();
+  const choices = companies.filter((company) => !removedIds.includes(company.id));
   const filtered = trimmedQuery
-    ? companies.filter((company) => company.name.toLowerCase().includes(trimmedQuery.toLowerCase()))
-    : companies;
+    ? choices.filter((company) => company.name.toLowerCase().includes(trimmedQuery.toLowerCase()))
+    : choices;
 
-  const hasExactMatch = companies.some(
+  const hasExactMatch = choices.some(
     (company) => company.name.toLowerCase() === trimmedQuery.toLowerCase()
   );
   const showCreate = trimmedQuery.length > 0 && !hasExactMatch;
@@ -61,8 +66,30 @@ export function CompanyCombobox({
   function clear() {
     setSelected(null);
     setQuery("");
+    setError(null);
     setOpen(true);
     setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  async function removeChoice(company: Company) {
+    setError(null);
+    setDeletingId(company.id);
+    try {
+      await deleteCompany(company.id);
+      setRemovedIds((current) => [...current, company.id]);
+      if (selected?.type === "existing" && selected.id === company.id) {
+        setSelected(null);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(
+        message.includes("409") || message.includes("23503")
+          ? "This company is used elsewhere and cannot be removed."
+          : "Could not remove company."
+      );
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -127,21 +154,43 @@ export function CompanyCombobox({
 
       {showDropdown && (
         <div className="absolute left-0 right-0 z-30 mt-1.5 rounded-lg border border-neutral-200 bg-white shadow-lg overflow-hidden">
+          {error && (
+            <p className="border-b border-red-100 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>
+          )}
           {filtered.length > 0 && (
             <ul className="max-h-48 overflow-y-auto py-1">
               {filtered.map((company) => (
                 <li key={company.id}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      selectExisting(company);
-                    }}
-                    className="group flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-neutral-700 hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <Building2 className="h-3.5 w-3.5 shrink-0 text-neutral-400 group-hover:text-neutral-300" />
-                    <span className="truncate">{company.name}</span>
-                  </button>
+                  <div className="group flex items-center text-sm text-neutral-700 hover:bg-neutral-900 hover:text-white transition-colors">
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectExisting(company);
+                      }}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left"
+                    >
+                      <Building2 className="h-3.5 w-3.5 shrink-0 text-neutral-400 group-hover:text-neutral-300" />
+                      <span className="truncate">{company.name}</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deletingId === company.id}
+                      title={`Remove ${company.name}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void removeChoice(company);
+                      }}
+                      className="mr-2 rounded p-1 text-neutral-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 disabled:opacity-50 group-hover:opacity-100 group-hover:text-neutral-300 group-hover:hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

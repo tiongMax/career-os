@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -35,6 +36,7 @@ type CreateApplicationParams struct {
 	ResumeVersionID *string    `json:"resume_version_id"`
 	Title           string     `json:"title"`
 	RoleTrack       string     `json:"role_track"`
+	RoleTracks      []string   `json:"role_tracks"`
 	Source          *string    `json:"source"`
 	Status          *string    `json:"status"`
 	Location        *string    `json:"location"`
@@ -53,6 +55,7 @@ type UpdateApplicationParams struct {
 	ResumeVersionID *string    `json:"resume_version_id"`
 	Title           *string    `json:"title"`
 	RoleTrack       *string    `json:"role_track"`
+	RoleTracks      []string   `json:"role_tracks"`
 	Status          *string    `json:"status"`
 	Source          *string    `json:"source"`
 	Location        *string    `json:"location"`
@@ -164,7 +167,24 @@ func (q *Queries) DeleteCompany(ctx context.Context, id string) error {
 }
 
 func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationParams) (Application, error) {
-	row, err := q.CreateApplicationSQL(ctx, CreateApplicationSQLParams{
+	tracks := normalizeApplicationTracks(arg.RoleTrack, arg.RoleTracks)
+	if len(tracks) == 0 {
+		return Application{}, errors.New("application track is required")
+	}
+	arg.RoleTrack = tracks[0]
+
+	starter, ok := q.db.(transactionStarter)
+	if !ok {
+		return Application{}, errors.New("queries db does not support transactions")
+	}
+	tx, err := starter.Begin(ctx)
+	if err != nil {
+		return Application{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	txq := q.WithTx(tx)
+	row, err := txq.CreateApplicationSQL(ctx, CreateApplicationSQLParams{
 		CompanyID:       arg.CompanyID,
 		ResumeVersionID: arg.ResumeVersionID,
 		Title:           arg.Title,
@@ -180,7 +200,16 @@ func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationPa
 		DeadlineAt:      arg.DeadlineAt,
 		Notes:           arg.Notes,
 	})
-	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
+	if err != nil {
+		return Application{}, err
+	}
+	if err := txq.replaceApplicationTracks(ctx, row.ID, tracks); err != nil {
+		return Application{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Application{}, err
+	}
+	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, tracks, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), nil
 }
 
 func (q *Queries) ListApplications(ctx context.Context) ([]Application, error) {
@@ -190,18 +219,48 @@ func (q *Queries) ListApplications(ctx context.Context) ([]Application, error) {
 	}
 	applications := make([]Application, 0, len(rows))
 	for _, row := range rows {
-		applications = append(applications, applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt))
+		tracks, err := q.listApplicationTracks(ctx, row.ID, row.RoleTrack)
+		if err != nil {
+			return nil, err
+		}
+		applications = append(applications, applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, tracks, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt))
 	}
 	return applications, nil
 }
 
 func (q *Queries) GetApplication(ctx context.Context, id string) (Application, error) {
 	row, err := q.GetApplicationSQL(ctx, id)
-	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
+	if err != nil {
+		return Application{}, err
+	}
+	tracks, err := q.listApplicationTracks(ctx, row.ID, row.RoleTrack)
+	if err != nil {
+		return Application{}, err
+	}
+	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, tracks, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), nil
 }
 
 func (q *Queries) UpdateApplication(ctx context.Context, arg UpdateApplicationParams) (Application, error) {
-	row, err := q.UpdateApplicationSQL(ctx, UpdateApplicationSQLParams{
+	if len(arg.RoleTracks) > 0 {
+		tracks := normalizeApplicationTracks("", arg.RoleTracks)
+		if len(tracks) == 0 {
+			return Application{}, errors.New("application track is required")
+		}
+		arg.RoleTrack = &tracks[0]
+	}
+
+	starter, ok := q.db.(transactionStarter)
+	if !ok {
+		return Application{}, errors.New("queries db does not support transactions")
+	}
+	tx, err := starter.Begin(ctx)
+	if err != nil {
+		return Application{}, err
+	}
+	defer tx.Rollback(ctx)
+
+	txq := q.WithTx(tx)
+	row, err := txq.UpdateApplicationSQL(ctx, UpdateApplicationSQLParams{
 		CompanyID:       arg.CompanyID,
 		ResumeVersionID: arg.ResumeVersionID,
 		Title:           arg.Title,
@@ -218,7 +277,25 @@ func (q *Queries) UpdateApplication(ctx context.Context, arg UpdateApplicationPa
 		Notes:           arg.Notes,
 		ID:              arg.ID,
 	})
-	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), err
+	if err != nil {
+		return Application{}, err
+	}
+	tracks := arg.RoleTracks
+	if len(tracks) > 0 {
+		tracks = normalizeApplicationTracks(row.RoleTrack, tracks)
+		if err := txq.replaceApplicationTracks(ctx, row.ID, tracks); err != nil {
+			return Application{}, err
+		}
+	} else {
+		tracks, err = txq.listApplicationTracks(ctx, row.ID, row.RoleTrack)
+		if err != nil {
+			return Application{}, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Application{}, err
+	}
+	return applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, tracks, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt), nil
 }
 
 func (q *Queries) UpdateApplicationStatusWithAudit(ctx context.Context, id string, oldStatus string, newStatus string) (Application, error) {
@@ -254,10 +331,14 @@ func (q *Queries) UpdateApplicationStatusWithAudit(ctx context.Context, id strin
 	}); err != nil {
 		return Application{}, err
 	}
+	tracks, err := txq.listApplicationTracks(ctx, updatedRow.ID, updatedRow.RoleTrack)
+	if err != nil {
+		return Application{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return Application{}, err
 	}
-	return applicationFrom(updatedRow.ID, updatedRow.CompanyID, updatedRow.ResumeVersionID, updatedRow.Title, updatedRow.RoleTrack, updatedRow.Source, updatedRow.Status, updatedRow.Location, updatedRow.EmploymentType, updatedRow.JobUrl, updatedRow.PortalAccount, updatedRow.PortalPassword, updatedRow.AppliedAt, updatedRow.DeadlineAt, updatedRow.Notes, updatedRow.CreatedAt, updatedRow.UpdatedAt), nil
+	return applicationFrom(updatedRow.ID, updatedRow.CompanyID, updatedRow.ResumeVersionID, updatedRow.Title, updatedRow.RoleTrack, tracks, updatedRow.Source, updatedRow.Status, updatedRow.Location, updatedRow.EmploymentType, updatedRow.JobUrl, updatedRow.PortalAccount, updatedRow.PortalPassword, updatedRow.AppliedAt, updatedRow.DeadlineAt, updatedRow.Notes, updatedRow.CreatedAt, updatedRow.UpdatedAt), nil
 }
 
 func (q *Queries) DeleteApplication(ctx context.Context, id string) error {
@@ -622,6 +703,65 @@ func (q *Queries) ListRoleTracks(ctx context.Context) ([]RoleTrack, error) {
 	return tracks, rows.Err()
 }
 
+func (q *Queries) listApplicationTracks(ctx context.Context, applicationID, fallback string) ([]string, error) {
+	const sql = `SELECT role_track FROM application_role_tracks WHERE application_id = $1::uuid ORDER BY role_track`
+	rows, err := q.db.Query(ctx, sql, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	tracks := make([]string, 0)
+	for rows.Next() {
+		var track string
+		if err := rows.Scan(&track); err != nil {
+			return nil, err
+		}
+		tracks = append(tracks, track)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(tracks) == 0 {
+		tracks = normalizeApplicationTracks(fallback, nil)
+	}
+	return tracks, nil
+}
+
+func (q *Queries) replaceApplicationTracks(ctx context.Context, applicationID string, tracks []string) error {
+	if _, err := q.db.Exec(ctx, `DELETE FROM application_role_tracks WHERE application_id = $1::uuid`, applicationID); err != nil {
+		return err
+	}
+	for _, track := range tracks {
+		if _, err := q.db.Exec(ctx, `INSERT INTO application_role_tracks (application_id, role_track) VALUES ($1::uuid, $2)`, applicationID, track); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func normalizeApplicationTracks(primary string, tracks []string) []string {
+	seen := make(map[string]struct{}, len(tracks)+1)
+	normalized := make([]string, 0, len(tracks)+1)
+	add := func(track string) {
+		track = strings.TrimSpace(strings.ToLower(track))
+		if track == "" {
+			return
+		}
+		if _, ok := seen[track]; ok {
+			return
+		}
+		seen[track] = struct{}{}
+		normalized = append(normalized, track)
+	}
+	for _, track := range tracks {
+		add(track)
+	}
+	if len(normalized) == 0 {
+		add(primary)
+	}
+	return normalized
+}
+
 func ensureRows(rows int64, err error) error {
 	if err != nil {
 		return err
@@ -651,8 +791,11 @@ func companyFrom(id, name string, website, industry, location, notes *string, cr
 	return Company{ID: id, Name: name, Website: website, Industry: industry, Location: location, Notes: notes, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
 }
 
-func applicationFrom(id, companyID string, resumeVersionID any, title, roleTrack string, source *string, status string, location, employmentType, jobURL, portalAccount, portalPassword *string, appliedAt, deadlineAt *time.Time, notes *string, createdAt, updatedAt pgtype.Timestamptz) Application {
-	return Application{ID: id, CompanyID: companyID, ResumeVersionID: ptrFromString(resumeVersionID), Title: title, RoleTrack: roleTrack, Source: source, Status: status, Location: location, EmploymentType: employmentType, JobURL: jobURL, PortalAccount: portalAccount, PortalPassword: portalPassword, AppliedAt: appliedAt, DeadlineAt: deadlineAt, Notes: notes, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
+func applicationFrom(id, companyID string, resumeVersionID any, title, roleTrack string, roleTracks []string, source *string, status string, location, employmentType, jobURL, portalAccount, portalPassword *string, appliedAt, deadlineAt *time.Time, notes *string, createdAt, updatedAt pgtype.Timestamptz) Application {
+	if len(roleTracks) == 0 {
+		roleTracks = normalizeApplicationTracks(roleTrack, nil)
+	}
+	return Application{ID: id, CompanyID: companyID, ResumeVersionID: ptrFromString(resumeVersionID), Title: title, RoleTrack: roleTrack, RoleTracks: roleTracks, Source: source, Status: status, Location: location, EmploymentType: employmentType, JobURL: jobURL, PortalAccount: portalAccount, PortalPassword: portalPassword, AppliedAt: appliedAt, DeadlineAt: deadlineAt, Notes: notes, CreatedAt: timeFrom(createdAt), UpdatedAt: timeFrom(updatedAt)}
 }
 
 func auditLogFrom(id, entityType, entityID, action string, oldValue, newValue []byte, createdAt pgtype.Timestamptz) AuditLog {

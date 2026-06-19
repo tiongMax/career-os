@@ -79,7 +79,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const allTracks = useMemo(() => {
-    return [...new Set(applications.map((a) => a.role_track).filter(Boolean))].sort();
+    return [...new Set(applications.flatMap(applicationTracks))].sort();
   }, [applications]);
 
   const allCompanies = useMemo(() => {
@@ -114,7 +114,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
     }
 
     if (trackFilter.length > 0)
-      list = list.filter((a) => trackFilter.includes(a.role_track));
+      list = list.filter((a) => applicationTracks(a).some((track) => trackFilter.includes(track)));
 
     if (statusFilter.length > 0)
       list = list.filter((a) => statusFilter.includes(a.status));
@@ -140,7 +140,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           cmp = (companyMap[a.company_id] ?? "").localeCompare(companyMap[b.company_id] ?? "");
           break;
         case "track":
-          cmp = a.role_track.localeCompare(b.role_track);
+          cmp = applicationTracks(a).join(", ").localeCompare(applicationTracks(b).join(", "));
           break;
         case "status":
           cmp = APPLICATION_STATUS_ORDER.indexOf(a.status) - APPLICATION_STATUS_ORDER.indexOf(b.status);
@@ -272,9 +272,13 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
                     {companyMap[app.company_id] ?? "—"}
                   </td>
                   <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[app.role_track] ?? "bg-neutral-100 text-neutral-600"}`}>
-                      {app.role_track}
-                    </span>
+                    <div className="flex max-w-48 flex-wrap gap-1">
+                      {applicationTracks(app).map((track) => (
+                        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
+                          {track}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="px-5 py-3.5">
                     <StatusBadge status={app.status} />
@@ -290,6 +294,10 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       )}
     </>
   );
+}
+
+function applicationTracks(application: Application): string[] {
+  return application.role_tracks?.length ? application.role_tracks : [application.role_track].filter(Boolean);
 }
 
 // ── Shared checkbox row ───────────────────────────────────────────────────────

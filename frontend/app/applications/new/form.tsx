@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Briefcase, FileText, Globe, Layers, MapPin } from "lucide-react";
+import { Briefcase, FileText, Globe, MapPin } from "lucide-react";
 import type { Company, ResumeVersion, RoleTrack } from "@/lib/api";
 import { createApplication, createCompany, createRoleTrack, type CreateApplicationPayload } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
+import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
 import { APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
@@ -79,20 +80,23 @@ export function NewApplicationForm({
         companyId = existingCompanyId;
       }
 
-      const track = (fd.get("role_track") as string).trim().toLowerCase();
-      if (!track) throw new Error("Track is required");
+      const selectedTracks = fd.getAll("role_tracks").map((value) => String(value).trim().toLowerCase()).filter(Boolean);
+      if (selectedTracks.length === 0) throw new Error("Track is required");
 
-      const isKnownTrack = tracks.some((existingTrack) => existingTrack.name === track);
-      if (!isKnownTrack) {
-        await createRoleTrack(track).catch((err) => {
-          if (!String(err).includes("409")) throw err;
-        });
+      for (const track of selectedTracks) {
+        const isKnownTrack = tracks.some((existingTrack) => existingTrack.name === track);
+        if (!isKnownTrack) {
+          await createRoleTrack(track).catch((err) => {
+            if (!String(err).includes("409")) throw err;
+          });
+        }
       }
 
       const body: CreateApplicationPayload = {
         company_id: companyId,
         title: (fd.get("title") as string).trim(),
-        role_track: track,
+        role_track: selectedTracks[0],
+        role_tracks: selectedTracks,
         status: (fd.get("status") as string) || "saved",
       };
       if (fd.get("resume_version_id")) body.resume_version_id = fd.get("resume_version_id") as string;
@@ -140,13 +144,12 @@ export function NewApplicationForm({
       <FormSection title="Classification">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Track" required>
-            <OptionCombobox
-              name="role_track"
+            <MultiOptionCombobox
+              name="role_tracks"
               options={trackOptions}
-              placeholder="Select track..."
+              placeholder="Select tracks..."
               allowCustom
               required
-              icon={Layers}
             />
           </Field>
           <Field label="Status">

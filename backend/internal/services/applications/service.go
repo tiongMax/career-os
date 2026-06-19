@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrTitleRequired = errors.New("application title is required")
+	ErrTrackRequired = errors.New("application track is required")
 )
 
 type Store interface {
@@ -39,6 +40,9 @@ func (s *Service) Create(ctx context.Context, arg queries.CreateApplicationParam
 	if strings.TrimSpace(arg.Title) == "" {
 		return queries.Application{}, ErrTitleRequired
 	}
+	if strings.TrimSpace(arg.RoleTrack) == "" && len(arg.RoleTracks) == 0 {
+		return queries.Application{}, ErrTrackRequired
+	}
 	if arg.Status != nil {
 		if _, ok := allowedTransitions[*arg.Status]; !ok {
 			return queries.Application{}, ErrInvalidStatus
@@ -58,6 +62,9 @@ func (s *Service) Get(ctx context.Context, id string) (queries.Application, erro
 func (s *Service) Update(ctx context.Context, arg queries.UpdateApplicationParams) (queries.Application, error) {
 	if arg.Title != nil && strings.TrimSpace(*arg.Title) == "" {
 		return queries.Application{}, ErrTitleRequired
+	}
+	if len(arg.RoleTracks) > 0 && !hasAnyTrack(arg.RoleTracks) {
+		return queries.Application{}, ErrTrackRequired
 	}
 	if arg.Status != nil {
 		if _, ok := allowedTransitions[*arg.Status]; !ok {
@@ -84,4 +91,13 @@ func (s *Service) ListAuditLogs(ctx context.Context, applicationID string) ([]qu
 
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.store.DeleteApplication(ctx, id)
+}
+
+func hasAnyTrack(tracks []string) bool {
+	for _, track := range tracks {
+		if strings.TrimSpace(track) != "" {
+			return true
+		}
+	}
+	return false
 }

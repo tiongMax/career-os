@@ -76,9 +76,9 @@ func (q *Queries) GetApplicationCountByStatus(ctx context.Context) ([]StatusCoun
 // GetApplicationCountByTrack returns application counts grouped by role track.
 func (q *Queries) GetApplicationCountByTrack(ctx context.Context) ([]TrackCount, error) {
 	const sql = `
-		SELECT role_track, COUNT(*) AS count
-		FROM applications
-		GROUP BY role_track
+		SELECT art.role_track, COUNT(DISTINCT art.application_id) AS count
+		FROM application_role_tracks art
+		GROUP BY art.role_track
 		ORDER BY count DESC`
 
 	rows, err := q.db.Query(ctx, sql)
@@ -281,4 +281,3 @@ func (q *Queries) GetUpcomingPendingReminders(ctx context.Context) ([]UpcomingRe
 	}
 	return results, nil
 }
-
