@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 func TestCreateRejectsBlankRawText(t *testing.T) {
 	service := New(&fakeStore{})
 
-	_, err := service.Create(context.Background(), queries.CreateJobDescriptionParams{RawText: " "})
+	_, err := service.Create(context.Background(), postgres.CreateJobDescriptionParams{RawText: " "})
 
 	if !errors.Is(err, ErrRawTextRequired) {
 		t.Fatalf("expected ErrRawTextRequired, got %v", err)
@@ -22,7 +22,7 @@ func TestCreateDefaultsNilKeywordsToEmptySlice(t *testing.T) {
 	store := &fakeStore{}
 	service := New(store)
 
-	_, err := service.Create(context.Background(), queries.CreateJobDescriptionParams{RawText: "Go backend role"})
+	_, err := service.Create(context.Background(), postgres.CreateJobDescriptionParams{RawText: "Go backend role"})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
@@ -36,12 +36,12 @@ func TestUpdateRejectsBlankRawTextAndDefaultsExplicitNilKeywords(t *testing.T) {
 	service := New(store)
 	blank := ""
 
-	_, err := service.Update(context.Background(), queries.UpdateJobDescriptionParams{RawText: &blank})
+	_, err := service.Update(context.Background(), postgres.UpdateJobDescriptionParams{RawText: &blank})
 	if !errors.Is(err, ErrRawTextRequired) {
 		t.Fatalf("expected ErrRawTextRequired, got %v", err)
 	}
 
-	_, err = service.Update(context.Background(), queries.UpdateJobDescriptionParams{SetKeywords: true})
+	_, err = service.Update(context.Background(), postgres.UpdateJobDescriptionParams{SetKeywords: true})
 	if err != nil {
 		t.Fatalf("Update returned error: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestUpdateRejectsBlankRawTextAndDefaultsExplicitNilKeywords(t *testing.T) {
 
 func TestMatchKeywordsUsesResumeContentTextAsStrongEvidence(t *testing.T) {
 	content := "Built Redis-backed reminder workers with PostgreSQL audit logs."
-	result := matchKeywords([]string{"Redis", "PostgreSQL", "Kubernetes"}, queries.ResumeVersion{
+	result := matchKeywords([]string{"Redis", "PostgreSQL", "Kubernetes"}, postgres.ResumeVersion{
 		Name:        "Backend Resume",
 		Track:       "backend",
 		ContentText: &content,
@@ -76,7 +76,7 @@ func TestMatchKeywordsUsesResumeContentTextAsStrongEvidence(t *testing.T) {
 }
 
 func TestMatchKeywordsWeightsTagsBelowContentText(t *testing.T) {
-	result := matchKeywords([]string{"Kafka"}, queries.ResumeVersion{
+	result := matchKeywords([]string{"Kafka"}, postgres.ResumeVersion{
 		Name:  "Backend Resume",
 		Track: "backend",
 		Tags:  []string{"kafka"},
@@ -91,45 +91,45 @@ func TestMatchKeywordsWeightsTagsBelowContentText(t *testing.T) {
 }
 
 type fakeStore struct {
-	created queries.CreateJobDescriptionParams
-	updated queries.UpdateJobDescriptionParams
+	created postgres.CreateJobDescriptionParams
+	updated postgres.UpdateJobDescriptionParams
 }
 
-func (f *fakeStore) CreateJobDescription(_ context.Context, arg queries.CreateJobDescriptionParams) (queries.JobDescription, error) {
+func (f *fakeStore) CreateJobDescription(_ context.Context, arg postgres.CreateJobDescriptionParams) (postgres.JobDescription, error) {
 	f.created = arg
-	return queries.JobDescription{RawText: arg.RawText, ExtractedKeywords: arg.ExtractedKeywords}, nil
+	return postgres.JobDescription{RawText: arg.RawText, ExtractedKeywords: arg.ExtractedKeywords}, nil
 }
 
-func (f *fakeStore) GetJobDescriptionByApplication(context.Context, string) (queries.JobDescription, error) {
-	return queries.JobDescription{}, nil
+func (f *fakeStore) GetJobDescriptionByApplication(context.Context, string) (postgres.JobDescription, error) {
+	return postgres.JobDescription{}, nil
 }
 
-func (f *fakeStore) UpdateJobDescription(_ context.Context, arg queries.UpdateJobDescriptionParams) (queries.JobDescription, error) {
+func (f *fakeStore) UpdateJobDescription(_ context.Context, arg postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error) {
 	f.updated = arg
-	return queries.JobDescription{ExtractedKeywords: arg.ExtractedKeywords}, nil
+	return postgres.JobDescription{ExtractedKeywords: arg.ExtractedKeywords}, nil
 }
 
-func (f *fakeStore) GetJobDescriptionByID(context.Context, string) (queries.JobDescription, error) {
-	return queries.JobDescription{}, nil
+func (f *fakeStore) GetJobDescriptionByID(context.Context, string) (postgres.JobDescription, error) {
+	return postgres.JobDescription{}, nil
 }
-func (f *fakeStore) GetApplication(context.Context, string) (queries.Application, error) {
-	return queries.Application{}, nil
+func (f *fakeStore) GetApplication(context.Context, string) (postgres.Application, error) {
+	return postgres.Application{}, nil
 }
-func (f *fakeStore) GetCompany(context.Context, string) (queries.Company, error) {
-	return queries.Company{}, nil
+func (f *fakeStore) GetCompany(context.Context, string) (postgres.Company, error) {
+	return postgres.Company{}, nil
 }
-func (f *fakeStore) ListResumeVersions(context.Context) ([]queries.ResumeVersion, error) {
+func (f *fakeStore) ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error) {
 	return nil, nil
 }
-func (f *fakeStore) GetResumeVersion(context.Context, string) (queries.ResumeVersion, error) {
-	return queries.ResumeVersion{}, nil
+func (f *fakeStore) GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error) {
+	return postgres.ResumeVersion{}, nil
 }
-func (f *fakeStore) ListInterviewRoundsByApplication(context.Context, string) ([]queries.InterviewRound, error) {
+func (f *fakeStore) ListInterviewRoundsByApplication(context.Context, string) ([]postgres.InterviewRound, error) {
 	return nil, nil
 }
-func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]queries.AuditLog, error) {
+func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]postgres.AuditLog, error) {
 	return nil, nil
 }
-func (f *fakeStore) ListContactsByCompany(context.Context, string) ([]queries.Contact, error) {
+func (f *fakeStore) ListContactsByCompany(context.Context, string) ([]postgres.Contact, error) {
 	return nil, nil
 }

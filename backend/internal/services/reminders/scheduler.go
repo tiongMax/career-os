@@ -4,7 +4,7 @@ package reminders
 import (
 	"context"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -24,7 +24,7 @@ func NewRedisScheduler(client *redis.Client) RedisScheduler {
 }
 
 // ScheduleReminder inserts or updates a reminder in the Redis schedule.
-func (s RedisScheduler) ScheduleReminder(ctx context.Context, reminder queries.Reminder) error {
+func (s RedisScheduler) ScheduleReminder(ctx context.Context, reminder postgres.Reminder) error {
 	return s.client.ZAdd(ctx, ScheduledSetKey, redis.Z{
 		Score:  float64(reminder.DueAt.Unix()),
 		Member: reminder.ID,

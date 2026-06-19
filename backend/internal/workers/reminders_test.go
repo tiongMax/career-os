@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 	remindersvc "careeros/backend/internal/services/reminders"
 )
 
@@ -37,7 +37,7 @@ func TestMaxRetriesDefaultsToThree(t *testing.T) {
 }
 
 func TestProcessDueProcessesPendingReminderOnce(t *testing.T) {
-	store := newFakeReminderStore(queries.Reminder{
+	store := newFakeReminderStore(postgres.Reminder{
 		ID:             "reminder-1",
 		Title:          "Follow up",
 		DueAt:          time.Now(),
@@ -52,7 +52,7 @@ func TestProcessDueProcessesPendingReminderOnce(t *testing.T) {
 	worker := ReminderWorker{
 		store: store,
 		queue: queue,
-		Deliver: func(context.Context, queries.Reminder) error {
+		Deliver: func(context.Context, postgres.Reminder) error {
 			deliveries++
 			return nil
 		},
@@ -80,7 +80,7 @@ func TestProcessDueProcessesPendingReminderOnce(t *testing.T) {
 }
 
 func TestProcessDueSkipsCancelledReminder(t *testing.T) {
-	store := newFakeReminderStore(queries.Reminder{
+	store := newFakeReminderStore(postgres.Reminder{
 		ID:             "reminder-1",
 		Title:          "Follow up",
 		Status:         remindersvc.StatusCancelled,
@@ -93,7 +93,7 @@ func TestProcessDueSkipsCancelledReminder(t *testing.T) {
 	worker := ReminderWorker{
 		store: store,
 		queue: queue,
-		Deliver: func(context.Context, queries.Reminder) error {
+		Deliver: func(context.Context, postgres.Reminder) error {
 			t.Fatal("cancelled reminder should not be delivered")
 			return nil
 		},
@@ -112,7 +112,7 @@ func TestProcessDueSkipsCancelledReminder(t *testing.T) {
 }
 
 func TestProcessDueRetriesFailedDeliveryWithBackoff(t *testing.T) {
-	store := newFakeReminderStore(queries.Reminder{
+	store := newFakeReminderStore(postgres.Reminder{
 		ID:             "reminder-1",
 		Title:          "Follow up",
 		DueAt:          time.Now(),
@@ -126,7 +126,7 @@ func TestProcessDueRetriesFailedDeliveryWithBackoff(t *testing.T) {
 	worker := ReminderWorker{
 		store: store,
 		queue: queue,
-		Deliver: func(context.Context, queries.Reminder) error {
+		Deliver: func(context.Context, postgres.Reminder) error {
 			return errors.New("smtp unavailable")
 		},
 	}
@@ -153,7 +153,7 @@ func TestProcessDueRetriesFailedDeliveryWithBackoff(t *testing.T) {
 }
 
 func TestProcessDueDeadLettersAfterMaxRetries(t *testing.T) {
-	store := newFakeReminderStore(queries.Reminder{
+	store := newFakeReminderStore(postgres.Reminder{
 		ID:             "reminder-1",
 		Title:          "Follow up",
 		DueAt:          time.Now(),
@@ -169,7 +169,7 @@ func TestProcessDueDeadLettersAfterMaxRetries(t *testing.T) {
 		store:      store,
 		queue:      queue,
 		MaxRetries: 3,
-		Deliver: func(context.Context, queries.Reminder) error {
+		Deliver: func(context.Context, postgres.Reminder) error {
 			return errors.New("provider rejected message")
 		},
 	}
@@ -196,40 +196,40 @@ func TestProcessDueDeadLettersAfterMaxRetries(t *testing.T) {
 }
 
 type fakeReminderStore struct {
-	reminder      queries.Reminder
+	reminder      postgres.Reminder
 	statuses      []string
 	deliveryCount int
-	retry         queries.MarkReminderRetryParams
-	failedJobs    []queries.CreateFailedReminderJobParams
+	retry         postgres.MarkReminderRetryParams
+	failedJobs    []postgres.CreateFailedReminderJobParams
 }
 
-func newFakeReminderStore(reminder queries.Reminder) *fakeReminderStore {
+func newFakeReminderStore(reminder postgres.Reminder) *fakeReminderStore {
 	return &fakeReminderStore{reminder: reminder}
 }
 
-func (s *fakeReminderStore) GetReminder(context.Context, string) (queries.Reminder, error) {
+func (s *fakeReminderStore) GetReminder(context.Context, string) (postgres.Reminder, error) {
 	return s.reminder, nil
 }
 
-func (s *fakeReminderStore) UpdateReminderStatus(_ context.Context, _ string, status string) (queries.Reminder, error) {
+func (s *fakeReminderStore) UpdateReminderStatus(_ context.Context, _ string, status string) (postgres.Reminder, error) {
 	s.statuses = append(s.statuses, status)
 	s.reminder.Status = status
 	return s.reminder, nil
 }
 
-func (s *fakeReminderStore) CreateReminderDelivery(context.Context, queries.Reminder) (queries.ReminderDelivery, error) {
+func (s *fakeReminderStore) CreateReminderDelivery(context.Context, postgres.Reminder) (postgres.ReminderDelivery, error) {
 	s.deliveryCount++
-	return queries.ReminderDelivery{ID: "delivery-1", ReminderID: s.reminder.ID, IdempotencyKey: s.reminder.IdempotencyKey}, nil
+	return postgres.ReminderDelivery{ID: "delivery-1", ReminderID: s.reminder.ID, IdempotencyKey: s.reminder.IdempotencyKey}, nil
 }
 
-func (s *fakeReminderStore) MarkReminderSent(context.Context, string) (queries.Reminder, error) {
+func (s *fakeReminderStore) MarkReminderSent(context.Context, string) (postgres.Reminder, error) {
 	now := time.Now()
 	s.reminder.Status = remindersvc.StatusSent
 	s.reminder.DeliveredAt = &now
 	return s.reminder, nil
 }
 
-func (s *fakeReminderStore) MarkReminderRetry(_ context.Context, arg queries.MarkReminderRetryParams) (queries.Reminder, error) {
+func (s *fakeReminderStore) MarkReminderRetry(_ context.Context, arg postgres.MarkReminderRetryParams) (postgres.Reminder, error) {
 	s.retry = arg
 	s.reminder.Status = arg.Status
 	s.reminder.RetryCount = arg.RetryCount
@@ -237,9 +237,9 @@ func (s *fakeReminderStore) MarkReminderRetry(_ context.Context, arg queries.Mar
 	return s.reminder, nil
 }
 
-func (s *fakeReminderStore) CreateFailedReminderJob(_ context.Context, arg queries.CreateFailedReminderJobParams) (queries.FailedReminderJob, error) {
+func (s *fakeReminderStore) CreateFailedReminderJob(_ context.Context, arg postgres.CreateFailedReminderJobParams) (postgres.FailedReminderJob, error) {
 	s.failedJobs = append(s.failedJobs, arg)
-	return queries.FailedReminderJob{ID: "failed-1", ReminderID: arg.ReminderID, ErrorMessage: arg.ErrorMessage, RetryCount: arg.RetryCount, Payload: arg.Payload}, nil
+	return postgres.FailedReminderJob{ID: "failed-1", ReminderID: arg.ReminderID, ErrorMessage: arg.ErrorMessage, RetryCount: arg.RetryCount, Payload: arg.Payload}, nil
 }
 
 type fakeReminderQueue struct {

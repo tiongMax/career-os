@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -34,7 +34,7 @@ func main() {
 		log.Fatalf("ping postgres: %v", err)
 	}
 
-	store := queries.New(pool)
+	store := postgres.New(pool)
 
 	// Idempotency check: if companies already exist, skip seeding.
 	existing, err := store.ListCompanies(ctx)
@@ -89,12 +89,12 @@ func main() {
 		{"Zenith Analytics", "https://zenithanalytics.com", "Data Engineering", "Boston, MA"},
 	}
 
-	companies := make([]queries.Company, 0, len(companySpecs))
+	companies := make([]postgres.Company, 0, len(companySpecs))
 	for _, spec := range companySpecs {
 		w := spec.website
 		ind := spec.industry
 		loc := spec.location
-		c, err := store.CreateCompany(ctx, queries.CreateCompanyParams{
+		c, err := store.CreateCompany(ctx, postgres.CreateCompanyParams{
 			Name:     spec.name,
 			Website:  &w,
 			Industry: &ind,
@@ -166,9 +166,9 @@ func main() {
 		},
 	}
 
-	resumes := make([]queries.ResumeVersion, 0, len(resumeSpecs))
+	resumes := make([]postgres.ResumeVersion, 0, len(resumeSpecs))
 	for _, spec := range resumeSpecs {
-		rv, err := store.CreateResumeVersion(ctx, queries.CreateResumeVersionParams{
+		rv, err := store.CreateResumeVersion(ctx, postgres.CreateResumeVersionParams{
 			Name:  spec.name,
 			Track: spec.track,
 			Tags:  spec.tags,
@@ -300,7 +300,7 @@ func main() {
 	now := time.Now()
 	appliedTime := now.Add(-30 * 24 * time.Hour)
 
-	applications := make([]queries.Application, 0, len(appSpecs))
+	applications := make([]postgres.Application, 0, len(appSpecs))
 	for i, spec := range appSpecs {
 		company := companies[i%len(companies)]
 		resume := resumes[i%len(resumes)]
@@ -318,7 +318,7 @@ func main() {
 			appliedAt = &t
 		}
 
-		app, err := store.CreateApplication(ctx, queries.CreateApplicationParams{
+		app, err := store.CreateApplication(ctx, postgres.CreateApplicationParams{
 			CompanyID:       company.ID,
 			ResumeVersionID: &resumeID,
 			Title:           spec.title,
@@ -358,7 +358,7 @@ func main() {
 			appliedAt = &t
 		}
 
-		app, err := store.CreateApplication(ctx, queries.CreateApplicationParams{
+		app, err := store.CreateApplication(ctx, postgres.CreateApplicationParams{
 			CompanyID:       company.ID,
 			ResumeVersionID: &resumeID,
 			Title:           title,
@@ -391,7 +391,7 @@ func main() {
 		rawText := templates[i%len(templates)]
 		keywords := keywordsForTrack(track)
 
-		_, err := store.CreateJobDescription(ctx, queries.CreateJobDescriptionParams{
+		_, err := store.CreateJobDescription(ctx, postgres.CreateJobDescriptionParams{
 			ApplicationID:     app.ID,
 			RawText:           rawText,
 			ExtractedKeywords: keywords,
@@ -426,7 +426,7 @@ func main() {
 		{"James Wilson", "Engineering Lead", "hiring_manager"},
 	}
 
-	contacts := make([]queries.Contact, 0, 100)
+	contacts := make([]postgres.Contact, 0, 100)
 	for i := 0; i < 100; i++ {
 		spec := contactSpecs[i%len(contactSpecs)]
 		company := companies[i%len(companies)]
@@ -439,7 +439,7 @@ func main() {
 		rel := spec.relationship
 		email := fmt.Sprintf("%s.%d@%s", sanitizeName(spec.name), i+1, domainFor(company.Name))
 
-		contact, err := store.CreateContact(ctx, queries.CreateContactParams{
+		contact, err := store.CreateContact(ctx, postgres.CreateContactParams{
 			CompanyID:    company.ID,
 			Name:         name,
 			Role:         &role,
@@ -465,7 +465,7 @@ func main() {
 		"offer":            true,
 	}
 
-	advancedApps := make([]queries.Application, 0)
+	advancedApps := make([]postgres.Application, 0)
 	for _, app := range applications {
 		if advancedStatuses[app.Status] {
 			advancedApps = append(advancedApps, app)
@@ -491,7 +491,7 @@ func main() {
 		scheduledAt := now.Add(-time.Duration(roundCount-i) * 24 * time.Hour)
 		notes := fmt.Sprintf("Round %d interview for %s position.", i+1, app.Title)
 
-		_, err := store.CreateInterviewRound(ctx, queries.CreateInterviewRoundParams{
+		_, err := store.CreateInterviewRound(ctx, postgres.CreateInterviewRoundParams{
 			ApplicationID: app.ID,
 			RoundType:     roundType,
 			ScheduledAt:   &scheduledAt,
@@ -548,7 +548,7 @@ func main() {
 			continue
 		}
 
-		_, err = store.CreateReminder(ctx, queries.CreateReminderParams{
+		_, err = store.CreateReminder(ctx, postgres.CreateReminderParams{
 			ApplicationID:  app.ID,
 			Title:          title,
 			Description:    &desc,

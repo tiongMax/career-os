@@ -4,22 +4,22 @@ dev:
 	npm run dev
 
 api:
-	go run ./backend/cmd/api
+	go -C backend run ./cmd/api
 
 worker:
-	go run ./backend/cmd/worker
+	go -C backend run ./cmd/worker
 
 seed:
-	go run ./backend/cmd/seed
+	go -C backend run ./cmd/seed
 
 migrate-up:
-	go run ./backend/cmd/migrate up
+	go -C backend run ./cmd/migrate up
 
 migrate-down:
-	go run ./backend/cmd/migrate down
+	go -C backend run ./cmd/migrate down
 
 test:
-	go test ./...
+	go -C backend test ./...
 
 compose-up:
 	docker compose up --build

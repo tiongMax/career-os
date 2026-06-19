@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 var ErrRawTextRequired = errors.New("job description raw_text is required")
@@ -33,17 +33,17 @@ var skillDict = []string{
 }
 
 type Store interface {
-	CreateJobDescription(context.Context, queries.CreateJobDescriptionParams) (queries.JobDescription, error)
-	GetJobDescriptionByApplication(context.Context, string) (queries.JobDescription, error)
-	GetJobDescriptionByID(context.Context, string) (queries.JobDescription, error)
-	UpdateJobDescription(context.Context, queries.UpdateJobDescriptionParams) (queries.JobDescription, error)
-	ListResumeVersions(context.Context) ([]queries.ResumeVersion, error)
-	GetResumeVersion(context.Context, string) (queries.ResumeVersion, error)
-	GetApplication(context.Context, string) (queries.Application, error)
-	GetCompany(context.Context, string) (queries.Company, error)
-	ListInterviewRoundsByApplication(context.Context, string) ([]queries.InterviewRound, error)
-	ListAuditLogsForEntity(context.Context, string, string) ([]queries.AuditLog, error)
-	ListContactsByCompany(context.Context, string) ([]queries.Contact, error)
+	CreateJobDescription(context.Context, postgres.CreateJobDescriptionParams) (postgres.JobDescription, error)
+	GetJobDescriptionByApplication(context.Context, string) (postgres.JobDescription, error)
+	GetJobDescriptionByID(context.Context, string) (postgres.JobDescription, error)
+	UpdateJobDescription(context.Context, postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error)
+	ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error)
+	GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error)
+	GetApplication(context.Context, string) (postgres.Application, error)
+	GetCompany(context.Context, string) (postgres.Company, error)
+	ListInterviewRoundsByApplication(context.Context, string) ([]postgres.InterviewRound, error)
+	ListAuditLogsForEntity(context.Context, string, string) ([]postgres.AuditLog, error)
+	ListContactsByCompany(context.Context, string) ([]postgres.Contact, error)
 }
 
 type Service struct {
@@ -54,9 +54,9 @@ func New(store Store) *Service {
 	return &Service{store: store}
 }
 
-func (s *Service) Create(ctx context.Context, arg queries.CreateJobDescriptionParams) (queries.JobDescription, error) {
+func (s *Service) Create(ctx context.Context, arg postgres.CreateJobDescriptionParams) (postgres.JobDescription, error) {
 	if strings.TrimSpace(arg.RawText) == "" {
-		return queries.JobDescription{}, ErrRawTextRequired
+		return postgres.JobDescription{}, ErrRawTextRequired
 	}
 	if arg.ExtractedKeywords == nil {
 		arg.ExtractedKeywords = []string{}
@@ -64,13 +64,13 @@ func (s *Service) Create(ctx context.Context, arg queries.CreateJobDescriptionPa
 	return s.store.CreateJobDescription(ctx, arg)
 }
 
-func (s *Service) GetByApplication(ctx context.Context, applicationID string) (queries.JobDescription, error) {
+func (s *Service) GetByApplication(ctx context.Context, applicationID string) (postgres.JobDescription, error) {
 	return s.store.GetJobDescriptionByApplication(ctx, applicationID)
 }
 
-func (s *Service) Update(ctx context.Context, arg queries.UpdateJobDescriptionParams) (queries.JobDescription, error) {
+func (s *Service) Update(ctx context.Context, arg postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error) {
 	if arg.RawText != nil && strings.TrimSpace(*arg.RawText) == "" {
-		return queries.JobDescription{}, ErrRawTextRequired
+		return postgres.JobDescription{}, ErrRawTextRequired
 	}
 	if arg.SetKeywords && arg.ExtractedKeywords == nil {
 		arg.ExtractedKeywords = []string{}
@@ -79,10 +79,10 @@ func (s *Service) Update(ctx context.Context, arg queries.UpdateJobDescriptionPa
 }
 
 // ExtractKeywords scans the JD's raw_text for known skills, saves them, and returns the updated JD.
-func (s *Service) ExtractKeywords(ctx context.Context, jdID string) (queries.JobDescription, error) {
+func (s *Service) ExtractKeywords(ctx context.Context, jdID string) (postgres.JobDescription, error) {
 	jd, err := s.store.GetJobDescriptionByID(ctx, jdID)
 	if err != nil {
-		return queries.JobDescription{}, err
+		return postgres.JobDescription{}, err
 	}
 
 	lower := strings.ToLower(jd.RawText)
@@ -101,7 +101,7 @@ func (s *Service) ExtractKeywords(ctx context.Context, jdID string) (queries.Job
 		keywords = []string{}
 	}
 
-	return s.store.UpdateJobDescription(ctx, queries.UpdateJobDescriptionParams{
+	return s.store.UpdateJobDescription(ctx, postgres.UpdateJobDescriptionParams{
 		ID:                jd.ID,
 		ExtractedKeywords: keywords,
 		SetKeywords:       true,
@@ -109,46 +109,46 @@ func (s *Service) ExtractKeywords(ctx context.Context, jdID string) (queries.Job
 }
 
 // CompareResume compares a resume's content against a JD's extracted keywords.
-func (s *Service) CompareResume(ctx context.Context, jdID, resumeVersionID string) (queries.ResumeMatchResult, error) {
+func (s *Service) CompareResume(ctx context.Context, jdID, resumeVersionID string) (postgres.ResumeMatchResult, error) {
 	jd, err := s.store.GetJobDescriptionByID(ctx, jdID)
 	if err != nil {
-		return queries.ResumeMatchResult{}, err
+		return postgres.ResumeMatchResult{}, err
 	}
 	if len(jd.ExtractedKeywords) == 0 {
-		return queries.ResumeMatchResult{}, ErrNoKeywords
+		return postgres.ResumeMatchResult{}, ErrNoKeywords
 	}
 
 	resume, err := s.store.GetResumeVersion(ctx, resumeVersionID)
 	if err != nil {
-		return queries.ResumeMatchResult{}, err
+		return postgres.ResumeMatchResult{}, err
 	}
 
 	return matchKeywords(jd.ExtractedKeywords, resume), nil
 }
 
 // RecommendedResume compares all resumes against the application's JD and returns the best match.
-func (s *Service) RecommendedResume(ctx context.Context, applicationID string) (queries.RecommendedResumeResult, error) {
+func (s *Service) RecommendedResume(ctx context.Context, applicationID string) (postgres.RecommendedResumeResult, error) {
 	jd, err := s.store.GetJobDescriptionByApplication(ctx, applicationID)
 	if err != nil {
-		return queries.RecommendedResumeResult{}, err
+		return postgres.RecommendedResumeResult{}, err
 	}
 	if len(jd.ExtractedKeywords) == 0 {
-		return queries.RecommendedResumeResult{}, ErrNoKeywords
+		return postgres.RecommendedResumeResult{}, ErrNoKeywords
 	}
 
 	resumes, err := s.store.ListResumeVersions(ctx)
 	if err != nil {
-		return queries.RecommendedResumeResult{}, err
+		return postgres.RecommendedResumeResult{}, err
 	}
 	if len(resumes) == 0 {
-		return queries.RecommendedResumeResult{}, errors.New("no resume versions found")
+		return postgres.RecommendedResumeResult{}, errors.New("no resume versions found")
 	}
 
-	best := queries.RecommendedResumeResult{Score: -1}
+	best := postgres.RecommendedResumeResult{Score: -1}
 	for _, rv := range resumes {
 		result := matchKeywords(jd.ExtractedKeywords, rv)
 		if result.Score > best.Score {
-			best = queries.RecommendedResumeResult{
+			best = postgres.RecommendedResumeResult{
 				ResumeVersion: rv,
 				Matched:       result.Matched,
 				Missing:       result.Missing,
@@ -159,15 +159,15 @@ func (s *Service) RecommendedResume(ctx context.Context, applicationID string) (
 	return best, nil
 }
 
-func matchKeywords(keywords []string, resume queries.ResumeVersion) queries.ResumeMatchResult {
+func matchKeywords(keywords []string, resume postgres.ResumeVersion) postgres.ResumeMatchResult {
 	var matched, missing []string
-	var evidence []queries.SkillEvidence
+	var evidence []postgres.SkillEvidence
 	scoreTotal := 0.0
 	for _, kw := range keywords {
 		source, weight := bestKeywordEvidence(kw, resume)
 		if weight > 0 {
 			matched = append(matched, kw)
-			evidence = append(evidence, queries.SkillEvidence{Keyword: kw, Source: source, Weight: weight})
+			evidence = append(evidence, postgres.SkillEvidence{Keyword: kw, Source: source, Weight: weight})
 			scoreTotal += weight
 		} else {
 			missing = append(missing, kw)
@@ -180,16 +180,16 @@ func matchKeywords(keywords []string, resume queries.ResumeVersion) queries.Resu
 		missing = []string{}
 	}
 	if evidence == nil {
-		evidence = []queries.SkillEvidence{}
+		evidence = []postgres.SkillEvidence{}
 	}
 	score := 0.0
 	if len(keywords) > 0 {
 		score = scoreTotal / float64(len(keywords))
 	}
-	return queries.ResumeMatchResult{Matched: matched, Missing: missing, Score: score, ComparedKeywords: len(keywords), Evidence: evidence}
+	return postgres.ResumeMatchResult{Matched: matched, Missing: missing, Score: score, ComparedKeywords: len(keywords), Evidence: evidence}
 }
 
-func bestKeywordEvidence(keyword string, resume queries.ResumeVersion) (string, float64) {
+func bestKeywordEvidence(keyword string, resume postgres.ResumeVersion) (string, float64) {
 	if resume.ContentText != nil && containsSkill(*resume.ContentText, keyword) {
 		return "content_text", 1.0
 	}
@@ -211,7 +211,7 @@ func containsSkill(text, keyword string) bool {
 	return strings.Contains(strings.ToLower(text), strings.ToLower(keyword))
 }
 
-func resumeSearchText(rv queries.ResumeVersion) string {
+func resumeSearchText(rv postgres.ResumeVersion) string {
 	parts := []string{rv.Name, rv.Track}
 	if rv.ContentText != nil {
 		parts = append(parts, *rv.ContentText)
@@ -221,22 +221,22 @@ func resumeSearchText(rv queries.ResumeVersion) string {
 }
 
 // PrepContext aggregates all data relevant to interview preparation for an application.
-func (s *Service) PrepContext(ctx context.Context, applicationID string) (queries.PrepContext, error) {
+func (s *Service) PrepContext(ctx context.Context, applicationID string) (postgres.PrepContext, error) {
 	app, err := s.store.GetApplication(ctx, applicationID)
 	if err != nil {
-		return queries.PrepContext{}, err
+		return postgres.PrepContext{}, err
 	}
 	company, err := s.store.GetCompany(ctx, app.CompanyID)
 	if err != nil {
-		return queries.PrepContext{}, err
+		return postgres.PrepContext{}, err
 	}
 
-	var jd *queries.JobDescription
+	var jd *postgres.JobDescription
 	if jdResult, err := s.store.GetJobDescriptionByApplication(ctx, applicationID); err == nil {
 		jd = &jdResult
 	}
 
-	var resume *queries.ResumeVersion
+	var resume *postgres.ResumeVersion
 	if app.ResumeVersionID != nil {
 		if rv, err := s.store.GetResumeVersion(ctx, *app.ResumeVersionID); err == nil {
 			resume = &rv
@@ -245,18 +245,18 @@ func (s *Service) PrepContext(ctx context.Context, applicationID string) (querie
 
 	interviews, _ := s.store.ListInterviewRoundsByApplication(ctx, applicationID)
 	if interviews == nil {
-		interviews = []queries.InterviewRound{}
+		interviews = []postgres.InterviewRound{}
 	}
 	contacts, _ := s.store.ListContactsByCompany(ctx, app.CompanyID)
 	if contacts == nil {
-		contacts = []queries.Contact{}
+		contacts = []postgres.Contact{}
 	}
 	auditLogs, _ := s.store.ListAuditLogsForEntity(ctx, "application", applicationID)
 	if auditLogs == nil {
-		auditLogs = []queries.AuditLog{}
+		auditLogs = []postgres.AuditLog{}
 	}
 
-	return queries.PrepContext{
+	return postgres.PrepContext{
 		Application:    app,
 		Company:        company,
 		JobDescription: jd,
@@ -268,15 +268,15 @@ func (s *Service) PrepContext(ctx context.Context, applicationID string) (querie
 }
 
 // GeneratePrepBrief builds a template-based interview prep brief from the application's prep context.
-func (s *Service) GeneratePrepBrief(ctx context.Context, applicationID string) (queries.PrepBrief, error) {
+func (s *Service) GeneratePrepBrief(ctx context.Context, applicationID string) (postgres.PrepBrief, error) {
 	pc, err := s.PrepContext(ctx, applicationID)
 	if err != nil {
-		return queries.PrepBrief{}, err
+		return postgres.PrepBrief{}, err
 	}
 	return buildPrepBrief(pc), nil
 }
 
-func buildPrepBrief(pc queries.PrepContext) queries.PrepBrief {
+func buildPrepBrief(pc postgres.PrepContext) postgres.PrepBrief {
 	roleSummary := pc.Application.Title + " at " + pc.Company.Name
 	if pc.Application.EmploymentType != nil {
 		roleSummary += " (" + *pc.Application.EmploymentType + ")"
@@ -321,7 +321,7 @@ func buildPrepBrief(pc queries.PrepContext) queries.PrepBrief {
 		talkingPoints = []string{"Research the company and role", "Prepare STAR-method stories", "Review your resume highlights"}
 	}
 
-	return queries.PrepBrief{
+	return postgres.PrepBrief{
 		RoleSummary:   roleSummary,
 		KeyGaps:       keyGaps,
 		FocusAreas:    focusAreas,

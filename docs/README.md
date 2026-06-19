@@ -11,7 +11,6 @@ This folder keeps the reference, development, and product docs.
 
 - [Architecture](reference/architecture.md) - system structure and runtime flow.
 - [API Reference](reference/api.md) - implemented endpoints and examples.
-- [Environment Variables](reference/environment.md) - runtime configuration.
 - [Database Schema](reference/database-schema.md) - tables, relationships, constraints,
   and delete behavior.
 
@@ -25,11 +24,9 @@ This folder keeps the reference, development, and product docs.
   retries, and dead-lettering.
 - [Testing Guide](development/testing-guide.md) - unit, HTTP, integration, worker, and
   manual testing notes.
-- [Decisions](development/decisions.md) - lightweight engineering journal.
 
 ## Product
 
-- [Product Requirements](product/prd.md)
 - [Roadmap](product/roadmap.md)
 
 ## Documentation Rule

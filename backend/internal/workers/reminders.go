@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 	remindersvc "careeros/backend/internal/services/reminders"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,18 +30,18 @@ type ReminderWorker struct {
 	// MaxRetries caps failed delivery attempts for an individual reminder.
 	MaxRetries int
 	// Deliver simulates or performs notification delivery. Nil means success.
-	Deliver func(context.Context, queries.Reminder) error
+	Deliver func(context.Context, postgres.Reminder) error
 	store   reminderStore
 	queue   reminderQueue
 }
 
 type reminderStore interface {
-	GetReminder(context.Context, string) (queries.Reminder, error)
-	UpdateReminderStatus(context.Context, string, string) (queries.Reminder, error)
-	CreateReminderDelivery(context.Context, queries.Reminder) (queries.ReminderDelivery, error)
-	MarkReminderSent(context.Context, string) (queries.Reminder, error)
-	MarkReminderRetry(context.Context, queries.MarkReminderRetryParams) (queries.Reminder, error)
-	CreateFailedReminderJob(context.Context, queries.CreateFailedReminderJobParams) (queries.FailedReminderJob, error)
+	GetReminder(context.Context, string) (postgres.Reminder, error)
+	UpdateReminderStatus(context.Context, string, string) (postgres.Reminder, error)
+	CreateReminderDelivery(context.Context, postgres.Reminder) (postgres.ReminderDelivery, error)
+	MarkReminderSent(context.Context, string) (postgres.Reminder, error)
+	MarkReminderRetry(context.Context, postgres.MarkReminderRetryParams) (postgres.Reminder, error)
+	CreateFailedReminderJob(context.Context, postgres.CreateFailedReminderJobParams) (postgres.FailedReminderJob, error)
 }
 
 type reminderQueue interface {
@@ -124,14 +124,14 @@ func (w ReminderWorker) processOne(ctx context.Context, store reminderStore, id 
 	return nil
 }
 
-func (w ReminderWorker) deliver(ctx context.Context, reminder queries.Reminder) error {
+func (w ReminderWorker) deliver(ctx context.Context, reminder postgres.Reminder) error {
 	if w.Deliver == nil {
 		return nil
 	}
 	return w.Deliver(ctx, reminder)
 }
 
-func (w ReminderWorker) handleFailure(ctx context.Context, store reminderStore, reminder queries.Reminder, cause error) error {
+func (w ReminderWorker) handleFailure(ctx context.Context, store reminderStore, reminder postgres.Reminder, cause error) error {
 	nextRetry := reminder.RetryCount + 1
 	if int(nextRetry) >= w.maxRetries() {
 		payload, err := json.Marshal(map[string]string{
@@ -142,7 +142,7 @@ func (w ReminderWorker) handleFailure(ctx context.Context, store reminderStore, 
 		if err != nil {
 			return err
 		}
-		if _, err := store.MarkReminderRetry(ctx, queries.MarkReminderRetryParams{
+		if _, err := store.MarkReminderRetry(ctx, postgres.MarkReminderRetryParams{
 			ID:         reminder.ID,
 			Status:     remindersvc.StatusFailed,
 			RetryCount: nextRetry,
@@ -150,7 +150,7 @@ func (w ReminderWorker) handleFailure(ctx context.Context, store reminderStore, 
 		}); err != nil {
 			return err
 		}
-		if _, err := store.CreateFailedReminderJob(ctx, queries.CreateFailedReminderJobParams{
+		if _, err := store.CreateFailedReminderJob(ctx, postgres.CreateFailedReminderJobParams{
 			ReminderID:   &reminder.ID,
 			ErrorMessage: cause.Error(),
 			RetryCount:   nextRetry,
@@ -161,7 +161,7 @@ func (w ReminderWorker) handleFailure(ctx context.Context, store reminderStore, 
 		return fmt.Errorf("reminder failed after %d retries: %w", nextRetry, cause)
 	}
 
-	updated, err := store.MarkReminderRetry(ctx, queries.MarkReminderRetryParams{
+	updated, err := store.MarkReminderRetry(ctx, postgres.MarkReminderRetryParams{
 		ID:         reminder.ID,
 		Status:     remindersvc.StatusPending,
 		RetryCount: nextRetry,
@@ -181,7 +181,7 @@ func (w ReminderWorker) reminderStore() reminderStore {
 	if w.store != nil {
 		return w.store
 	}
-	return queries.New(w.Postgres)
+	return postgres.New(w.Postgres)
 }
 
 func (w ReminderWorker) reminderQueue() reminderQueue {

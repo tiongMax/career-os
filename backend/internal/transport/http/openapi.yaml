@@ -1,0 +1,1246 @@
+openapi: 3.1.0
+info:
+  title: CareerOS API
+  version: "1.0.0"
+  description: |
+    REST API for CareerOS, a backend-focused job application and resume
+    versioning platform. Covers companies, resume versions, applications,
+    job descriptions, interviews, contacts, reminders, search, and
+    analytics. See `docs/CareerOS_Detailed_PRD.md` for product context.
+  license:
+    name: MIT
+
+servers:
+  - url: /api/v1
+    description: Versioned API base path
+
+tags:
+  - name: Health
+  - name: Companies
+  - name: Resume Versions
+  - name: Applications
+  - name: Job Descriptions
+  - name: Interviews
+  - name: Contacts
+  - name: Reminders
+  - name: Role Tracks
+  - name: AI Analysis
+  - name: Search
+  - name: Analytics
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: All dependencies healthy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+        "503":
+          description: One or more dependencies degraded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /companies:
+    get:
+      tags: [Companies]
+      summary: List companies
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Company" }
+    post:
+      tags: [Companies]
+      summary: Create a company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CompanyInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Company" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /companies/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Companies]
+      summary: Get company by id
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Company" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Companies]
+      summary: Update company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CompanyInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Company" }
+    delete:
+      tags: [Companies]
+      summary: Delete company
+      responses:
+        "204": { description: Deleted }
+
+  /resume-versions:
+    get:
+      tags: [Resume Versions]
+      summary: List resume versions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ResumeVersion" }
+    post:
+      tags: [Resume Versions]
+      summary: Create resume version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResumeVersionInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResumeVersion" }
+  /resume-versions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Resume Versions]
+      summary: Get resume version
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResumeVersion" }
+    patch:
+      tags: [Resume Versions]
+      summary: Update resume version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResumeVersionInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResumeVersion" }
+    delete:
+      tags: [Resume Versions]
+      summary: Delete resume version
+      responses:
+        "204": { description: Deleted }
+  /resume-versions/{id}/pdf:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Resume Versions]
+      summary: Download attached PDF
+      responses:
+        "200":
+          description: PDF binary
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Resume Versions]
+      summary: Upload PDF for resume version
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+              required: [file]
+      responses:
+        "204": { description: Uploaded }
+
+  /applications:
+    get:
+      tags: [Applications]
+      summary: List applications
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Application" }
+    post:
+      tags: [Applications]
+      summary: Create application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplicationInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Application" }
+  /applications/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Applications]
+      summary: Get application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Application" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Applications]
+      summary: Update application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplicationInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Application" }
+    delete:
+      tags: [Applications]
+      summary: Delete application
+      responses:
+        "204": { description: Deleted }
+  /applications/{id}/status:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Applications]
+      summary: Transition application status
+      description: |
+        Validates the transition against the workflow in §12 of the PRD and
+        writes an audit log inside the same transaction as the status change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: "#/components/schemas/ApplicationStatus" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Application" }
+        "409":
+          description: Illegal status transition
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /applications/{id}/audit-logs:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Applications]
+      summary: List audit log entries for an application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AuditLog" }
+  /applications/{id}/job-description:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Job Descriptions]
+      summary: Get the JD attached to an application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobDescription" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Job Descriptions]
+      summary: Attach a JD to an application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [raw_text]
+              properties:
+                raw_text: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobDescription" }
+  /applications/{id}/interviews:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Interviews]
+      summary: List interview rounds for an application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/InterviewRound" }
+    post:
+      tags: [Interviews]
+      summary: Create interview round
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InterviewRoundInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterviewRound" }
+  /applications/{id}/recommended-resume:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Applications]
+      summary: Recommend best-fit resume version for an application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RecommendedResume" }
+  /applications/{id}/prep-context:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Applications]
+      summary: Aggregate context for interview prep (JD, notes, contacts, rounds)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+  /applications/{id}/generate-prep-brief:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Applications]
+      summary: Generate templated interview prep brief
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrepBrief" }
+
+  /applications/{id}/ai-analysis-jobs:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [AI Analysis]
+      summary: List AI analysis jobs for an application
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AnalysisJob" }
+    post:
+      tags: [AI Analysis]
+      summary: Queue an async AI analysis job for an application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalysisJobInput" }
+      responses:
+        "201":
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisJob" }
+
+  /ai-analysis-jobs:
+    get:
+      tags: [AI Analysis]
+      summary: List recent AI analysis jobs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AnalysisJob" }
+
+  /ai-analysis-jobs/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [AI Analysis]
+      summary: Get an AI analysis job and persisted result
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalysisJob" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /job-descriptions/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Job Descriptions]
+      summary: Update JD raw text or extracted keywords
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                raw_text: { type: string }
+                extracted_keywords:
+                  type: array
+                  items: { type: string }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobDescription" }
+  /job-descriptions/{id}/extract-keywords:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Job Descriptions]
+      summary: Re-run deterministic skill extraction
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobDescription" }
+  /job-descriptions/{id}/compare-resume/{resumeVersionId}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+      - name: resumeVersionId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      tags: [Job Descriptions]
+      summary: Score a resume version against a JD
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ResumeMatch" }
+
+  /interviews/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    patch:
+      tags: [Interviews]
+      summary: Update interview round
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InterviewRoundInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InterviewRound" }
+    delete:
+      tags: [Interviews]
+      summary: Delete interview round
+      responses:
+        "204": { description: Deleted }
+
+  /contacts:
+    get:
+      tags: [Contacts]
+      summary: List contacts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Contact" }
+    post:
+      tags: [Contacts]
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+  /contacts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Contacts]
+      summary: Get contact
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+    patch:
+      tags: [Contacts]
+      summary: Update contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Contact" }
+    delete:
+      tags: [Contacts]
+      summary: Delete contact
+      responses:
+        "204": { description: Deleted }
+
+  /reminders:
+    get:
+      tags: [Reminders]
+      summary: List reminders
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Reminder" }
+    post:
+      tags: [Reminders]
+      summary: Create reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReminderInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reminder" }
+  /reminders/due:
+    get:
+      tags: [Reminders]
+      summary: List reminders whose due_at has passed and are still pending
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Reminder" }
+  /reminders/failed:
+    get:
+      tags: [Reminders]
+      summary: List dead-letter reminder jobs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FailedReminderJob" }
+  /reminders/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Reminders]
+      summary: Get reminder
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reminder" }
+    patch:
+      tags: [Reminders]
+      summary: Update reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReminderInput" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reminder" }
+    delete:
+      tags: [Reminders]
+      summary: Delete reminder
+      responses:
+        "204": { description: Deleted }
+  /reminders/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Reminders]
+      summary: Cancel a pending reminder
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reminder" }
+  /reminders/{id}/retry:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Reminders]
+      summary: Re-queue a failed reminder
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reminder" }
+
+  /tracks:
+    get:
+      tags: [Role Tracks]
+      summary: List role tracks
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RoleTrack" }
+    post:
+      tags: [Role Tracks]
+      summary: Create role track
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RoleTrack" }
+
+  /search:
+    get:
+      tags: [Search]
+      summary: Weighted PostgreSQL full-text search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query: { type: string }
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/SearchResult" }
+
+  /analytics/summary:
+    get:
+      tags: [Analytics]
+      summary: Top-line counts and rates
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AnalyticsSummary" }
+  /analytics/by-status:
+    get:
+      tags: [Analytics]
+      summary: Application counts grouped by status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StatusCount" }
+  /analytics/by-role-track:
+    get:
+      tags: [Analytics]
+      summary: Application counts grouped by role track
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TrackCount" }
+  /analytics/by-resume-version:
+    get:
+      tags: [Analytics]
+      summary: Per-resume performance metrics
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ResumeVersionPerformance" }
+  /analytics/source-performance:
+    get:
+      tags: [Analytics]
+      summary: Response rate by application source
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SourcePerformance" }
+  /analytics/funnel:
+    get:
+      tags: [Analytics]
+      summary: Conversion counts through the status funnel
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FunnelStep" }
+  /analytics/upcoming:
+    get:
+      tags: [Analytics]
+      summary: Upcoming interviews, pending follow-ups, and stale applications
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    HealthStatus:
+      type: object
+      properties:
+        status:   { type: string, enum: [ok, degraded] }
+        postgres: { type: string, enum: [ok, error] }
+        redis:    { type: string, enum: [ok, error] }
+      required: [status, postgres, redis]
+
+    ApplicationStatus:
+      type: string
+      enum:
+        - saved
+        - applied
+        - recruiter_screen
+        - technical_screen
+        - onsite
+        - offer
+        - rejected
+        - withdrawn
+
+    Company:
+      type: object
+      properties:
+        id:         { type: string, format: uuid }
+        name:      { type: string }
+        website:   { type: string, nullable: true }
+        industry:  { type: string, nullable: true }
+        location:  { type: string, nullable: true }
+        notes:     { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [id, name, created_at, updated_at]
+    CompanyInput:
+      type: object
+      required: [name]
+      properties:
+        name:     { type: string }
+        website:  { type: string, nullable: true }
+        industry: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        notes:    { type: string, nullable: true }
+
+    ResumeVersion:
+      type: object
+      properties:
+        id:        { type: string, format: uuid }
+        name:      { type: string }
+        track:     { type: string }
+        content_text: { type: string, nullable: true }
+        has_pdf:   { type: boolean }
+        tags:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      required: [id, name, track, has_pdf, tags, created_at, updated_at]
+    ResumeVersionInput:
+      type: object
+      required: [name, track]
+      properties:
+        name:  { type: string }
+        track: { type: string }
+        content_text: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+
+    Application:
+      type: object
+      properties:
+        id:                  { type: string, format: uuid }
+        company_id:          { type: string, format: uuid }
+        resume_version_id:   { type: string, format: uuid, nullable: true }
+        title:               { type: string }
+        role_track:          { type: string }
+        role_tracks:
+          type: array
+          items: { type: string }
+        source:              { type: string, nullable: true }
+        status:              { $ref: "#/components/schemas/ApplicationStatus" }
+        location:            { type: string, nullable: true }
+        employment_type:     { type: string, nullable: true }
+        job_url:             { type: string, nullable: true }
+        portal_account:      { type: string, nullable: true }
+        portal_password:     { type: string, nullable: true }
+        applied_at:          { type: string, format: date-time, nullable: true }
+        deadline_at:         { type: string, format: date-time, nullable: true }
+        notes:               { type: string, nullable: true }
+        created_at:          { type: string, format: date-time }
+        updated_at:          { type: string, format: date-time }
+      required: [id, company_id, title, role_track, role_tracks, status, created_at, updated_at]
+    ApplicationInput:
+      type: object
+      required: [company_id, title, role_track]
+      properties:
+        company_id:        { type: string, format: uuid }
+        resume_version_id: { type: string, format: uuid, nullable: true }
+        title:             { type: string }
+        role_track:        { type: string }
+        role_tracks:
+          type: array
+          items: { type: string }
+        source:            { type: string, nullable: true }
+        status:            { $ref: "#/components/schemas/ApplicationStatus" }
+        location:          { type: string, nullable: true }
+        employment_type:   { type: string, nullable: true }
+        job_url:           { type: string, nullable: true }
+        portal_account:    { type: string, nullable: true }
+        portal_password:   { type: string, nullable: true }
+        applied_at:        { type: string, format: date-time, nullable: true }
+        deadline_at:       { type: string, format: date-time, nullable: true }
+        notes:             { type: string, nullable: true }
+
+    JobDescription:
+      type: object
+      properties:
+        id:                 { type: string, format: uuid }
+        application_id:     { type: string, format: uuid }
+        raw_text:           { type: string }
+        extracted_keywords:
+          type: array
+          items: { type: string }
+        ai_summary:         { type: string, nullable: true }
+        created_at:         { type: string, format: date-time }
+        updated_at:         { type: string, format: date-time }
+      required: [id, application_id, raw_text, extracted_keywords, created_at, updated_at]
+
+    InterviewRound:
+      type: object
+      properties:
+        id:             { type: string, format: uuid }
+        application_id: { type: string, format: uuid }
+        round_type:     { type: string }
+        scheduled_at:   { type: string, format: date-time, nullable: true }
+        interviewer:    { type: string, nullable: true }
+        notes:          { type: string, nullable: true }
+        outcome:        { type: string, nullable: true }
+        created_at:     { type: string, format: date-time }
+        updated_at:     { type: string, format: date-time }
+      required: [id, application_id, round_type, created_at, updated_at]
+    InterviewRoundInput:
+      type: object
+      required: [round_type]
+      properties:
+        round_type:   { type: string, enum: [recruiter, online_assessment, technical, system_design, behavioral, final] }
+        scheduled_at: { type: string, format: date-time, nullable: true }
+        interviewer:  { type: string, nullable: true }
+        notes:        { type: string, nullable: true }
+        outcome:      { type: string, nullable: true }
+
+    Contact:
+      type: object
+      properties:
+        id:           { type: string, format: uuid }
+        company_id:   { type: string, format: uuid }
+        name:         { type: string }
+        role:         { type: string, nullable: true }
+        email:        { type: string, nullable: true }
+        linkedin_url: { type: string, nullable: true }
+        relationship: { type: string, nullable: true }
+        notes:        { type: string, nullable: true }
+        created_at:   { type: string, format: date-time }
+        updated_at:   { type: string, format: date-time }
+      required: [id, company_id, name, created_at, updated_at]
+    ContactInput:
+      type: object
+      required: [company_id, name]
+      properties:
+        company_id:   { type: string, format: uuid }
+        name:         { type: string }
+        role:         { type: string, nullable: true }
+        email:        { type: string, nullable: true }
+        linkedin_url: { type: string, nullable: true }
+        relationship: { type: string, nullable: true }
+        notes:        { type: string, nullable: true }
+
+    Reminder:
+      type: object
+      properties:
+        id:              { type: string, format: uuid }
+        application_id:  { type: string, format: uuid }
+        contact_id:      { type: string, format: uuid, nullable: true }
+        title:           { type: string }
+        description:     { type: string, nullable: true }
+        due_at:          { type: string, format: date-time }
+        status:          { type: string, enum: [pending, processing, sent, failed, cancelled] }
+        idempotency_key: { type: string }
+        retry_count:     { type: integer }
+        last_error:      { type: string, nullable: true }
+        delivered_at:    { type: string, format: date-time, nullable: true }
+        created_at:      { type: string, format: date-time }
+        updated_at:      { type: string, format: date-time }
+      required: [id, application_id, title, due_at, status, idempotency_key, retry_count, created_at, updated_at]
+    ReminderInput:
+      type: object
+      required: [application_id, title, due_at]
+      properties:
+        application_id: { type: string, format: uuid }
+        contact_id:     { type: string, format: uuid, nullable: true }
+        title:          { type: string }
+        description:    { type: string, nullable: true }
+        due_at:         { type: string, format: date-time }
+
+    FailedReminderJob:
+      type: object
+      properties:
+        id:           { type: string, format: uuid }
+        reminder_id:  { type: string, format: uuid }
+        error_message: { type: string }
+        retry_count:  { type: integer }
+        failed_at:    { type: string, format: date-time }
+      required: [id, reminder_id, error_message, retry_count, failed_at]
+
+    AuditLog:
+      type: object
+      properties:
+        id:          { type: string, format: uuid }
+        entity_type: { type: string }
+        entity_id:   { type: string, format: uuid }
+        action:      { type: string }
+        old_value:   { type: object, additionalProperties: true, nullable: true }
+        new_value:   { type: object, additionalProperties: true, nullable: true }
+        created_at:  { type: string, format: date-time }
+      required: [id, entity_type, entity_id, action, created_at]
+
+    RoleTrack:
+      type: object
+      properties:
+        id:         { type: string, format: uuid }
+        name:       { type: string }
+        created_at: { type: string, format: date-time }
+      required: [id, name, created_at]
+
+    AnalysisJobInput:
+      type: object
+      required: [job_type]
+      properties:
+        job_type:
+          type: string
+          enum: [resume_match, jd_extract, prep_brief]
+    AnalysisJob:
+      type: object
+      properties:
+        id:              { type: string, format: uuid }
+        application_id:  { type: string, format: uuid }
+        job_type:        { type: string, enum: [resume_match, jd_extract, prep_brief] }
+        status:          { type: string, enum: [queued, processing, completed, failed] }
+        input_snapshot:  { type: object, additionalProperties: true }
+        result:          { $ref: "#/components/schemas/AnalysisResult" }
+        error_message:   { type: string, nullable: true }
+        retry_count:     { type: integer }
+        idempotency_key: { type: string }
+        started_at:      { type: string, format: date-time, nullable: true }
+        completed_at:    { type: string, format: date-time, nullable: true }
+        created_at:      { type: string, format: date-time }
+        updated_at:      { type: string, format: date-time }
+      required: [id, application_id, job_type, status, input_snapshot, retry_count, idempotency_key, created_at, updated_at]
+    AnalysisResult:
+      type: object
+      properties:
+        summary:                 { type: string }
+        recommended_resume_id:   { type: string, format: uuid }
+        recommended_resume_name: { type: string }
+        match_score:             { type: number, format: double }
+        matched_skills:
+          type: array
+          items: { type: string }
+        missing_skills:
+          type: array
+          items: { type: string }
+        extracted_keywords:
+          type: array
+          items: { type: string }
+        core_requirements:
+          type: array
+          items: { type: string }
+        responsibilities:
+          type: array
+          items: { type: string }
+        seniority: { type: string }
+        resume_feedback:
+          type: array
+          items: { type: string }
+        interview_focus:
+          type: array
+          items: { type: string }
+        prep_plan:
+          type: array
+          items: { type: string }
+        talking_points:
+          type: array
+          items: { type: string }
+        suggested_questions:
+          type: array
+          items: { type: string }
+        embedding_matches:
+          type: array
+          items: { $ref: "#/components/schemas/EmbeddingMatch" }
+        generated_at: { type: string, format: date-time }
+    EmbeddingMatch:
+      type: object
+      properties:
+        resume_version_id:   { type: string, format: uuid }
+        resume_version_name: { type: string }
+        similarity:          { type: number, format: double }
+      required: [resume_version_id, resume_version_name, similarity]
+
+    SearchResult:
+      type: object
+      properties:
+        type:    { type: string }
+        id:      { type: string, format: uuid }
+        title:   { type: string }
+        company: { type: string, nullable: true }
+        rank:    { type: number, format: double }
+      required: [type, id, title, rank]
+
+    RecommendedResume:
+      type: object
+      properties:
+        resume_version_id: { type: string, format: uuid, nullable: true }
+        match_score:       { type: number, format: double }
+        matched_keywords:
+          type: array
+          items: { type: string }
+        missing_keywords:
+          type: array
+          items: { type: string }
+
+    ResumeMatch:
+      type: object
+      properties:
+        matched_keywords:
+          type: array
+          items: { type: string }
+        missing_keywords:
+          type: array
+          items: { type: string }
+        match_score: { type: number, format: double }
+      required: [matched_keywords, missing_keywords, match_score]
+
+    PrepBrief:
+      type: object
+      properties:
+        brief:
+          type: object
+          additionalProperties: true
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        total:             { type: integer }
+        active:            { type: integer }
+        responded:         { type: integer }
+        offers:            { type: integer }
+        response_rate:     { type: number, format: double }
+        offer_rate:        { type: number, format: double }
+        pending_reminders: { type: integer }
+      required: [total, active, responded, offers, response_rate, offer_rate, pending_reminders]
+
+    StatusCount:
+      type: object
+      properties:
+        status: { type: string }
+        count:  { type: integer }
+      required: [status, count]
+
+    TrackCount:
+      type: object
+      properties:
+        track: { type: string }
+        count: { type: integer }
+      required: [track, count]
+
+    ResumeVersionPerformance:
+      type: object
+      properties:
+        resume_version_id: { type: string, format: uuid }
+        name:              { type: string }
+        applications:      { type: integer }
+        responses:         { type: integer }
+        interviews:        { type: integer }
+        offers:            { type: integer }
+        response_rate:     { type: number, format: double }
+        offer_rate:        { type: number, format: double }
+
+    SourcePerformance:
+      type: object
+      properties:
+        source:        { type: string }
+        applications:  { type: integer }
+        responses:     { type: integer }
+        offers:        { type: integer }
+        response_rate: { type: number, format: double }
+
+    FunnelStep:
+      type: object
+      properties:
+        stage: { type: string }
+        count: { type: integer }
+      required: [stage, count]

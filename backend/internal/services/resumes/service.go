@@ -5,7 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"careeros/backend/internal/db/queries"
+	resumedomain "careeros/backend/internal/domain/resumes"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 var (
@@ -20,10 +21,10 @@ var (
 )
 
 type Store interface {
-	CreateResumeVersion(context.Context, queries.CreateResumeVersionParams) (queries.ResumeVersion, error)
-	ListResumeVersions(context.Context) ([]queries.ResumeVersion, error)
-	GetResumeVersion(context.Context, string) (queries.ResumeVersion, error)
-	UpdateResumeVersion(context.Context, queries.UpdateResumeVersionParams) (queries.ResumeVersion, error)
+	CreateResumeVersion(context.Context, postgres.CreateResumeVersionParams) (postgres.ResumeVersion, error)
+	ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error)
+	GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error)
+	UpdateResumeVersion(context.Context, postgres.UpdateResumeVersionParams) (postgres.ResumeVersion, error)
 	DeleteResumeVersion(context.Context, string) error
 	StorePDF(context.Context, string, []byte) error
 	GetPDF(context.Context, string) ([]byte, error)
@@ -37,38 +38,45 @@ func New(store Store) *Service {
 	return &Service{store: store}
 }
 
-func (s *Service) Create(ctx context.Context, arg queries.CreateResumeVersionParams) (queries.ResumeVersion, error) {
+func (s *Service) Create(ctx context.Context, arg postgres.CreateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	if strings.TrimSpace(arg.Name) == "" {
-		return queries.ResumeVersion{}, ErrNameRequired
+		return resumedomain.ResumeVersion{}, ErrNameRequired
 	}
 	if !validTrack(arg.Track) {
-		return queries.ResumeVersion{}, ErrInvalidTrack
+		return resumedomain.ResumeVersion{}, ErrInvalidTrack
 	}
 	if arg.Tags == nil {
 		arg.Tags = []string{}
 	}
-	return s.store.CreateResumeVersion(ctx, arg)
+	resume, err := s.store.CreateResumeVersion(ctx, arg)
+	return resumeFromStore(resume), err
 }
 
-func (s *Service) List(ctx context.Context) ([]queries.ResumeVersion, error) {
-	return s.store.ListResumeVersions(ctx)
+func (s *Service) List(ctx context.Context) ([]resumedomain.ResumeVersion, error) {
+	resumes, err := s.store.ListResumeVersions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return resumesFromStore(resumes), nil
 }
 
-func (s *Service) Get(ctx context.Context, id string) (queries.ResumeVersion, error) {
-	return s.store.GetResumeVersion(ctx, id)
+func (s *Service) Get(ctx context.Context, id string) (resumedomain.ResumeVersion, error) {
+	resume, err := s.store.GetResumeVersion(ctx, id)
+	return resumeFromStore(resume), err
 }
 
-func (s *Service) Update(ctx context.Context, arg queries.UpdateResumeVersionParams) (queries.ResumeVersion, error) {
+func (s *Service) Update(ctx context.Context, arg postgres.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	if arg.Name != nil && strings.TrimSpace(*arg.Name) == "" {
-		return queries.ResumeVersion{}, ErrNameRequired
+		return resumedomain.ResumeVersion{}, ErrNameRequired
 	}
 	if arg.Track != nil && !validTrack(*arg.Track) {
-		return queries.ResumeVersion{}, ErrInvalidTrack
+		return resumedomain.ResumeVersion{}, ErrInvalidTrack
 	}
 	if arg.SetTags && arg.Tags == nil {
 		arg.Tags = []string{}
 	}
-	return s.store.UpdateResumeVersion(ctx, arg)
+	resume, err := s.store.UpdateResumeVersion(ctx, arg)
+	return resumeFromStore(resume), err
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error {
@@ -86,4 +94,25 @@ func (s *Service) GetPDF(ctx context.Context, id string) ([]byte, error) {
 func validTrack(track string) bool {
 	_, ok := allowedResumeTrack[track]
 	return ok
+}
+
+func resumeFromStore(resume postgres.ResumeVersion) resumedomain.ResumeVersion {
+	return resumedomain.ResumeVersion{
+		ID:          resume.ID,
+		Name:        resume.Name,
+		Track:       resume.Track,
+		ContentText: resume.ContentText,
+		HasPDF:      resume.HasPDF,
+		Tags:        resume.Tags,
+		CreatedAt:   resume.CreatedAt,
+		UpdatedAt:   resume.UpdatedAt,
+	}
+}
+
+func resumesFromStore(resumes []postgres.ResumeVersion) []resumedomain.ResumeVersion {
+	out := make([]resumedomain.ResumeVersion, 0, len(resumes))
+	for _, resume := range resumes {
+		out = append(out, resumeFromStore(resume))
+	}
+	return out
 }

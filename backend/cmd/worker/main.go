@@ -8,12 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"careeros/backend/internal/app"
 	"careeros/backend/internal/config"
 	"careeros/backend/internal/db"
-	"careeros/backend/internal/db/queries"
 	"careeros/backend/internal/logger"
-	aianalysissvc "careeros/backend/internal/services/aianalysis"
-	"careeros/backend/internal/workers"
 )
 
 // main loads process configuration, initializes shared infrastructure clients,
@@ -41,31 +39,28 @@ func main() {
 	}
 	defer redisClient.Close()
 
-	worker := workers.ReminderWorker{
-		Postgres:     postgres,
-		Redis:        redisClient,
-		Logger:       log,
-		PollInterval: cfg.ReminderWorkerPollInterval,
-		MaxRetries:   cfg.ReminderMaxRetries,
-	}
+	appWorkers := app.NewWorkers(postgres, redisClient, log, app.WorkerConfig{
+		ReminderWorkerPollInterval:   cfg.ReminderWorkerPollInterval,
+		ReminderMaxRetries:           cfg.ReminderMaxRetries,
+		AIAnalysisWorkerPollInterval: cfg.AIAnalysisWorkerPollInterval,
+		AIAnalysisMaxRetries:         cfg.AIAnalysisMaxRetries,
+		GeminiAPIKey:                 cfg.GeminiAPIKey,
+		GeminiModel:                  cfg.GeminiModel,
+		GeminiEmbeddingModel:         cfg.GeminiEmbeddingModel,
+		GeminiBaseURL:                cfg.GeminiBaseURL,
+		GeminiTimeout:                cfg.GeminiTimeout,
+	})
 
 	errCh := make(chan error, 2)
 	go func() {
-		errCh <- worker.Run(ctx)
+		errCh <- appWorkers.Reminder.Run(ctx)
 	}()
 
-	if cfg.GeminiAPIKey == "" {
+	if appWorkers.Analysis == nil {
 		log.Warn().Msg("analysis worker disabled because GEMINI_API_KEY is not set")
 	} else {
-		store := queries.New(postgres)
-		provider := aianalysissvc.NewGeminiProviderWithEmbeddingAndTimeout(cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiEmbeddingModel, cfg.GeminiBaseURL, cfg.GeminiTimeout)
-		analysisWorker := workers.AnalysisWorker{
-			Service:      aianalysissvc.NewProcessor(store, provider, cfg.AIAnalysisMaxRetries),
-			Logger:       log,
-			PollInterval: cfg.AIAnalysisWorkerPollInterval,
-		}
 		go func() {
-			errCh <- analysisWorker.Run(ctx)
+			errCh <- appWorkers.Analysis.Run(ctx)
 		}()
 	}
 

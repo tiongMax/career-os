@@ -119,5 +119,4 @@ curl -X POST http://localhost:8080/api/v1/applications \
 - [Architecture](docs/reference/architecture.md)
 - [API Reference](docs/reference/api.md)
 - [AI Analysis Jobs](docs/development/ai-analysis.md)
-- [Environment Variables](docs/reference/environment.md)
 - [Contributing](CONTRIBUTING.md)

@@ -83,7 +83,7 @@ Worker unit tests cover:
 Run them with:
 
 ```sh
-go test ./backend/internal/workers -cover
+go -C backend test ./internal/workers -cover
 ```
 
 ## Local Verification
@@ -97,5 +97,5 @@ make worker
 Run tests with:
 
 ```sh
-go test ./...
+go -C backend test ./...
 ```

@@ -165,6 +165,7 @@ Create/update request:
   "resume_version_id": "00000000-0000-4000-8000-000000000001",
   "title": "Backend Engineer",
   "role_track": "backend",
+  "role_tracks": ["backend", "platform"],
   "source": "company_site",
   "status": "saved",
   "location": "Remote",
@@ -187,6 +188,7 @@ Response:
   "resume_version_id": "00000000-0000-4000-8000-000000000001",
   "title": "Backend Engineer",
   "role_track": "backend",
+  "role_tracks": ["backend", "platform"],
   "source": "company_site",
   "status": "saved",
   "location": "Remote",
@@ -203,6 +205,10 @@ Response:
 ```
 
 Required fields: `company_id`, `title`, `role_track`.
+
+`role_track` is the primary/backward-compatible track. `role_tracks` is an
+optional array for applications that span multiple tracks. If omitted, the API
+falls back to the primary `role_track`.
 
 Status values:
 
@@ -445,10 +451,6 @@ Response:
 ```
 
 Required fields: `name`.
-
-Note: `backend/internal/httpapi/openapi.yaml` currently describes `slug` and `label` for this endpoint, but the handler and frontend client use `name`.
-
-<!-- TODO: update OpenAPI role track schema or align implementation. -->
 
 ## Search
 

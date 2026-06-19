@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -54,7 +54,7 @@ func TestProcessNextCompletesJob(t *testing.T) {
 func TestProcessNextRanksResumeMatchJobsWithEmbeddings(t *testing.T) {
 	store := newFakeStore()
 	content := "Built Go APIs with PostgreSQL and Redis workers."
-	store.resumes = []queries.ResumeVersion{
+	store.resumes = []postgres.ResumeVersion{
 		{ID: "resume-backend", Name: "Backend Resume", Track: "backend", ContentText: &content},
 		{ID: "resume-design", Name: "Design Resume", Track: "general", Tags: []string{"figma"}},
 	}
@@ -178,20 +178,20 @@ func (p fakeEmbeddingProvider) Embed(_ context.Context, text string, _ string) (
 }
 
 type fakeStore struct {
-	job       queries.AnalysisJob
-	app       queries.Application
-	company   queries.Company
-	jd        queries.JobDescription
-	resume    queries.ResumeVersion
-	resumes   []queries.ResumeVersion
-	updatedJD queries.UpdateJobDescriptionParams
+	job       postgres.AnalysisJob
+	app       postgres.Application
+	company   postgres.Company
+	jd        postgres.JobDescription
+	resume    postgres.ResumeVersion
+	resumes   []postgres.ResumeVersion
+	updatedJD postgres.UpdateJobDescriptionParams
 }
 
 func newFakeStore() *fakeStore {
 	now := time.Now()
 	resumeID := "00000000-0000-4000-8000-000000000003"
 	return &fakeStore{
-		job: queries.AnalysisJob{
+		job: postgres.AnalysisJob{
 			ID:             "00000000-0000-4000-8000-000000000001",
 			ApplicationID:  "00000000-0000-4000-8000-000000000002",
 			JobType:        JobTypeResumeMatch,
@@ -201,7 +201,7 @@ func newFakeStore() *fakeStore {
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		},
-		app: queries.Application{
+		app: postgres.Application{
 			ID:              "00000000-0000-4000-8000-000000000002",
 			CompanyID:       "00000000-0000-4000-8000-000000000004",
 			ResumeVersionID: &resumeID,
@@ -209,29 +209,29 @@ func newFakeStore() *fakeStore {
 			RoleTrack:       "backend",
 			Status:          "applied",
 		},
-		company: queries.Company{
+		company: postgres.Company{
 			ID:   "00000000-0000-4000-8000-000000000004",
 			Name: "Example Corp",
 		},
-		jd: queries.JobDescription{
+		jd: postgres.JobDescription{
 			ID:                "00000000-0000-4000-8000-000000000005",
 			ApplicationID:     "00000000-0000-4000-8000-000000000002",
 			RawText:           "Go PostgreSQL Redis Kubernetes",
 			ExtractedKeywords: []string{"Go", "PostgreSQL", "Redis", "Kubernetes"},
 		},
-		resume: queries.ResumeVersion{
+		resume: postgres.ResumeVersion{
 			ID:    resumeID,
 			Name:  "Backend Resume",
 			Track: "backend",
 			Tags:  []string{"Go", "PostgreSQL"},
 		},
-		resumes: []queries.ResumeVersion{
+		resumes: []postgres.ResumeVersion{
 			{ID: resumeID, Name: "Backend Resume", Track: "backend", Tags: []string{"Go", "PostgreSQL"}},
 		},
 	}
 }
 
-func (s *fakeStore) CreateAnalysisJob(_ context.Context, arg queries.CreateAnalysisJobParams) (queries.AnalysisJob, error) {
+func (s *fakeStore) CreateAnalysisJob(_ context.Context, arg postgres.CreateAnalysisJobParams) (postgres.AnalysisJob, error) {
 	s.job.ApplicationID = arg.ApplicationID
 	s.job.JobType = arg.JobType
 	s.job.InputSnapshot = arg.InputSnapshot
@@ -239,21 +239,21 @@ func (s *fakeStore) CreateAnalysisJob(_ context.Context, arg queries.CreateAnaly
 	return s.job, nil
 }
 
-func (s *fakeStore) ListAnalysisJobs(context.Context) ([]queries.AnalysisJob, error) {
-	return []queries.AnalysisJob{s.job}, nil
+func (s *fakeStore) ListAnalysisJobs(context.Context) ([]postgres.AnalysisJob, error) {
+	return []postgres.AnalysisJob{s.job}, nil
 }
 
-func (s *fakeStore) ListAnalysisJobsByApplication(context.Context, string) ([]queries.AnalysisJob, error) {
-	return []queries.AnalysisJob{s.job}, nil
+func (s *fakeStore) ListAnalysisJobsByApplication(context.Context, string) ([]postgres.AnalysisJob, error) {
+	return []postgres.AnalysisJob{s.job}, nil
 }
 
-func (s *fakeStore) GetAnalysisJob(context.Context, string) (queries.AnalysisJob, error) {
+func (s *fakeStore) GetAnalysisJob(context.Context, string) (postgres.AnalysisJob, error) {
 	return s.job, nil
 }
 
-func (s *fakeStore) ClaimNextQueuedAnalysisJob(context.Context) (queries.AnalysisJob, error) {
+func (s *fakeStore) ClaimNextQueuedAnalysisJob(context.Context) (postgres.AnalysisJob, error) {
 	if s.job.Status != StatusQueued {
-		return queries.AnalysisJob{}, pgx.ErrNoRows
+		return postgres.AnalysisJob{}, pgx.ErrNoRows
 	}
 	s.job.Status = StatusProcessing
 	now := time.Now()
@@ -261,9 +261,9 @@ func (s *fakeStore) ClaimNextQueuedAnalysisJob(context.Context) (queries.Analysi
 	return s.job, nil
 }
 
-func (s *fakeStore) CompleteAnalysisJob(_ context.Context, _ string, result json.RawMessage) (queries.AnalysisJob, error) {
+func (s *fakeStore) CompleteAnalysisJob(_ context.Context, _ string, result json.RawMessage) (postgres.AnalysisJob, error) {
 	if s.job.Status != StatusProcessing {
-		return queries.AnalysisJob{}, pgx.ErrNoRows
+		return postgres.AnalysisJob{}, pgx.ErrNoRows
 	}
 	s.job.Status = StatusCompleted
 	s.job.Result = result
@@ -272,9 +272,9 @@ func (s *fakeStore) CompleteAnalysisJob(_ context.Context, _ string, result json
 	return s.job, nil
 }
 
-func (s *fakeStore) FailAnalysisJob(_ context.Context, arg queries.FailAnalysisJobParams) (queries.AnalysisJob, error) {
+func (s *fakeStore) FailAnalysisJob(_ context.Context, arg postgres.FailAnalysisJobParams) (postgres.AnalysisJob, error) {
 	if s.job.Status != StatusProcessing {
-		return queries.AnalysisJob{}, pgx.ErrNoRows
+		return postgres.AnalysisJob{}, pgx.ErrNoRows
 	}
 	s.job.RetryCount++
 	s.job.ErrorMessage = &arg.Error
@@ -288,27 +288,27 @@ func (s *fakeStore) FailAnalysisJob(_ context.Context, arg queries.FailAnalysisJ
 	return s.job, nil
 }
 
-func (s *fakeStore) GetApplication(context.Context, string) (queries.Application, error) {
+func (s *fakeStore) GetApplication(context.Context, string) (postgres.Application, error) {
 	return s.app, nil
 }
 
-func (s *fakeStore) GetCompany(context.Context, string) (queries.Company, error) {
+func (s *fakeStore) GetCompany(context.Context, string) (postgres.Company, error) {
 	return s.company, nil
 }
 
-func (s *fakeStore) GetJobDescriptionByApplication(context.Context, string) (queries.JobDescription, error) {
+func (s *fakeStore) GetJobDescriptionByApplication(context.Context, string) (postgres.JobDescription, error) {
 	return s.jd, nil
 }
 
-func (s *fakeStore) GetResumeVersion(context.Context, string) (queries.ResumeVersion, error) {
+func (s *fakeStore) GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error) {
 	return s.resume, nil
 }
 
-func (s *fakeStore) ListResumeVersions(context.Context) ([]queries.ResumeVersion, error) {
+func (s *fakeStore) ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error) {
 	return s.resumes, nil
 }
 
-func (s *fakeStore) UpdateJobDescription(_ context.Context, arg queries.UpdateJobDescriptionParams) (queries.JobDescription, error) {
+func (s *fakeStore) UpdateJobDescription(_ context.Context, arg postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error) {
 	s.updatedJD = arg
 	s.jd.ExtractedKeywords = arg.ExtractedKeywords
 	s.jd.AISummary = arg.AISummary

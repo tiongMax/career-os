@@ -3,17 +3,17 @@ package aianalysis
 import (
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 type AnalysisInput struct {
-	Job              queries.AnalysisJob     `json:"job"`
-	Application      queries.Application     `json:"application"`
-	Company          queries.Company         `json:"company"`
-	JobDescription   *queries.JobDescription `json:"job_description,omitempty"`
-	Resume           *queries.ResumeVersion  `json:"resume,omitempty"`
-	ResumeVersions   []queries.ResumeVersion `json:"resume_versions"`
-	EmbeddingMatches []EmbeddingMatch        `json:"embedding_matches,omitempty"`
+	Job              postgres.AnalysisJob     `json:"job"`
+	Application      postgres.Application     `json:"application"`
+	Company          postgres.Company         `json:"company"`
+	JobDescription   *postgres.JobDescription `json:"job_description,omitempty"`
+	Resume           *postgres.ResumeVersion  `json:"resume,omitempty"`
+	ResumeVersions   []postgres.ResumeVersion `json:"resume_versions"`
+	EmbeddingMatches []EmbeddingMatch         `json:"embedding_matches,omitempty"`
 }
 
 type AnalysisResult struct {

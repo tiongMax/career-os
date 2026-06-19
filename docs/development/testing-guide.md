@@ -14,13 +14,13 @@ make test
 Runs:
 
 ```sh
-go test ./...
+go -C backend test ./...
 ```
 
 Coverage can be checked with:
 
 ```sh
-go test ./... -cover
+go -C backend test ./... -cover
 ```
 
 ## Testing Strategy
@@ -44,6 +44,8 @@ Current examples:
 
 ```text
 backend/internal/services/applications/service_test.go
+backend/internal/services/aianalysis/service_test.go
+backend/internal/services/aianalysis/gemini_test.go
 backend/internal/services/contacts/service_test.go
 backend/internal/services/interviews/service_test.go
 backend/internal/services/reminders/service_test.go
@@ -78,12 +80,12 @@ Good targets:
 - Reminder polling queries.
 
 Integration tests are gated behind environment variables so normal
-`go test ./...` stays lightweight.
+`go -C backend test ./...` stays lightweight.
 
 Example:
 
 ```sh
-CAREEROS_INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable go test ./backend/internal/services/applications
+CAREEROS_INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable go -C backend test ./internal/services/applications
 ```
 
 ## Worker Tests
@@ -103,11 +105,13 @@ The worker tests use package-local store and queue fakes. That keeps the default
 test suite fast while still exercising the state machine around delivery,
 retry, and dead-lettering.
 
-Day 3 service and handler tests cover:
+Service and handler tests also cover:
 
 - Contact validation and routes.
 - Interview round validation and routes.
 - Reminder creation, scheduling, cancellation, and routes.
+- AI analysis job creation and Gemini provider behavior through mocked/local
+  test paths.
 
 ## Manual Smoke Test
 
@@ -133,7 +137,7 @@ Expected healthy response:
 }
 ```
 
-Recommended Day 3 smoke flow:
+Recommended smoke flow:
 
 1. Create a company.
 2. Create an application for the company.
@@ -153,5 +157,6 @@ Recommended order:
 3. Application status state machine tests.
 4. Transactional application workflow integration test.
 5. Reminder worker reliability tests.
-6. Query-layer integration tests for contacts, interviews, reminders, and Redis
+6. AI analysis service tests with fake providers.
+7. Query-layer integration tests for contacts, interviews, reminders, and Redis
    scheduling.

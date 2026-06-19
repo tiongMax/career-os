@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,14 +32,14 @@ func TestIntegrationApplicationWorkflowCreatesAuditLog(t *testing.T) {
 		t.Fatalf("ping postgres: %v", err)
 	}
 
-	store := queries.New(pool)
+	store := postgres.New(pool)
 	service := New(store)
 
-	company, err := store.CreateCompany(ctx, queries.CreateCompanyParams{Name: "Integration Co"})
+	company, err := store.CreateCompany(ctx, postgres.CreateCompanyParams{Name: "Integration Co"})
 	if err != nil {
 		t.Fatalf("create company: %v", err)
 	}
-	resume, err := store.CreateResumeVersion(ctx, queries.CreateResumeVersionParams{
+	resume, err := store.CreateResumeVersion(ctx, postgres.CreateResumeVersionParams{
 		Name:  "Backend Integration Resume",
 		Track: "backend",
 		Tags:  []string{"go", "postgresql"},
@@ -47,7 +47,7 @@ func TestIntegrationApplicationWorkflowCreatesAuditLog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create resume version: %v", err)
 	}
-	application, err := service.Create(ctx, queries.CreateApplicationParams{
+	application, err := service.Create(ctx, CreateParams{
 		CompanyID:       company.ID,
 		ResumeVersionID: &resume.ID,
 		Title:           "Backend Engineer",
@@ -66,7 +66,7 @@ func TestIntegrationApplicationWorkflowCreatesAuditLog(t *testing.T) {
 		_ = store.DeleteCompany(cleanupCtx, company.ID)
 	})
 
-	if _, err := store.CreateJobDescription(ctx, queries.CreateJobDescriptionParams{
+	if _, err := store.CreateJobDescription(ctx, postgres.CreateJobDescriptionParams{
 		ApplicationID:     application.ID,
 		RawText:           "Build Go services with PostgreSQL and Redis.",
 		ExtractedKeywords: []string{"go", "postgresql", "redis"},

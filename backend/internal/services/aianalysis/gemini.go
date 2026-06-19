@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 const defaultGeminiBaseURL = "https://generativelanguage.googleapis.com/v1beta"
@@ -341,12 +341,12 @@ func promptResumeVersions(input AnalysisInput) []promptResumeVersion {
 	if input.Job.JobType != JobTypeResumeMatch {
 		return nil
 	}
-	byID := make(map[string]queries.ResumeVersion, len(input.ResumeVersions))
+	byID := make(map[string]postgres.ResumeVersion, len(input.ResumeVersions))
 	for _, resume := range input.ResumeVersions {
 		byID[resume.ID] = resume
 	}
 
-	ordered := make([]queries.ResumeVersion, 0, len(input.ResumeVersions))
+	ordered := make([]postgres.ResumeVersion, 0, len(input.ResumeVersions))
 	seen := map[string]bool{}
 	for _, match := range input.EmbeddingMatches {
 		resume, ok := byID[match.ResumeVersionID]

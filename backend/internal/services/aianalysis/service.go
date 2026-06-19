@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -34,19 +34,19 @@ var (
 )
 
 type Store interface {
-	CreateAnalysisJob(context.Context, queries.CreateAnalysisJobParams) (queries.AnalysisJob, error)
-	ListAnalysisJobs(context.Context) ([]queries.AnalysisJob, error)
-	ListAnalysisJobsByApplication(context.Context, string) ([]queries.AnalysisJob, error)
-	GetAnalysisJob(context.Context, string) (queries.AnalysisJob, error)
-	ClaimNextQueuedAnalysisJob(context.Context) (queries.AnalysisJob, error)
-	CompleteAnalysisJob(context.Context, string, json.RawMessage) (queries.AnalysisJob, error)
-	FailAnalysisJob(context.Context, queries.FailAnalysisJobParams) (queries.AnalysisJob, error)
-	GetApplication(context.Context, string) (queries.Application, error)
-	GetCompany(context.Context, string) (queries.Company, error)
-	GetJobDescriptionByApplication(context.Context, string) (queries.JobDescription, error)
-	GetResumeVersion(context.Context, string) (queries.ResumeVersion, error)
-	ListResumeVersions(context.Context) ([]queries.ResumeVersion, error)
-	UpdateJobDescription(context.Context, queries.UpdateJobDescriptionParams) (queries.JobDescription, error)
+	CreateAnalysisJob(context.Context, postgres.CreateAnalysisJobParams) (postgres.AnalysisJob, error)
+	ListAnalysisJobs(context.Context) ([]postgres.AnalysisJob, error)
+	ListAnalysisJobsByApplication(context.Context, string) ([]postgres.AnalysisJob, error)
+	GetAnalysisJob(context.Context, string) (postgres.AnalysisJob, error)
+	ClaimNextQueuedAnalysisJob(context.Context) (postgres.AnalysisJob, error)
+	CompleteAnalysisJob(context.Context, string, json.RawMessage) (postgres.AnalysisJob, error)
+	FailAnalysisJob(context.Context, postgres.FailAnalysisJobParams) (postgres.AnalysisJob, error)
+	GetApplication(context.Context, string) (postgres.Application, error)
+	GetCompany(context.Context, string) (postgres.Company, error)
+	GetJobDescriptionByApplication(context.Context, string) (postgres.JobDescription, error)
+	GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error)
+	ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error)
+	UpdateJobDescription(context.Context, postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error)
 }
 
 type Provider interface {
@@ -74,23 +74,23 @@ func NewProcessor(store Store, provider Provider, maxRetries int) *Service {
 	return &Service{store: store, provider: provider, maxRetries: maxRetries}
 }
 
-func (s *Service) Create(ctx context.Context, applicationID string, jobType string) (queries.AnalysisJob, error) {
+func (s *Service) Create(ctx context.Context, applicationID string, jobType string) (postgres.AnalysisJob, error) {
 	jobType = strings.TrimSpace(jobType)
 	if !validJobType(jobType) {
-		return queries.AnalysisJob{}, ErrUnsupportedJobType
+		return postgres.AnalysisJob{}, ErrUnsupportedJobType
 	}
 	key, err := newIdempotencyKey()
 	if err != nil {
-		return queries.AnalysisJob{}, err
+		return postgres.AnalysisJob{}, err
 	}
 	snapshot, err := json.Marshal(map[string]string{
 		"application_id": applicationID,
 		"job_type":       jobType,
 	})
 	if err != nil {
-		return queries.AnalysisJob{}, err
+		return postgres.AnalysisJob{}, err
 	}
-	return s.store.CreateAnalysisJob(ctx, queries.CreateAnalysisJobParams{
+	return s.store.CreateAnalysisJob(ctx, postgres.CreateAnalysisJobParams{
 		ApplicationID:  applicationID,
 		JobType:        jobType,
 		InputSnapshot:  snapshot,
@@ -98,28 +98,28 @@ func (s *Service) Create(ctx context.Context, applicationID string, jobType stri
 	})
 }
 
-func (s *Service) List(ctx context.Context) ([]queries.AnalysisJob, error) {
+func (s *Service) List(ctx context.Context) ([]postgres.AnalysisJob, error) {
 	return s.store.ListAnalysisJobs(ctx)
 }
 
-func (s *Service) ListByApplication(ctx context.Context, applicationID string) ([]queries.AnalysisJob, error) {
+func (s *Service) ListByApplication(ctx context.Context, applicationID string) ([]postgres.AnalysisJob, error) {
 	return s.store.ListAnalysisJobsByApplication(ctx, applicationID)
 }
 
-func (s *Service) Get(ctx context.Context, id string) (queries.AnalysisJob, error) {
+func (s *Service) Get(ctx context.Context, id string) (postgres.AnalysisJob, error) {
 	return s.store.GetAnalysisJob(ctx, id)
 }
 
-func (s *Service) ProcessNext(ctx context.Context) (queries.AnalysisJob, bool, error) {
+func (s *Service) ProcessNext(ctx context.Context) (postgres.AnalysisJob, bool, error) {
 	if s.provider == nil {
-		return queries.AnalysisJob{}, false, errors.New("analysis provider is not configured")
+		return postgres.AnalysisJob{}, false, errors.New("analysis provider is not configured")
 	}
 	job, err := s.store.ClaimNextQueuedAnalysisJob(ctx)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return queries.AnalysisJob{}, false, nil
+			return postgres.AnalysisJob{}, false, nil
 		}
-		return queries.AnalysisJob{}, false, err
+		return postgres.AnalysisJob{}, false, err
 	}
 
 	input, err := s.buildInput(ctx, job)
@@ -171,7 +171,7 @@ func (s *Service) ProcessNext(ctx context.Context) (queries.AnalysisJob, bool, e
 	return completed, true, err
 }
 
-func (s *Service) persistJDExtraction(ctx context.Context, jd queries.JobDescription, result AnalysisResult) error {
+func (s *Service) persistJDExtraction(ctx context.Context, jd postgres.JobDescription, result AnalysisResult) error {
 	keywords := result.ExtractedKeywords
 	if len(keywords) == 0 {
 		keywords = result.MatchedSkills
@@ -179,7 +179,7 @@ func (s *Service) persistJDExtraction(ctx context.Context, jd queries.JobDescrip
 	if len(keywords) == 0 && result.Summary == "" {
 		return nil
 	}
-	arg := queries.UpdateJobDescriptionParams{
+	arg := postgres.UpdateJobDescriptionParams{
 		ID:          jd.ID,
 		AISummary:   stringPtr(result.Summary),
 		SetKeywords: len(keywords) > 0,
@@ -243,7 +243,7 @@ func usefulEmbeddingMatches(matches []EmbeddingMatch) []EmbeddingMatch {
 	return out
 }
 
-func resumeEmbeddingText(resume queries.ResumeVersion) string {
+func resumeEmbeddingText(resume postgres.ResumeVersion) string {
 	parts := []string{resume.Name, resume.Track}
 	if resume.ContentText != nil {
 		parts = append(parts, *resume.ContentText)
@@ -268,15 +268,15 @@ func cosineSimilarity(a, b []float64) float64 {
 	return dot / (math.Sqrt(normA) * math.Sqrt(normB))
 }
 
-func (s *Service) fail(ctx context.Context, id string, cause error) (queries.AnalysisJob, error) {
-	return s.store.FailAnalysisJob(ctx, queries.FailAnalysisJobParams{
+func (s *Service) fail(ctx context.Context, id string, cause error) (postgres.AnalysisJob, error) {
+	return s.store.FailAnalysisJob(ctx, postgres.FailAnalysisJobParams{
 		ID:         id,
 		Error:      cause.Error(),
 		MaxRetries: s.maxRetries,
 	})
 }
 
-func (s *Service) buildInput(ctx context.Context, job queries.AnalysisJob) (AnalysisInput, error) {
+func (s *Service) buildInput(ctx context.Context, job postgres.AnalysisJob) (AnalysisInput, error) {
 	app, err := s.store.GetApplication(ctx, job.ApplicationID)
 	if err != nil {
 		return AnalysisInput{}, err
@@ -286,14 +286,14 @@ func (s *Service) buildInput(ctx context.Context, job queries.AnalysisJob) (Anal
 		return AnalysisInput{}, err
 	}
 
-	var jd *queries.JobDescription
+	var jd *postgres.JobDescription
 	if found, err := s.store.GetJobDescriptionByApplication(ctx, app.ID); err == nil {
 		jd = &found
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return AnalysisInput{}, err
 	}
 
-	var resume *queries.ResumeVersion
+	var resume *postgres.ResumeVersion
 	if app.ResumeVersionID != nil {
 		found, err := s.store.GetResumeVersion(ctx, *app.ResumeVersionID)
 		if err != nil {
