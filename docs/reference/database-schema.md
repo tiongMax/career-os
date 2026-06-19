@@ -23,9 +23,18 @@ resume_versions
 role_tracks
   -> applications
 
+applications
+  -> application_role_tracks
+
+role_tracks
+  -> application_role_tracks
+
 reminders
   -> reminder_deliveries
   -> failed_reminder_jobs
+
+applications
+  -> analysis_jobs
 ```
 
 ## Tables
@@ -59,7 +68,8 @@ Stores versions of your resume.
 Important fields:
 
 - `name` labels the resume version.
-- `track` must be one of `backend`, `ai`, `quant`, or `general`.
+- `track` currently uses the original check constraint: `backend`, `ai`,
+  `quant`, or `general`.
 - `tags` is a text array for flexible labels.
 - `pdf_data` stores an optional uploaded resume PDF.
 
@@ -81,7 +91,9 @@ Important fields:
 - `company_id` is required.
 - `resume_version_id` is optional.
 - `title` is required.
-- `role_track` references `role_tracks.name`.
+- `role_track` references `role_tracks.name` and acts as the primary track.
+- Extra application tracks live in `application_role_tracks` and are returned
+  by the API as `role_tracks`.
 - `status` defaults to `saved`.
 - `portal_account` and `portal_password` optionally store the account details
   used for an application portal. Treat these as sensitive local data.
@@ -117,6 +129,22 @@ Important fields:
 Relationships:
 
 - `applications.role_track` references `role_tracks.name`.
+
+### `application_role_tracks`
+
+Stores optional many-to-many track labels for an application.
+
+Important fields:
+
+- `application_id` references `applications.id`.
+- `role_track` references `role_tracks.name`.
+- The primary key is `(application_id, role_track)`, so a track cannot be added
+  twice to the same application.
+
+Relationships:
+
+- Deleting an application deletes its multi-track labels.
+- Deleting a role track is restricted while applications reference it.
 
 ### `job_descriptions`
 
@@ -237,18 +265,40 @@ Important fields:
 - `payload` stores JSON context about the failure.
 - `failed_at` records when the failure was written.
 
+### `analysis_jobs`
+
+Stores asynchronous AI analysis requests and results for applications.
+
+Important fields:
+
+- `application_id` is required.
+- `job_type` must be `resume_match`, `jd_extract`, or `prep_brief`.
+- `status` defaults to `queued` and moves through `processing`, `completed`, or
+  `failed`.
+- `result` stores job-specific JSON output.
+- `error_message`, `attempts`, `started_at`, and `completed_at` support worker
+  retries and observability.
+
+Delete behavior:
+
+- Deleted automatically when the application is deleted.
+
 ## Indexes
 
 High-signal indexes:
 
 - `idx_applications_status` for filtering by workflow state.
 - `idx_applications_role_track` for track dashboards.
+- `idx_application_role_tracks_role_track` for multi-track filtering and
+  analytics.
 - `idx_applications_company_id` and `idx_applications_resume_version_id` for
   joins.
 - `idx_applications_search_vector` for full-text application search.
 - `idx_job_descriptions_search_vector` for full-text JD search.
 - `idx_reminders_status` and `idx_reminders_due_at` for worker polling.
 - `idx_audit_logs_entity` for entity history lookup.
+- `idx_analysis_jobs_application_id` and `idx_analysis_jobs_status_created_at`
+  for application detail pages and worker polling.
 
 ## Schema Design Notes
 
@@ -257,5 +307,7 @@ High-signal indexes:
   define automatic `updated_at` triggers.
 - Search vectors are generated columns, which keeps search data consistent with
   row content.
-- Application role tracks are configurable through `role_tracks`; other enum-like
-  values still use PostgreSQL check constraints.
+- Application primary role tracks are configurable through `role_tracks`, and
+  applications can also have multiple labels through `application_role_tracks`.
+- Resume tracks and other enum-like values still use PostgreSQL check
+  constraints.

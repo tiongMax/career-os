@@ -2,7 +2,7 @@
 
 The backend is a Go service organized around thin HTTP handlers, service-layer
 business rules, hand-written query methods, PostgreSQL, Redis, and a background
-reminder worker.
+worker process for reminders plus optional AI analysis jobs.
 
 ## Directory Map
 
@@ -12,7 +12,7 @@ backend/
     api/       starts the HTTP API server
     migrate/   runs Goose migrations
     seed/      demo data seed command
-    worker/    starts the reminder worker
+    worker/    starts reminder processing and optional AI analysis processing
   internal/
     config/    environment config
     db/        PostgreSQL and Redis client constructors
@@ -69,6 +69,9 @@ Current route group:
   GET /applications/{id}/recommended-resume
   GET /applications/{id}/prep-context
   POST /applications/{id}/generate-prep-brief
+  POST,GET /applications/{id}/ai-analysis-jobs
+  GET /ai-analysis-jobs
+  GET /ai-analysis-jobs/{id}
   POST,GET /applications/{id}/job-description
   PATCH /job-descriptions/{id}
   POST /job-descriptions/{id}/extract-keywords
@@ -111,6 +114,8 @@ Current services:
 - `search`: PostgreSQL full-text search.
 - `analytics`: dashboard aggregates and CSV-adjacent reporting data.
 - `roletracks`: configurable application role tracks.
+- `aianalysis`: asynchronous Gemini-backed resume matching, JD extraction,
+  prep brief generation, and job state management.
 
 Keep business rules out of HTTP handlers. If an endpoint needs validation,
 state transitions, scheduling, or transactions, put that behavior in the
@@ -207,7 +212,9 @@ The worker currently:
 1. Loads config.
 2. Opens PostgreSQL and Redis clients.
 3. Builds `workers.ReminderWorker`.
-4. Runs until context cancellation.
+4. Starts the reminder worker.
+5. Starts `workers.AnalysisWorker` when `GEMINI_API_KEY` is set.
+6. Runs until context cancellation.
 
 Current `ReminderWorker.Run()` starts a ticker, claims due reminder IDs from the
 `reminders:scheduled` Redis sorted set, updates reminder state in PostgreSQL,
@@ -217,6 +224,10 @@ interrupted.
 Failed delivery attempts increment `retry_count`, store `last_error`, and
 reschedule with backoff. Exhausted reminders are marked `failed` and copied to
 `failed_reminder_jobs`.
+
+When enabled, the analysis worker polls queued `analysis_jobs`, calls Gemini for
+structured JSON output and embeddings, stores results, and marks exhausted jobs
+as `failed` after `AI_ANALYSIS_MAX_RETRIES`.
 
 Worker reliability is covered by unit tests in
 `backend/internal/workers/reminders_test.go`. Those tests use package-local

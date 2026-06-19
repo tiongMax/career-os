@@ -1,6 +1,6 @@
 # Architecture
 
-CareerOS is split into a server-rendered Next.js frontend, a Go HTTP API, PostgreSQL, Redis, and a background reminder worker. The backend uses thin HTTP handlers, service packages for business rules, and a query layer shaped around generated/sqlc-style data access.
+CareerOS is split into a server-rendered Next.js frontend, a Go HTTP API, PostgreSQL, Redis, and a background worker process. The backend uses thin HTTP handlers, service packages for business rules, and a query layer shaped around generated/sqlc-style data access.
 
 ## High-Level Structure
 
@@ -28,7 +28,7 @@ career-os/
   benchmarks/k6/    k6 load-test scripts
   docs/
     reference/     stable API, architecture, environment, and schema docs
-    development/   implementation guides, workflow notes, and decisions
+    development/   implementation guides, workflow notes, and testing notes
     product/       PRD and roadmap material
 ```
 
@@ -38,7 +38,7 @@ career-os/
 | --- | --- | --- |
 | Frontend | `frontend/app` | Server-rendered operational UI for dashboard, applications, contacts, resume versions, reminders, and analytics. |
 | API | `backend/cmd/api/main.go` | Serves `/api/v1/*`, connects to PostgreSQL and Redis, exposes Swagger/OpenAPI docs. |
-| Worker | `backend/cmd/worker/main.go` | Polls Redis for due reminders, updates reminder state in PostgreSQL, retries failures, and dead-letters exhausted jobs. |
+| Worker | `backend/cmd/worker/main.go` | Polls Redis for due reminders, updates reminder state in PostgreSQL, retries failures, dead-letters exhausted reminder jobs, and optionally processes Gemini-backed AI analysis jobs when `GEMINI_API_KEY` is set. |
 | Migrator | `backend/cmd/migrate/main.go` | Applies and rolls back Goose migrations. |
 | PostgreSQL | `docker-compose.yml` | Stores companies, applications, resume versions, job descriptions, contacts, interviews, reminders, audit logs, and analytics source data. |
 | Redis | `docker-compose.yml` | Stores reminder schedule state used by the API and worker. |
@@ -82,8 +82,10 @@ flowchart LR
   UI -->|REST JSON / multipart PDF| API[Go API]
   API -->|pgx| DB[(PostgreSQL)]
   API -->|schedule/cancel reminders| Redis[(Redis)]
+  API -->|queue analysis jobs| DB
   Worker[Reminder Worker] -->|poll due reminders| Redis
   Worker -->|state, deliveries, failed jobs| DB
+  Worker -->|optional Gemini calls| Gemini[Gemini API]
   API -->|OpenAPI YAML / Swagger UI| Docs[API Docs]
   Bench[k6 Benchmarks] --> API
 ```
@@ -95,6 +97,7 @@ Core entities:
 - `companies`: organization metadata.
 - `resume_versions`: resume variants, tags, track, optional PDF data.
 - `applications`: job opportunities with status, source, dates, role track, company, and optional resume version.
+- `application_role_tracks`: optional multi-track labels for applications; `applications.role_track` remains the primary/backward-compatible track.
 - `job_descriptions`: raw JD text, extracted keywords, optional summary.
 - `contacts`: people associated with companies.
 - `interview_rounds`: scheduled rounds and outcomes for an application.
@@ -102,6 +105,7 @@ Core entities:
 - `audit_logs`: status transition history.
 - `role_tracks`: configurable role track names.
 - `reminder_deliveries` and `failed_reminder_jobs`: worker reliability records.
+- `analysis_jobs`: queued, processing, completed, or failed AI analysis results.
 
 ## External Services and Integrations
 
@@ -109,10 +113,11 @@ Core entities:
 | --- | --- | --- |
 | PostgreSQL | Primary data store and full-text search vectors. | Yes |
 | Redis | Reminder scheduling queue/state. | Yes for API startup and worker |
+| Gemini API | Optional structured JD extraction, resume matching, prep briefs, and embeddings. | Only when `GEMINI_API_KEY` is set for the worker |
 | Swagger UI CDN | Renders `/api/v1/docs`. | Only needed to view Swagger UI in a browser |
 | k6 | Optional benchmark runner. | No |
 
-No third-party authentication, email, notification, or AI provider integration is currently wired in code.
+No third-party authentication, email, notification, or calendar integration is currently wired in code.
 
 ## Request Middleware
 

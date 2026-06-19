@@ -703,10 +703,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [slug, label]
+              required: [name]
               properties:
-                slug: { type: string }
-                label: { type: string }
+                name: { type: string }
       responses:
         "201":
           description: Created
@@ -1072,9 +1071,10 @@ components:
     RoleTrack:
       type: object
       properties:
-        slug:  { type: string }
-        label: { type: string }
-      required: [slug, label]
+        id:         { type: string, format: uuid }
+        name:       { type: string }
+        created_at: { type: string, format: date-time }
+      required: [id, name, created_at]
 
     AnalysisJobInput:
       type: object
