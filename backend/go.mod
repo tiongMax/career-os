@@ -1,4 +1,4 @@
-module careeros
+module careeros/backend
 
 go 1.24.1
 

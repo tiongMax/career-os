@@ -4,13 +4,15 @@ WORKDIR /app
 
 RUN apk upgrade --no-cache
 
-COPY go.mod go.sum* ./
+WORKDIR /app/backend
+
+COPY backend/go.mod backend/go.sum* ./
 RUN go mod download
 
-COPY . .
-RUN go build -o /out/api ./backend/cmd/api
-RUN go build -o /out/worker ./backend/cmd/worker
-RUN go build -o /out/migrate ./backend/cmd/migrate
+COPY backend ./
+RUN go build -o /out/api ./cmd/api
+RUN go build -o /out/worker ./cmd/worker
+RUN go build -o /out/migrate ./cmd/migrate
 
 FROM alpine:3.22
 

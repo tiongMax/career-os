@@ -189,9 +189,9 @@ Entry point: `backend/cmd/migrate/main.go`
 Supported commands:
 
 ```sh
-go run ./backend/cmd/migrate up
-go run ./backend/cmd/migrate down
-go run ./backend/cmd/migrate status
+go -C backend run ./cmd/migrate up
+go -C backend run ./cmd/migrate down
+go -C backend run ./cmd/migrate status
 ```
 
 The Makefile aliases the common commands:
@@ -232,7 +232,7 @@ as `failed` after `AI_ANALYSIS_MAX_RETRIES`.
 Worker reliability is covered by unit tests in
 `backend/internal/workers/reminders_test.go`. Those tests use package-local
 store and queue fakes so the retry/dead-letter state machine can be tested
-without requiring Docker for every `go test ./...` run.
+without requiring Docker for every `go -C backend test ./...` run.
 
 ## Backend Layering
 

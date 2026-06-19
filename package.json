@@ -7,8 +7,8 @@
     "doc": "docs"
   },
   "scripts": {
-    "build:api": "go build -o backend\\api.exe .\\backend\\cmd\\api",
-    "dev": "docker compose up -d postgres redis && dotenv -e .env -- go run ./backend/cmd/migrate up && dotenv -e .env -- concurrently --names \"api,worker,web\" --prefix-colors \"cyan,yellow,magenta\" \"go run ./backend/cmd/api\" \"go run ./backend/cmd/worker\" \"npm run dev --prefix frontend\""
+    "build:api": "go -C backend build -o bin/api.exe ./cmd/api",
+    "dev": "docker compose up -d postgres redis && dotenv -e .env -- go -C backend run ./cmd/migrate up && dotenv -e .env -- concurrently --names \"api,worker,web\" --prefix-colors \"cyan,yellow,magenta\" \"go -C backend run ./cmd/api\" \"go -C backend run ./cmd/worker\" \"npm run dev --prefix frontend\""
   },
   "repository": {
     "type": "git",

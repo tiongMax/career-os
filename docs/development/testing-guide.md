@@ -14,13 +14,13 @@ make test
 Runs:
 
 ```sh
-go test ./...
+go -C backend test ./...
 ```
 
 Coverage can be checked with:
 
 ```sh
-go test ./... -cover
+go -C backend test ./... -cover
 ```
 
 ## Testing Strategy
@@ -80,12 +80,12 @@ Good targets:
 - Reminder polling queries.
 
 Integration tests are gated behind environment variables so normal
-`go test ./...` stays lightweight.
+`go -C backend test ./...` stays lightweight.
 
 Example:
 
 ```sh
-CAREEROS_INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable go test ./backend/internal/services/applications
+CAREEROS_INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable go -C backend test ./internal/services/applications
 ```
 
 ## Worker Tests
