@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -14,7 +14,7 @@ func (h Handler) createJobDescription(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid application id")
 		return
 	}
-	var req queries.CreateJobDescriptionParams
+	var req postgres.CreateJobDescriptionParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -59,7 +59,7 @@ func (h Handler) updateJobDescription(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
-	arg := queries.UpdateJobDescriptionParams{
+	arg := postgres.UpdateJobDescriptionParams{
 		ID:          id,
 		RawText:     req.RawText,
 		AISummary:   req.AISummary,

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"careeros/backend/internal/db/queries"
 	contactdomain "careeros/backend/internal/domain/contacts"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 // ErrNameRequired is returned when a create or update request provides a blank
@@ -16,10 +16,10 @@ var ErrNameRequired = errors.New("contact name is required")
 
 // Store is the persistence boundary required by Service.
 type Store interface {
-	CreateContact(context.Context, queries.CreateContactParams) (queries.Contact, error)
-	ListContacts(context.Context) ([]queries.Contact, error)
-	GetContact(context.Context, string) (queries.Contact, error)
-	UpdateContact(context.Context, queries.UpdateContactParams) (queries.Contact, error)
+	CreateContact(context.Context, postgres.CreateContactParams) (postgres.Contact, error)
+	ListContacts(context.Context) ([]postgres.Contact, error)
+	GetContact(context.Context, string) (postgres.Contact, error)
+	UpdateContact(context.Context, postgres.UpdateContactParams) (postgres.Contact, error)
 	DeleteContact(context.Context, string) error
 }
 
@@ -34,7 +34,7 @@ func New(store Store) *Service {
 }
 
 // Create validates and persists a contact.
-func (s *Service) Create(ctx context.Context, arg queries.CreateContactParams) (contactdomain.Contact, error) {
+func (s *Service) Create(ctx context.Context, arg postgres.CreateContactParams) (contactdomain.Contact, error) {
 	if strings.TrimSpace(arg.Name) == "" {
 		return contactdomain.Contact{}, ErrNameRequired
 	}
@@ -58,7 +58,7 @@ func (s *Service) Get(ctx context.Context, id string) (contactdomain.Contact, er
 }
 
 // Update validates mutable contact fields and persists the patch.
-func (s *Service) Update(ctx context.Context, arg queries.UpdateContactParams) (contactdomain.Contact, error) {
+func (s *Service) Update(ctx context.Context, arg postgres.UpdateContactParams) (contactdomain.Contact, error) {
 	if arg.Name != nil && strings.TrimSpace(*arg.Name) == "" {
 		return contactdomain.Contact{}, ErrNameRequired
 	}
@@ -71,7 +71,7 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.store.DeleteContact(ctx, id)
 }
 
-func contactFromStore(contact queries.Contact) contactdomain.Contact {
+func contactFromStore(contact postgres.Contact) contactdomain.Contact {
 	return contactdomain.Contact{
 		ID:           contact.ID,
 		CompanyID:    contact.CompanyID,
@@ -86,7 +86,7 @@ func contactFromStore(contact queries.Contact) contactdomain.Contact {
 	}
 }
 
-func contactsFromStore(contacts []queries.Contact) []contactdomain.Contact {
+func contactsFromStore(contacts []postgres.Contact) []contactdomain.Contact {
 	out := make([]contactdomain.Contact, 0, len(contacts))
 	for _, contact := range contacts {
 		out = append(out, contactFromStore(contact))

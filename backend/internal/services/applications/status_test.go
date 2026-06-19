@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 func TestValidateTransition(t *testing.T) {
@@ -56,7 +56,7 @@ func TestValidateTransition(t *testing.T) {
 
 func TestChangeStatusCreatesAuditForValidTransition(t *testing.T) {
 	store := &fakeStore{
-		application: queries.Application{
+		application: postgres.Application{
 			ID:     "00000000-0000-4000-8000-000000000001",
 			Status: StatusSaved,
 		},
@@ -91,7 +91,7 @@ func TestChangeStatusCreatesAuditForValidTransition(t *testing.T) {
 
 func TestChangeStatusDoesNotAuditInvalidTransition(t *testing.T) {
 	store := &fakeStore{
-		application: queries.Application{
+		application: postgres.Application{
 			ID:     "00000000-0000-4000-8000-000000000001",
 			Status: StatusSaved,
 		},
@@ -111,35 +111,35 @@ func TestChangeStatusDoesNotAuditInvalidTransition(t *testing.T) {
 }
 
 type fakeStore struct {
-	application  queries.Application
+	application  postgres.Application
 	auditCreated bool
-	auditLog     queries.CreateAuditLogParams
+	auditLog     postgres.CreateAuditLogParams
 }
 
-func (f *fakeStore) CreateApplication(context.Context, queries.CreateApplicationParams) (queries.Application, error) {
-	return queries.Application{}, nil
+func (f *fakeStore) CreateApplication(context.Context, postgres.CreateApplicationParams) (postgres.Application, error) {
+	return postgres.Application{}, nil
 }
 
-func (f *fakeStore) ListApplications(context.Context) ([]queries.Application, error) {
+func (f *fakeStore) ListApplications(context.Context) ([]postgres.Application, error) {
 	return nil, nil
 }
 
-func (f *fakeStore) GetApplication(_ context.Context, _ string) (queries.Application, error) {
+func (f *fakeStore) GetApplication(_ context.Context, _ string) (postgres.Application, error) {
 	return f.application, nil
 }
 
-func (f *fakeStore) UpdateApplication(context.Context, queries.UpdateApplicationParams) (queries.Application, error) {
-	return queries.Application{}, nil
+func (f *fakeStore) UpdateApplication(context.Context, postgres.UpdateApplicationParams) (postgres.Application, error) {
+	return postgres.Application{}, nil
 }
 
-func (f *fakeStore) UpdateApplicationStatusAndCreateAudit(_ context.Context, _ string, newStatus string, auditLog queries.CreateAuditLogParams) (queries.Application, error) {
+func (f *fakeStore) UpdateApplicationStatusAndCreateAudit(_ context.Context, _ string, newStatus string, auditLog postgres.CreateAuditLogParams) (postgres.Application, error) {
 	f.auditCreated = true
 	f.auditLog = auditLog
 	f.application.Status = newStatus
 	return f.application, nil
 }
 
-func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]queries.AuditLog, error) {
+func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]postgres.AuditLog, error) {
 	return nil, nil
 }
 

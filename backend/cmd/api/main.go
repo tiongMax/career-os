@@ -13,8 +13,8 @@ import (
 	"careeros/backend/internal/app"
 	"careeros/backend/internal/config"
 	"careeros/backend/internal/db"
-	"careeros/backend/internal/httpapi"
 	"careeros/backend/internal/logger"
+	"careeros/backend/internal/transport/http"
 )
 
 // main loads process configuration, initializes shared infrastructure clients,

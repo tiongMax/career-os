@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"careeros/backend/internal/db/queries"
 	resumedomain "careeros/backend/internal/domain/resumes"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 var (
@@ -21,10 +21,10 @@ var (
 )
 
 type Store interface {
-	CreateResumeVersion(context.Context, queries.CreateResumeVersionParams) (queries.ResumeVersion, error)
-	ListResumeVersions(context.Context) ([]queries.ResumeVersion, error)
-	GetResumeVersion(context.Context, string) (queries.ResumeVersion, error)
-	UpdateResumeVersion(context.Context, queries.UpdateResumeVersionParams) (queries.ResumeVersion, error)
+	CreateResumeVersion(context.Context, postgres.CreateResumeVersionParams) (postgres.ResumeVersion, error)
+	ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error)
+	GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error)
+	UpdateResumeVersion(context.Context, postgres.UpdateResumeVersionParams) (postgres.ResumeVersion, error)
 	DeleteResumeVersion(context.Context, string) error
 	StorePDF(context.Context, string, []byte) error
 	GetPDF(context.Context, string) ([]byte, error)
@@ -38,7 +38,7 @@ func New(store Store) *Service {
 	return &Service{store: store}
 }
 
-func (s *Service) Create(ctx context.Context, arg queries.CreateResumeVersionParams) (resumedomain.ResumeVersion, error) {
+func (s *Service) Create(ctx context.Context, arg postgres.CreateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	if strings.TrimSpace(arg.Name) == "" {
 		return resumedomain.ResumeVersion{}, ErrNameRequired
 	}
@@ -65,7 +65,7 @@ func (s *Service) Get(ctx context.Context, id string) (resumedomain.ResumeVersio
 	return resumeFromStore(resume), err
 }
 
-func (s *Service) Update(ctx context.Context, arg queries.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error) {
+func (s *Service) Update(ctx context.Context, arg postgres.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	if arg.Name != nil && strings.TrimSpace(*arg.Name) == "" {
 		return resumedomain.ResumeVersion{}, ErrNameRequired
 	}
@@ -96,7 +96,7 @@ func validTrack(track string) bool {
 	return ok
 }
 
-func resumeFromStore(resume queries.ResumeVersion) resumedomain.ResumeVersion {
+func resumeFromStore(resume postgres.ResumeVersion) resumedomain.ResumeVersion {
 	return resumedomain.ResumeVersion{
 		ID:          resume.ID,
 		Name:        resume.Name,
@@ -109,7 +109,7 @@ func resumeFromStore(resume queries.ResumeVersion) resumedomain.ResumeVersion {
 	}
 }
 
-func resumesFromStore(resumes []queries.ResumeVersion) []resumedomain.ResumeVersion {
+func resumesFromStore(resumes []postgres.ResumeVersion) []resumedomain.ResumeVersion {
 	out := make([]resumedomain.ResumeVersion, 0, len(resumes))
 	for _, resume := range resumes {
 		out = append(out, resumeFromStore(resume))

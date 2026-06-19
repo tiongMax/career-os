@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	reminderdomain "careeros/backend/internal/domain/reminders"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 type reminderResponse struct {
@@ -35,7 +35,7 @@ type failedReminderJobResponse struct {
 }
 
 func (h Handler) createReminder(w http.ResponseWriter, r *http.Request) {
-	var req queries.CreateReminderParams
+	var req postgres.CreateReminderParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -86,7 +86,7 @@ func (h Handler) updateReminder(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid reminder id")
 		return
 	}
-	var req queries.UpdateReminderParams
+	var req postgres.UpdateReminderParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return

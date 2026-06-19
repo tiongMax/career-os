@@ -3,7 +3,7 @@ package app
 import (
 	"time"
 
-	"careeros/backend/internal/db/queries"
+	pgstore "careeros/backend/internal/persistence/postgres"
 	aianalysissvc "careeros/backend/internal/services/aianalysis"
 	"careeros/backend/internal/workers"
 
@@ -43,7 +43,7 @@ func NewWorkers(postgres *pgxpool.Pool, redisClient *redis.Client, log zerolog.L
 		return result
 	}
 
-	store := queries.New(postgres)
+	store := pgstore.New(postgres)
 	provider := aianalysissvc.NewGeminiProviderWithEmbeddingAndTimeout(
 		cfg.GeminiAPIKey,
 		cfg.GeminiModel,

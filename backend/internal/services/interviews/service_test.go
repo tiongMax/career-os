@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 func TestCreateRejectsInvalidRoundType(t *testing.T) {
 	service := New(&fakeStore{})
 
-	_, err := service.Create(context.Background(), queries.CreateInterviewRoundParams{RoundType: "coffee"})
+	_, err := service.Create(context.Background(), postgres.CreateInterviewRoundParams{RoundType: "coffee"})
 
 	if !errors.Is(err, ErrInvalidRoundType) {
 		t.Fatalf("expected ErrInvalidRoundType, got %v", err)
@@ -22,7 +22,7 @@ func TestUpdateRejectsInvalidRoundType(t *testing.T) {
 	service := New(&fakeStore{})
 	roundType := "coffee"
 
-	_, err := service.Update(context.Background(), queries.UpdateInterviewRoundParams{RoundType: &roundType})
+	_, err := service.Update(context.Background(), postgres.UpdateInterviewRoundParams{RoundType: &roundType})
 
 	if !errors.Is(err, ErrInvalidRoundType) {
 		t.Fatalf("expected ErrInvalidRoundType, got %v", err)
@@ -30,22 +30,22 @@ func TestUpdateRejectsInvalidRoundType(t *testing.T) {
 }
 
 type fakeStore struct {
-	created queries.CreateInterviewRoundParams
-	updated queries.UpdateInterviewRoundParams
+	created postgres.CreateInterviewRoundParams
+	updated postgres.UpdateInterviewRoundParams
 }
 
-func (f *fakeStore) CreateInterviewRound(_ context.Context, arg queries.CreateInterviewRoundParams) (queries.InterviewRound, error) {
+func (f *fakeStore) CreateInterviewRound(_ context.Context, arg postgres.CreateInterviewRoundParams) (postgres.InterviewRound, error) {
 	f.created = arg
-	return queries.InterviewRound{RoundType: arg.RoundType}, nil
+	return postgres.InterviewRound{RoundType: arg.RoundType}, nil
 }
 
-func (f *fakeStore) ListInterviewRoundsByApplication(context.Context, string) ([]queries.InterviewRound, error) {
+func (f *fakeStore) ListInterviewRoundsByApplication(context.Context, string) ([]postgres.InterviewRound, error) {
 	return nil, nil
 }
 
-func (f *fakeStore) UpdateInterviewRound(_ context.Context, arg queries.UpdateInterviewRoundParams) (queries.InterviewRound, error) {
+func (f *fakeStore) UpdateInterviewRound(_ context.Context, arg postgres.UpdateInterviewRoundParams) (postgres.InterviewRound, error) {
 	f.updated = arg
-	return queries.InterviewRound{}, nil
+	return postgres.InterviewRound{}, nil
 }
 
 func (f *fakeStore) DeleteInterviewRound(context.Context, string) error {

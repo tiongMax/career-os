@@ -5,18 +5,18 @@ import (
 	"errors"
 	"testing"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 func TestCreateResumeVersionValidation(t *testing.T) {
 	service := New(&fakeStore{})
 
-	_, err := service.Create(context.Background(), queries.CreateResumeVersionParams{Name: "", Track: "backend"})
+	_, err := service.Create(context.Background(), postgres.CreateResumeVersionParams{Name: "", Track: "backend"})
 	if !errors.Is(err, ErrNameRequired) {
 		t.Fatalf("expected ErrNameRequired, got %v", err)
 	}
 
-	_, err = service.Create(context.Background(), queries.CreateResumeVersionParams{Name: "Backend v1", Track: "mobile"})
+	_, err = service.Create(context.Background(), postgres.CreateResumeVersionParams{Name: "Backend v1", Track: "mobile"})
 	if !errors.Is(err, ErrInvalidTrack) {
 		t.Fatalf("expected ErrInvalidTrack, got %v", err)
 	}
@@ -26,7 +26,7 @@ func TestCreateResumeVersionDefaultsNilTagsToEmptySlice(t *testing.T) {
 	store := &fakeStore{}
 	service := New(store)
 
-	_, err := service.Create(context.Background(), queries.CreateResumeVersionParams{Name: "Backend v1", Track: "backend"})
+	_, err := service.Create(context.Background(), postgres.CreateResumeVersionParams{Name: "Backend v1", Track: "backend"})
 	if err != nil {
 		t.Fatalf("Create returned error: %v", err)
 	}
@@ -40,38 +40,38 @@ func TestUpdateResumeVersionValidation(t *testing.T) {
 	name := " "
 	track := "frontend"
 
-	_, err := service.Update(context.Background(), queries.UpdateResumeVersionParams{Name: &name})
+	_, err := service.Update(context.Background(), postgres.UpdateResumeVersionParams{Name: &name})
 	if !errors.Is(err, ErrNameRequired) {
 		t.Fatalf("expected ErrNameRequired, got %v", err)
 	}
 
-	_, err = service.Update(context.Background(), queries.UpdateResumeVersionParams{Track: &track})
+	_, err = service.Update(context.Background(), postgres.UpdateResumeVersionParams{Track: &track})
 	if !errors.Is(err, ErrInvalidTrack) {
 		t.Fatalf("expected ErrInvalidTrack, got %v", err)
 	}
 }
 
 type fakeStore struct {
-	created queries.CreateResumeVersionParams
-	updated queries.UpdateResumeVersionParams
+	created postgres.CreateResumeVersionParams
+	updated postgres.UpdateResumeVersionParams
 }
 
-func (f *fakeStore) CreateResumeVersion(_ context.Context, arg queries.CreateResumeVersionParams) (queries.ResumeVersion, error) {
+func (f *fakeStore) CreateResumeVersion(_ context.Context, arg postgres.CreateResumeVersionParams) (postgres.ResumeVersion, error) {
 	f.created = arg
-	return queries.ResumeVersion{Name: arg.Name, Track: arg.Track, Tags: arg.Tags}, nil
+	return postgres.ResumeVersion{Name: arg.Name, Track: arg.Track, Tags: arg.Tags}, nil
 }
 
-func (f *fakeStore) ListResumeVersions(context.Context) ([]queries.ResumeVersion, error) {
+func (f *fakeStore) ListResumeVersions(context.Context) ([]postgres.ResumeVersion, error) {
 	return nil, nil
 }
 
-func (f *fakeStore) GetResumeVersion(context.Context, string) (queries.ResumeVersion, error) {
-	return queries.ResumeVersion{}, nil
+func (f *fakeStore) GetResumeVersion(context.Context, string) (postgres.ResumeVersion, error) {
+	return postgres.ResumeVersion{}, nil
 }
 
-func (f *fakeStore) UpdateResumeVersion(_ context.Context, arg queries.UpdateResumeVersionParams) (queries.ResumeVersion, error) {
+func (f *fakeStore) UpdateResumeVersion(_ context.Context, arg postgres.UpdateResumeVersionParams) (postgres.ResumeVersion, error) {
 	f.updated = arg
-	return queries.ResumeVersion{Tags: arg.Tags}, nil
+	return postgres.ResumeVersion{Tags: arg.Tags}, nil
 }
 
 func (f *fakeStore) DeleteResumeVersion(context.Context, string) error {

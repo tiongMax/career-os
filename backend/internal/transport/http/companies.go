@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	companydomain "careeros/backend/internal/domain/companies"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 type companyResponse struct {
@@ -20,7 +20,7 @@ type companyResponse struct {
 }
 
 func (h Handler) createCompany(w http.ResponseWriter, r *http.Request) {
-	var req queries.CreateCompanyParams
+	var req postgres.CreateCompanyParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -62,7 +62,7 @@ func (h Handler) updateCompany(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid company id")
 		return
 	}
-	var req queries.UpdateCompanyParams
+	var req postgres.UpdateCompanyParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return

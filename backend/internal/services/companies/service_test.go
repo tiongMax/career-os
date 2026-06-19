@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"careeros/backend/internal/db/queries"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 func TestCreateRejectsBlankCompanyName(t *testing.T) {
 	service := New(&fakeStore{})
 
-	_, err := service.Create(context.Background(), queries.CreateCompanyParams{Name: "   "})
+	_, err := service.Create(context.Background(), postgres.CreateCompanyParams{Name: "   "})
 
 	if !errors.Is(err, ErrNameRequired) {
 		t.Fatalf("expected ErrNameRequired, got %v", err)
@@ -22,7 +22,7 @@ func TestUpdateRejectsBlankCompanyName(t *testing.T) {
 	service := New(&fakeStore{})
 	name := ""
 
-	_, err := service.Update(context.Background(), queries.UpdateCompanyParams{Name: &name})
+	_, err := service.Update(context.Background(), postgres.UpdateCompanyParams{Name: &name})
 
 	if !errors.Is(err, ErrNameRequired) {
 		t.Fatalf("expected ErrNameRequired, got %v", err)
@@ -30,26 +30,26 @@ func TestUpdateRejectsBlankCompanyName(t *testing.T) {
 }
 
 type fakeStore struct {
-	created queries.CreateCompanyParams
-	updated queries.UpdateCompanyParams
+	created postgres.CreateCompanyParams
+	updated postgres.UpdateCompanyParams
 }
 
-func (f *fakeStore) CreateCompany(_ context.Context, arg queries.CreateCompanyParams) (queries.Company, error) {
+func (f *fakeStore) CreateCompany(_ context.Context, arg postgres.CreateCompanyParams) (postgres.Company, error) {
 	f.created = arg
-	return queries.Company{Name: arg.Name}, nil
+	return postgres.Company{Name: arg.Name}, nil
 }
 
-func (f *fakeStore) ListCompanies(context.Context) ([]queries.Company, error) {
+func (f *fakeStore) ListCompanies(context.Context) ([]postgres.Company, error) {
 	return nil, nil
 }
 
-func (f *fakeStore) GetCompany(context.Context, string) (queries.Company, error) {
-	return queries.Company{}, nil
+func (f *fakeStore) GetCompany(context.Context, string) (postgres.Company, error) {
+	return postgres.Company{}, nil
 }
 
-func (f *fakeStore) UpdateCompany(_ context.Context, arg queries.UpdateCompanyParams) (queries.Company, error) {
+func (f *fakeStore) UpdateCompany(_ context.Context, arg postgres.UpdateCompanyParams) (postgres.Company, error) {
 	f.updated = arg
-	return queries.Company{}, nil
+	return postgres.Company{}, nil
 }
 
 func (f *fakeStore) DeleteCompany(context.Context, string) error {

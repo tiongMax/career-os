@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	appdomain "careeros/backend/internal/domain/applications"
 	companydomain "careeros/backend/internal/domain/companies"
 	contactdomain "careeros/backend/internal/domain/contacts"
 	interviewdomain "careeros/backend/internal/domain/interviews"
 	reminderdomain "careeros/backend/internal/domain/reminders"
 	resumedomain "careeros/backend/internal/domain/resumes"
+	"careeros/backend/internal/persistence/postgres"
 	appsvc "careeros/backend/internal/services/applications"
 
 	"github.com/go-chi/chi/v5"
@@ -239,7 +239,7 @@ type fakeCompanyService struct {
 	getErr  error
 }
 
-func (f *fakeCompanyService) Create(context.Context, queries.CreateCompanyParams) (companydomain.Company, error) {
+func (f *fakeCompanyService) Create(context.Context, postgres.CreateCompanyParams) (companydomain.Company, error) {
 	f.created++
 	return companydomain.Company{ID: testUUID, Name: "Stripe"}, nil
 }
@@ -255,7 +255,7 @@ func (f *fakeCompanyService) Get(context.Context, string) (companydomain.Company
 	return companydomain.Company{ID: testUUID, Name: "Stripe"}, nil
 }
 
-func (f *fakeCompanyService) Update(context.Context, queries.UpdateCompanyParams) (companydomain.Company, error) {
+func (f *fakeCompanyService) Update(context.Context, postgres.UpdateCompanyParams) (companydomain.Company, error) {
 	return companydomain.Company{ID: testUUID, Name: "Stripe"}, nil
 }
 
@@ -264,10 +264,10 @@ func (f *fakeCompanyService) Delete(context.Context, string) error {
 }
 
 type fakeResumeService struct {
-	updated queries.UpdateResumeVersionParams
+	updated postgres.UpdateResumeVersionParams
 }
 
-func (f *fakeResumeService) Create(context.Context, queries.CreateResumeVersionParams) (resumedomain.ResumeVersion, error) {
+func (f *fakeResumeService) Create(context.Context, postgres.CreateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	return resumedomain.ResumeVersion{ID: testUUID, Name: "Backend v1", Track: "backend"}, nil
 }
 
@@ -279,7 +279,7 @@ func (f *fakeResumeService) Get(context.Context, string) (resumedomain.ResumeVer
 	return resumedomain.ResumeVersion{ID: testUUID, Name: "Backend v1", Track: "backend"}, nil
 }
 
-func (f *fakeResumeService) Update(_ context.Context, arg queries.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error) {
+func (f *fakeResumeService) Update(_ context.Context, arg postgres.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	f.updated = arg
 	return resumedomain.ResumeVersion{ID: arg.ID, Name: "Backend v1", Track: "backend", Tags: arg.Tags}, nil
 }
@@ -341,43 +341,43 @@ func (f *fakeApplicationService) Delete(context.Context, string) error {
 }
 
 type fakeJobDescriptionService struct {
-	updated queries.UpdateJobDescriptionParams
+	updated postgres.UpdateJobDescriptionParams
 }
 
-func (f *fakeJobDescriptionService) Create(context.Context, queries.CreateJobDescriptionParams) (queries.JobDescription, error) {
-	return queries.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
+func (f *fakeJobDescriptionService) Create(context.Context, postgres.CreateJobDescriptionParams) (postgres.JobDescription, error) {
+	return postgres.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
 }
 
-func (f *fakeJobDescriptionService) GetByApplication(context.Context, string) (queries.JobDescription, error) {
-	return queries.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
+func (f *fakeJobDescriptionService) GetByApplication(context.Context, string) (postgres.JobDescription, error) {
+	return postgres.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
 }
 
-func (f *fakeJobDescriptionService) Update(_ context.Context, arg queries.UpdateJobDescriptionParams) (queries.JobDescription, error) {
+func (f *fakeJobDescriptionService) Update(_ context.Context, arg postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error) {
 	f.updated = arg
-	return queries.JobDescription{ID: arg.ID, ApplicationID: testUUID, RawText: "Go backend role", ExtractedKeywords: arg.ExtractedKeywords}, nil
+	return postgres.JobDescription{ID: arg.ID, ApplicationID: testUUID, RawText: "Go backend role", ExtractedKeywords: arg.ExtractedKeywords}, nil
 }
 
-func (f *fakeJobDescriptionService) ExtractKeywords(context.Context, string) (queries.JobDescription, error) {
-	return queries.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
+func (f *fakeJobDescriptionService) ExtractKeywords(context.Context, string) (postgres.JobDescription, error) {
+	return postgres.JobDescription{ID: testUUID, ApplicationID: testUUID, RawText: "Go backend role"}, nil
 }
-func (f *fakeJobDescriptionService) CompareResume(context.Context, string, string) (queries.ResumeMatchResult, error) {
-	return queries.ResumeMatchResult{}, nil
+func (f *fakeJobDescriptionService) CompareResume(context.Context, string, string) (postgres.ResumeMatchResult, error) {
+	return postgres.ResumeMatchResult{}, nil
 }
-func (f *fakeJobDescriptionService) RecommendedResume(context.Context, string) (queries.RecommendedResumeResult, error) {
-	return queries.RecommendedResumeResult{}, nil
+func (f *fakeJobDescriptionService) RecommendedResume(context.Context, string) (postgres.RecommendedResumeResult, error) {
+	return postgres.RecommendedResumeResult{}, nil
 }
-func (f *fakeJobDescriptionService) PrepContext(context.Context, string) (queries.PrepContext, error) {
-	return queries.PrepContext{}, nil
+func (f *fakeJobDescriptionService) PrepContext(context.Context, string) (postgres.PrepContext, error) {
+	return postgres.PrepContext{}, nil
 }
-func (f *fakeJobDescriptionService) GeneratePrepBrief(context.Context, string) (queries.PrepBrief, error) {
-	return queries.PrepBrief{}, nil
+func (f *fakeJobDescriptionService) GeneratePrepBrief(context.Context, string) (postgres.PrepBrief, error) {
+	return postgres.PrepBrief{}, nil
 }
 
 type fakeContactService struct {
-	updated queries.UpdateContactParams
+	updated postgres.UpdateContactParams
 }
 
-func (f *fakeContactService) Create(_ context.Context, arg queries.CreateContactParams) (contactdomain.Contact, error) {
+func (f *fakeContactService) Create(_ context.Context, arg postgres.CreateContactParams) (contactdomain.Contact, error) {
 	return contactdomain.Contact{ID: testUUID, CompanyID: arg.CompanyID, Name: arg.Name}, nil
 }
 
@@ -389,7 +389,7 @@ func (f *fakeContactService) Get(context.Context, string) (contactdomain.Contact
 	return contactdomain.Contact{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}, nil
 }
 
-func (f *fakeContactService) Update(_ context.Context, arg queries.UpdateContactParams) (contactdomain.Contact, error) {
+func (f *fakeContactService) Update(_ context.Context, arg postgres.UpdateContactParams) (contactdomain.Contact, error) {
 	f.updated = arg
 	name := "Ada Lovelace"
 	if arg.Name != nil {
@@ -403,11 +403,11 @@ func (f *fakeContactService) Delete(context.Context, string) error {
 }
 
 type fakeInterviewService struct {
-	created queries.CreateInterviewRoundParams
-	updated queries.UpdateInterviewRoundParams
+	created postgres.CreateInterviewRoundParams
+	updated postgres.UpdateInterviewRoundParams
 }
 
-func (f *fakeInterviewService) Create(_ context.Context, arg queries.CreateInterviewRoundParams) (interviewdomain.InterviewRound, error) {
+func (f *fakeInterviewService) Create(_ context.Context, arg postgres.CreateInterviewRoundParams) (interviewdomain.InterviewRound, error) {
 	f.created = arg
 	return interviewdomain.InterviewRound{ID: testUUID, ApplicationID: arg.ApplicationID, RoundType: arg.RoundType}, nil
 }
@@ -416,7 +416,7 @@ func (f *fakeInterviewService) ListByApplication(_ context.Context, applicationI
 	return []interviewdomain.InterviewRound{{ID: testUUID, ApplicationID: applicationID, RoundType: "technical"}}, nil
 }
 
-func (f *fakeInterviewService) Update(_ context.Context, arg queries.UpdateInterviewRoundParams) (interviewdomain.InterviewRound, error) {
+func (f *fakeInterviewService) Update(_ context.Context, arg postgres.UpdateInterviewRoundParams) (interviewdomain.InterviewRound, error) {
 	f.updated = arg
 	roundType := "technical"
 	if arg.RoundType != nil {
@@ -430,10 +430,10 @@ func (f *fakeInterviewService) Delete(context.Context, string) error {
 }
 
 type fakeReminderService struct {
-	updated queries.UpdateReminderParams
+	updated postgres.UpdateReminderParams
 }
 
-func (f *fakeReminderService) Create(_ context.Context, arg queries.CreateReminderParams) (reminderdomain.Reminder, error) {
+func (f *fakeReminderService) Create(_ context.Context, arg postgres.CreateReminderParams) (reminderdomain.Reminder, error) {
 	return reminderdomain.Reminder{ID: testUUID, ApplicationID: arg.ApplicationID, Title: arg.Title, DueAt: arg.DueAt, Status: "pending"}, nil
 }
 
@@ -449,7 +449,7 @@ func (f *fakeReminderService) Get(context.Context, string) (reminderdomain.Remin
 	return reminderdomain.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
 }
 
-func (f *fakeReminderService) Update(_ context.Context, arg queries.UpdateReminderParams) (reminderdomain.Reminder, error) {
+func (f *fakeReminderService) Update(_ context.Context, arg postgres.UpdateReminderParams) (reminderdomain.Reminder, error) {
 	f.updated = arg
 	title := "Follow up"
 	if arg.Title != nil {

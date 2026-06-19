@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	appdomain "careeros/backend/internal/domain/applications"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 var (
@@ -17,12 +17,12 @@ var (
 )
 
 type Store interface {
-	CreateApplication(context.Context, queries.CreateApplicationParams) (queries.Application, error)
-	ListApplications(context.Context) ([]queries.Application, error)
-	GetApplication(context.Context, string) (queries.Application, error)
-	UpdateApplication(context.Context, queries.UpdateApplicationParams) (queries.Application, error)
-	UpdateApplicationStatusAndCreateAudit(context.Context, string, string, queries.CreateAuditLogParams) (queries.Application, error)
-	ListAuditLogsForEntity(context.Context, string, string) ([]queries.AuditLog, error)
+	CreateApplication(context.Context, postgres.CreateApplicationParams) (postgres.Application, error)
+	ListApplications(context.Context) ([]postgres.Application, error)
+	GetApplication(context.Context, string) (postgres.Application, error)
+	UpdateApplication(context.Context, postgres.UpdateApplicationParams) (postgres.Application, error)
+	UpdateApplicationStatusAndCreateAudit(context.Context, string, string, postgres.CreateAuditLogParams) (postgres.Application, error)
+	ListAuditLogsForEntity(context.Context, string, string) ([]postgres.AuditLog, error)
 	DeleteApplication(context.Context, string) error
 }
 
@@ -158,8 +158,8 @@ func hasAnyTrack(tracks []string) bool {
 	return false
 }
 
-func createStoreParams(arg CreateParams) queries.CreateApplicationParams {
-	return queries.CreateApplicationParams{
+func createStoreParams(arg CreateParams) postgres.CreateApplicationParams {
+	return postgres.CreateApplicationParams{
 		CompanyID:       arg.CompanyID,
 		ResumeVersionID: arg.ResumeVersionID,
 		Title:           arg.Title,
@@ -178,8 +178,8 @@ func createStoreParams(arg CreateParams) queries.CreateApplicationParams {
 	}
 }
 
-func updateStoreParams(arg UpdateParams) queries.UpdateApplicationParams {
-	return queries.UpdateApplicationParams{
+func updateStoreParams(arg UpdateParams) postgres.UpdateApplicationParams {
+	return postgres.UpdateApplicationParams{
 		ID:              arg.ID,
 		CompanyID:       arg.CompanyID,
 		ResumeVersionID: arg.ResumeVersionID,
@@ -199,16 +199,16 @@ func updateStoreParams(arg UpdateParams) queries.UpdateApplicationParams {
 	}
 }
 
-func statusChangeAuditLog(applicationID string, oldStatus string, newStatus string) (queries.CreateAuditLogParams, error) {
+func statusChangeAuditLog(applicationID string, oldStatus string, newStatus string) (postgres.CreateAuditLogParams, error) {
 	oldValue, err := json.Marshal(map[string]string{"status": oldStatus})
 	if err != nil {
-		return queries.CreateAuditLogParams{}, err
+		return postgres.CreateAuditLogParams{}, err
 	}
 	newValue, err := json.Marshal(map[string]string{"status": newStatus})
 	if err != nil {
-		return queries.CreateAuditLogParams{}, err
+		return postgres.CreateAuditLogParams{}, err
 	}
-	return queries.CreateAuditLogParams{
+	return postgres.CreateAuditLogParams{
 		EntityType: "application",
 		EntityID:   applicationID,
 		Action:     "status_changed",
@@ -217,7 +217,7 @@ func statusChangeAuditLog(applicationID string, oldStatus string, newStatus stri
 	}, nil
 }
 
-func applicationFromStore(application queries.Application) appdomain.Application {
+func applicationFromStore(application postgres.Application) appdomain.Application {
 	return appdomain.Application{
 		ID:              application.ID,
 		CompanyID:       application.CompanyID,
@@ -240,7 +240,7 @@ func applicationFromStore(application queries.Application) appdomain.Application
 	}
 }
 
-func applicationsFromStore(applications []queries.Application) []appdomain.Application {
+func applicationsFromStore(applications []postgres.Application) []appdomain.Application {
 	out := make([]appdomain.Application, 0, len(applications))
 	for _, application := range applications {
 		out = append(out, applicationFromStore(application))
@@ -248,7 +248,7 @@ func applicationsFromStore(applications []queries.Application) []appdomain.Appli
 	return out
 }
 
-func auditLogFromStore(log queries.AuditLog) appdomain.AuditLog {
+func auditLogFromStore(log postgres.AuditLog) appdomain.AuditLog {
 	return appdomain.AuditLog{
 		ID:         log.ID,
 		EntityType: log.EntityType,
@@ -260,7 +260,7 @@ func auditLogFromStore(log queries.AuditLog) appdomain.AuditLog {
 	}
 }
 
-func auditLogsFromStore(logs []queries.AuditLog) []appdomain.AuditLog {
+func auditLogsFromStore(logs []postgres.AuditLog) []appdomain.AuditLog {
 	out := make([]appdomain.AuditLog, 0, len(logs))
 	for _, log := range logs {
 		out = append(out, auditLogFromStore(log))

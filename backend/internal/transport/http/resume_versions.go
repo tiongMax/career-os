@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	resumedomain "careeros/backend/internal/domain/resumes"
+	"careeros/backend/internal/persistence/postgres"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -24,7 +24,7 @@ type resumeVersionResponse struct {
 }
 
 func (h Handler) createResumeVersion(w http.ResponseWriter, r *http.Request) {
-	var req queries.CreateResumeVersionParams
+	var req postgres.CreateResumeVersionParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -77,7 +77,7 @@ func (h Handler) updateResumeVersion(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
-	arg := queries.UpdateResumeVersionParams{
+	arg := postgres.UpdateResumeVersionParams{
 		ID:      id,
 		Name:    req.Name,
 		Track:   req.Track,

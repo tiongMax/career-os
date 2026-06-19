@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	interviewdomain "careeros/backend/internal/domain/interviews"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 type interviewRoundResponse struct {
@@ -26,7 +26,7 @@ func (h Handler) createInterview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid application id")
 		return
 	}
-	var req queries.CreateInterviewRoundParams
+	var req postgres.CreateInterviewRoundParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -60,7 +60,7 @@ func (h Handler) updateInterview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid interview id")
 		return
 	}
-	var req queries.UpdateInterviewRoundParams
+	var req postgres.UpdateInterviewRoundParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return

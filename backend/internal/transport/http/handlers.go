@@ -3,7 +3,6 @@ package httpapi
 import (
 	"context"
 
-	"careeros/backend/internal/db/queries"
 	appdomain "careeros/backend/internal/domain/applications"
 	companydomain "careeros/backend/internal/domain/companies"
 	contactdomain "careeros/backend/internal/domain/contacts"
@@ -11,6 +10,7 @@ import (
 	reminderdomain "careeros/backend/internal/domain/reminders"
 	resumedomain "careeros/backend/internal/domain/resumes"
 	trackdomain "careeros/backend/internal/domain/roletracks"
+	"careeros/backend/internal/persistence/postgres"
 	analyticssvc "careeros/backend/internal/services/analytics"
 	appsvc "careeros/backend/internal/services/applications"
 )
@@ -44,18 +44,18 @@ type Services struct {
 }
 
 type companyService interface {
-	Create(context.Context, queries.CreateCompanyParams) (companydomain.Company, error)
+	Create(context.Context, postgres.CreateCompanyParams) (companydomain.Company, error)
 	List(context.Context) ([]companydomain.Company, error)
 	Get(context.Context, string) (companydomain.Company, error)
-	Update(context.Context, queries.UpdateCompanyParams) (companydomain.Company, error)
+	Update(context.Context, postgres.UpdateCompanyParams) (companydomain.Company, error)
 	Delete(context.Context, string) error
 }
 
 type resumeService interface {
-	Create(context.Context, queries.CreateResumeVersionParams) (resumedomain.ResumeVersion, error)
+	Create(context.Context, postgres.CreateResumeVersionParams) (resumedomain.ResumeVersion, error)
 	List(context.Context) ([]resumedomain.ResumeVersion, error)
 	Get(context.Context, string) (resumedomain.ResumeVersion, error)
-	Update(context.Context, queries.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error)
+	Update(context.Context, postgres.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error)
 	Delete(context.Context, string) error
 	StorePDF(context.Context, string, []byte) error
 	GetPDF(context.Context, string) ([]byte, error)
@@ -72,54 +72,54 @@ type applicationService interface {
 }
 
 type jobDescriptionService interface {
-	Create(context.Context, queries.CreateJobDescriptionParams) (queries.JobDescription, error)
-	GetByApplication(context.Context, string) (queries.JobDescription, error)
-	Update(context.Context, queries.UpdateJobDescriptionParams) (queries.JobDescription, error)
-	ExtractKeywords(context.Context, string) (queries.JobDescription, error)
-	CompareResume(context.Context, string, string) (queries.ResumeMatchResult, error)
-	RecommendedResume(context.Context, string) (queries.RecommendedResumeResult, error)
-	PrepContext(context.Context, string) (queries.PrepContext, error)
-	GeneratePrepBrief(context.Context, string) (queries.PrepBrief, error)
+	Create(context.Context, postgres.CreateJobDescriptionParams) (postgres.JobDescription, error)
+	GetByApplication(context.Context, string) (postgres.JobDescription, error)
+	Update(context.Context, postgres.UpdateJobDescriptionParams) (postgres.JobDescription, error)
+	ExtractKeywords(context.Context, string) (postgres.JobDescription, error)
+	CompareResume(context.Context, string, string) (postgres.ResumeMatchResult, error)
+	RecommendedResume(context.Context, string) (postgres.RecommendedResumeResult, error)
+	PrepContext(context.Context, string) (postgres.PrepContext, error)
+	GeneratePrepBrief(context.Context, string) (postgres.PrepBrief, error)
 }
 
 type contactService interface {
-	Create(context.Context, queries.CreateContactParams) (contactdomain.Contact, error)
+	Create(context.Context, postgres.CreateContactParams) (contactdomain.Contact, error)
 	List(context.Context) ([]contactdomain.Contact, error)
 	Get(context.Context, string) (contactdomain.Contact, error)
-	Update(context.Context, queries.UpdateContactParams) (contactdomain.Contact, error)
+	Update(context.Context, postgres.UpdateContactParams) (contactdomain.Contact, error)
 	Delete(context.Context, string) error
 }
 
 type interviewService interface {
-	Create(context.Context, queries.CreateInterviewRoundParams) (interviewdomain.InterviewRound, error)
+	Create(context.Context, postgres.CreateInterviewRoundParams) (interviewdomain.InterviewRound, error)
 	ListByApplication(context.Context, string) ([]interviewdomain.InterviewRound, error)
-	Update(context.Context, queries.UpdateInterviewRoundParams) (interviewdomain.InterviewRound, error)
+	Update(context.Context, postgres.UpdateInterviewRoundParams) (interviewdomain.InterviewRound, error)
 	Delete(context.Context, string) error
 }
 
 type reminderService interface {
-	Create(context.Context, queries.CreateReminderParams) (reminderdomain.Reminder, error)
+	Create(context.Context, postgres.CreateReminderParams) (reminderdomain.Reminder, error)
 	List(context.Context) ([]reminderdomain.Reminder, error)
 	ListDue(context.Context) ([]reminderdomain.Reminder, error)
 	ListFailed(context.Context) ([]reminderdomain.FailedJob, error)
 	Get(context.Context, string) (reminderdomain.Reminder, error)
-	Update(context.Context, queries.UpdateReminderParams) (reminderdomain.Reminder, error)
+	Update(context.Context, postgres.UpdateReminderParams) (reminderdomain.Reminder, error)
 	Cancel(context.Context, string) (reminderdomain.Reminder, error)
 	Retry(context.Context, string) (reminderdomain.Reminder, error)
 	Delete(context.Context, string) error
 }
 
 type searchService interface {
-	Search(context.Context, string) ([]queries.SearchResult, error)
+	Search(context.Context, string) ([]postgres.SearchResult, error)
 }
 
 type analyticsService interface {
-	Summary(context.Context) (queries.AnalyticsSummary, error)
-	ByStatus(context.Context) ([]queries.StatusCount, error)
-	ByTrack(context.Context) ([]queries.TrackCount, error)
-	ByResumeVersion(context.Context) ([]queries.ResumeVersionPerformance, error)
-	SourcePerformance(context.Context) ([]queries.SourcePerformance, error)
-	Funnel(context.Context) ([]queries.FunnelStep, error)
+	Summary(context.Context) (postgres.AnalyticsSummary, error)
+	ByStatus(context.Context) ([]postgres.StatusCount, error)
+	ByTrack(context.Context) ([]postgres.TrackCount, error)
+	ByResumeVersion(context.Context) ([]postgres.ResumeVersionPerformance, error)
+	SourcePerformance(context.Context) ([]postgres.SourcePerformance, error)
+	Funnel(context.Context) ([]postgres.FunnelStep, error)
 	Upcoming(context.Context) (analyticssvc.UpcomingResult, error)
 }
 
@@ -129,10 +129,10 @@ type roleTrackService interface {
 }
 
 type analysisJobService interface {
-	Create(context.Context, string, string) (queries.AnalysisJob, error)
-	List(context.Context) ([]queries.AnalysisJob, error)
-	ListByApplication(context.Context, string) ([]queries.AnalysisJob, error)
-	Get(context.Context, string) (queries.AnalysisJob, error)
+	Create(context.Context, string, string) (postgres.AnalysisJob, error)
+	List(context.Context) ([]postgres.AnalysisJob, error)
+	ListByApplication(context.Context, string) ([]postgres.AnalysisJob, error)
+	Get(context.Context, string) (postgres.AnalysisJob, error)
 }
 
 func NewHandler(services Services) Handler {

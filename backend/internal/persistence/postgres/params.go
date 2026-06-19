@@ -1,10 +1,10 @@
-package queries
+package postgres
 
 import (
 	"context"
 	"time"
 
-	"careeros/backend/internal/db/sqlc"
+	"careeros/backend/internal/persistence/postgres/sqlc"
 
 	"github.com/jackc/pgx/v5"
 )

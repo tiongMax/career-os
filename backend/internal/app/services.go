@@ -1,8 +1,7 @@
 package app
 
 import (
-	"careeros/backend/internal/db/queries"
-	"careeros/backend/internal/httpapi"
+	pgstore "careeros/backend/internal/persistence/postgres"
 	aianalysissvc "careeros/backend/internal/services/aianalysis"
 	analyticssvc "careeros/backend/internal/services/analytics"
 	appsvc "careeros/backend/internal/services/applications"
@@ -14,6 +13,7 @@ import (
 	resumesvc "careeros/backend/internal/services/resumes"
 	roletracksvc "careeros/backend/internal/services/roletracks"
 	searchsvc "careeros/backend/internal/services/search"
+	"careeros/backend/internal/transport/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -24,7 +24,7 @@ type Services struct {
 }
 
 func NewServices(postgres *pgxpool.Pool, redisClient *redis.Client) Services {
-	store := queries.New(postgres)
+	store := pgstore.New(postgres)
 	return Services{
 		HTTP: httpapi.Services{
 			Companies:       companysvc.New(store),

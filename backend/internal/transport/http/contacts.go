@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	contactdomain "careeros/backend/internal/domain/contacts"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 type contactResponse struct {
@@ -22,7 +22,7 @@ type contactResponse struct {
 }
 
 func (h Handler) createContact(w http.ResponseWriter, r *http.Request) {
-	var req queries.CreateContactParams
+	var req postgres.CreateContactParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -64,7 +64,7 @@ func (h Handler) updateContact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid contact id")
 		return
 	}
-	var req queries.UpdateContactParams
+	var req postgres.UpdateContactParams
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return

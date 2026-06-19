@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"careeros/backend/internal/db/queries"
 	reminderdomain "careeros/backend/internal/domain/reminders"
+	"careeros/backend/internal/persistence/postgres"
 )
 
 const (
@@ -36,21 +36,21 @@ var (
 
 // Store is the persistence boundary required by Service.
 type Store interface {
-	CreateReminder(context.Context, queries.CreateReminderParams) (queries.Reminder, error)
-	ListReminders(context.Context) ([]queries.Reminder, error)
-	ListDueReminders(context.Context, time.Time) ([]queries.Reminder, error)
-	GetReminder(context.Context, string) (queries.Reminder, error)
-	UpdateReminder(context.Context, queries.UpdateReminderParams) (queries.Reminder, error)
-	UpdateReminderStatus(context.Context, string, string) (queries.Reminder, error)
+	CreateReminder(context.Context, postgres.CreateReminderParams) (postgres.Reminder, error)
+	ListReminders(context.Context) ([]postgres.Reminder, error)
+	ListDueReminders(context.Context, time.Time) ([]postgres.Reminder, error)
+	GetReminder(context.Context, string) (postgres.Reminder, error)
+	UpdateReminder(context.Context, postgres.UpdateReminderParams) (postgres.Reminder, error)
+	UpdateReminderStatus(context.Context, string, string) (postgres.Reminder, error)
 	DeleteReminder(context.Context, string) error
-	ListFailedReminderJobs(context.Context) ([]queries.FailedReminderJob, error)
-	ResetReminderForRetry(context.Context, string) (queries.Reminder, error)
+	ListFailedReminderJobs(context.Context) ([]postgres.FailedReminderJob, error)
+	ResetReminderForRetry(context.Context, string) (postgres.Reminder, error)
 }
 
 // Scheduler schedules and unschedules durable reminders in the async work
 // queue. Redis is the production implementation.
 type Scheduler interface {
-	ScheduleReminder(context.Context, queries.Reminder) error
+	ScheduleReminder(context.Context, postgres.Reminder) error
 	UnscheduleReminder(context.Context, string) error
 }
 
@@ -68,7 +68,7 @@ func New(store Store, scheduler Scheduler) *Service {
 }
 
 // Create validates, persists, and schedules a reminder.
-func (s *Service) Create(ctx context.Context, arg queries.CreateReminderParams) (reminderdomain.Reminder, error) {
+func (s *Service) Create(ctx context.Context, arg postgres.CreateReminderParams) (reminderdomain.Reminder, error) {
 	if strings.TrimSpace(arg.Title) == "" {
 		return reminderdomain.Reminder{}, ErrTitleRequired
 	}
@@ -119,7 +119,7 @@ func (s *Service) Get(ctx context.Context, id string) (reminderdomain.Reminder, 
 
 // Update validates mutable reminder fields and reschedules pending reminders
 // when their persisted values change.
-func (s *Service) Update(ctx context.Context, arg queries.UpdateReminderParams) (reminderdomain.Reminder, error) {
+func (s *Service) Update(ctx context.Context, arg postgres.UpdateReminderParams) (reminderdomain.Reminder, error) {
 	if arg.Title != nil && strings.TrimSpace(*arg.Title) == "" {
 		return reminderdomain.Reminder{}, ErrTitleRequired
 	}
@@ -194,7 +194,7 @@ func newIdempotencyKey() (string, error) {
 	return hex.EncodeToString(b[:]), nil
 }
 
-func reminderFromStore(reminder queries.Reminder) reminderdomain.Reminder {
+func reminderFromStore(reminder postgres.Reminder) reminderdomain.Reminder {
 	return reminderdomain.Reminder{
 		ID:             reminder.ID,
 		ApplicationID:  reminder.ApplicationID,
@@ -212,7 +212,7 @@ func reminderFromStore(reminder queries.Reminder) reminderdomain.Reminder {
 	}
 }
 
-func remindersFromStore(reminders []queries.Reminder) []reminderdomain.Reminder {
+func remindersFromStore(reminders []postgres.Reminder) []reminderdomain.Reminder {
 	out := make([]reminderdomain.Reminder, 0, len(reminders))
 	for _, reminder := range reminders {
 		out = append(out, reminderFromStore(reminder))
@@ -220,7 +220,7 @@ func remindersFromStore(reminders []queries.Reminder) []reminderdomain.Reminder 
 	return out
 }
 
-func failedJobFromStore(job queries.FailedReminderJob) reminderdomain.FailedJob {
+func failedJobFromStore(job postgres.FailedReminderJob) reminderdomain.FailedJob {
 	return reminderdomain.FailedJob{
 		ID:           job.ID,
 		ReminderID:   job.ReminderID,
@@ -231,7 +231,7 @@ func failedJobFromStore(job queries.FailedReminderJob) reminderdomain.FailedJob 
 	}
 }
 
-func failedJobsFromStore(jobs []queries.FailedReminderJob) []reminderdomain.FailedJob {
+func failedJobsFromStore(jobs []postgres.FailedReminderJob) []reminderdomain.FailedJob {
 	out := make([]reminderdomain.FailedJob, 0, len(jobs))
 	for _, job := range jobs {
 		out = append(out, failedJobFromStore(job))
