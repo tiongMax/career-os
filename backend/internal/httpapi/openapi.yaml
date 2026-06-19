@@ -919,6 +919,9 @@ components:
         resume_version_id:   { type: string, format: uuid, nullable: true }
         title:               { type: string }
         role_track:          { type: string }
+        role_tracks:
+          type: array
+          items: { type: string }
         source:              { type: string, nullable: true }
         status:              { $ref: "#/components/schemas/ApplicationStatus" }
         location:            { type: string, nullable: true }
@@ -931,7 +934,7 @@ components:
         notes:               { type: string, nullable: true }
         created_at:          { type: string, format: date-time }
         updated_at:          { type: string, format: date-time }
-      required: [id, company_id, title, role_track, status, created_at, updated_at]
+      required: [id, company_id, title, role_track, role_tracks, status, created_at, updated_at]
     ApplicationInput:
       type: object
       required: [company_id, title, role_track]
@@ -940,6 +943,9 @@ components:
         resume_version_id: { type: string, format: uuid, nullable: true }
         title:             { type: string }
         role_track:        { type: string }
+        role_tracks:
+          type: array
+          items: { type: string }
         source:            { type: string, nullable: true }
         status:            { $ref: "#/components/schemas/ApplicationStatus" }
         location:          { type: string, nullable: true }

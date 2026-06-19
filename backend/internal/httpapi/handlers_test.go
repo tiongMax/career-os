@@ -45,6 +45,7 @@ func TestCollectionRoutesAcceptDocumentedPaths(t *testing.T) {
 		{name: "post resumes no slash", method: http.MethodPost, path: "/api/v1/resume-versions", body: `{"name":"Backend v1","track":"backend"}`, want: http.StatusCreated},
 		{name: "get resumes no slash", method: http.MethodGet, path: "/api/v1/resume-versions", want: http.StatusOK},
 		{name: "post applications no slash", method: http.MethodPost, path: "/api/v1/applications", body: `{"company_id":"` + testUUID + `","title":"Backend Engineer","role_track":"backend"}`, want: http.StatusCreated},
+		{name: "post applications with multiple tracks", method: http.MethodPost, path: "/api/v1/applications", body: `{"company_id":"` + testUUID + `","title":"Full Stack Engineer","role_track":"backend","role_tracks":["backend","ai"]}`, want: http.StatusCreated},
 		{name: "get applications no slash", method: http.MethodGet, path: "/api/v1/applications", want: http.StatusOK},
 		{name: "post contacts no slash", method: http.MethodPost, path: "/api/v1/contacts", body: `{"company_id":"` + testUUID + `","name":"Ada Lovelace"}`, want: http.StatusCreated},
 		{name: "get contacts no slash", method: http.MethodGet, path: "/api/v1/contacts", want: http.StatusOK},

@@ -39,6 +39,7 @@ type Application struct {
 	ResumeVersionID *string    `json:"resume_version_id,omitempty"`
 	Title           string     `json:"title"`
 	RoleTrack       string     `json:"role_track"`
+	RoleTracks      []string   `json:"role_tracks"`
 	Source          *string    `json:"source,omitempty"`
 	Status          string     `json:"status"`
 	Location        *string    `json:"location,omitempty"`

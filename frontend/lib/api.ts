@@ -60,6 +60,7 @@ export interface Application {
   resume_version_id?: string;
   title: string;
   role_track: string;
+  role_tracks: string[];
   source?: string;
   status: string;
   location?: string;
@@ -219,6 +220,8 @@ export interface CreateCompanyPayload {
 
 export const createCompany = (payload: CreateCompanyPayload) =>
   apiFetch<Company>("/companies", { method: "POST", body: JSON.stringify(payload) });
+export const deleteCompany = (id: string) =>
+  apiFetch<void>(`/companies/${id}`, { method: "DELETE" });
 
 // ─── Resume Versions ─────────────────────────────────────────────────────────
 
@@ -262,6 +265,7 @@ export interface CreateApplicationPayload {
   resume_version_id?: string;
   title: string;
   role_track: string;
+  role_tracks?: string[];
   source?: string;
   status?: string;
   location?: string;

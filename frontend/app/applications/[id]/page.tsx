@@ -19,6 +19,7 @@ import { PrepBriefCard } from "./prep-brief-card";
 import { CompareResumeCard } from "./compare-resume-card";
 import { AnalysisJobsCard } from "./analysis-jobs-card";
 import { PortalPassword } from "./portal-password";
+import { TRACK_BADGE_CLASSES } from "@/lib/domain/applications";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -72,7 +73,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
         <section className="lg:col-span-2 space-y-5">
           <Card title="Details">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <Detail label="Track" value={<span className="capitalize">{app.role_track}</span>} />
+              <Detail label="Track" value={<TrackBadges tracks={app.role_tracks?.length ? app.role_tracks : [app.role_track]} />} />
               <Detail label="Source" value={app.source} />
               <Detail label="Location" value={app.location} />
               <Detail label="Employment" value={app.employment_type} />
@@ -281,6 +282,18 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <dt className="text-xs text-neutral-400">{label}</dt>
       <dd className="mt-0.5 text-sm text-neutral-700">{value ?? "—"}</dd>
+    </div>
+  );
+}
+
+function TrackBadges({ tracks }: { tracks: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {tracks.filter(Boolean).map((track) => (
+        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
+          {track}
+        </span>
+      ))}
     </div>
   );
 }

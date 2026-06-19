@@ -10,7 +10,7 @@ import (
 func (h Handler) createApplication(w http.ResponseWriter, r *http.Request) {
 	var req queries.CreateApplicationParams
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
 		return
 	}
 	application, err := h.applications.Create(r.Context(), req)
@@ -52,7 +52,7 @@ func (h Handler) updateApplication(w http.ResponseWriter, r *http.Request) {
 	}
 	var req queries.UpdateApplicationParams
 	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		writeError(w, http.StatusBadRequest, "invalid JSON body: "+err.Error())
 		return
 	}
 	req.ID = id
