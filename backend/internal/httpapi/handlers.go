@@ -4,6 +4,13 @@ import (
 	"context"
 
 	"careeros/backend/internal/db/queries"
+	appdomain "careeros/backend/internal/domain/applications"
+	companydomain "careeros/backend/internal/domain/companies"
+	contactdomain "careeros/backend/internal/domain/contacts"
+	interviewdomain "careeros/backend/internal/domain/interviews"
+	reminderdomain "careeros/backend/internal/domain/reminders"
+	resumedomain "careeros/backend/internal/domain/resumes"
+	trackdomain "careeros/backend/internal/domain/roletracks"
 	analyticssvc "careeros/backend/internal/services/analytics"
 	appsvc "careeros/backend/internal/services/applications"
 )
@@ -37,30 +44,30 @@ type Services struct {
 }
 
 type companyService interface {
-	Create(context.Context, queries.CreateCompanyParams) (queries.Company, error)
-	List(context.Context) ([]queries.Company, error)
-	Get(context.Context, string) (queries.Company, error)
-	Update(context.Context, queries.UpdateCompanyParams) (queries.Company, error)
+	Create(context.Context, queries.CreateCompanyParams) (companydomain.Company, error)
+	List(context.Context) ([]companydomain.Company, error)
+	Get(context.Context, string) (companydomain.Company, error)
+	Update(context.Context, queries.UpdateCompanyParams) (companydomain.Company, error)
 	Delete(context.Context, string) error
 }
 
 type resumeService interface {
-	Create(context.Context, queries.CreateResumeVersionParams) (queries.ResumeVersion, error)
-	List(context.Context) ([]queries.ResumeVersion, error)
-	Get(context.Context, string) (queries.ResumeVersion, error)
-	Update(context.Context, queries.UpdateResumeVersionParams) (queries.ResumeVersion, error)
+	Create(context.Context, queries.CreateResumeVersionParams) (resumedomain.ResumeVersion, error)
+	List(context.Context) ([]resumedomain.ResumeVersion, error)
+	Get(context.Context, string) (resumedomain.ResumeVersion, error)
+	Update(context.Context, queries.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error)
 	Delete(context.Context, string) error
 	StorePDF(context.Context, string, []byte) error
 	GetPDF(context.Context, string) ([]byte, error)
 }
 
 type applicationService interface {
-	Create(context.Context, queries.CreateApplicationParams) (queries.Application, error)
-	List(context.Context) ([]queries.Application, error)
-	Get(context.Context, string) (queries.Application, error)
-	Update(context.Context, queries.UpdateApplicationParams) (queries.Application, error)
-	ChangeStatus(context.Context, appsvc.ChangeStatusParams) (queries.Application, error)
-	ListAuditLogs(context.Context, string) ([]queries.AuditLog, error)
+	Create(context.Context, appsvc.CreateParams) (appdomain.Application, error)
+	List(context.Context) ([]appdomain.Application, error)
+	Get(context.Context, string) (appdomain.Application, error)
+	Update(context.Context, appsvc.UpdateParams) (appdomain.Application, error)
+	ChangeStatus(context.Context, appsvc.ChangeStatusParams) (appdomain.Application, error)
+	ListAuditLogs(context.Context, string) ([]appdomain.AuditLog, error)
 	Delete(context.Context, string) error
 }
 
@@ -76,29 +83,29 @@ type jobDescriptionService interface {
 }
 
 type contactService interface {
-	Create(context.Context, queries.CreateContactParams) (queries.Contact, error)
-	List(context.Context) ([]queries.Contact, error)
-	Get(context.Context, string) (queries.Contact, error)
-	Update(context.Context, queries.UpdateContactParams) (queries.Contact, error)
+	Create(context.Context, queries.CreateContactParams) (contactdomain.Contact, error)
+	List(context.Context) ([]contactdomain.Contact, error)
+	Get(context.Context, string) (contactdomain.Contact, error)
+	Update(context.Context, queries.UpdateContactParams) (contactdomain.Contact, error)
 	Delete(context.Context, string) error
 }
 
 type interviewService interface {
-	Create(context.Context, queries.CreateInterviewRoundParams) (queries.InterviewRound, error)
-	ListByApplication(context.Context, string) ([]queries.InterviewRound, error)
-	Update(context.Context, queries.UpdateInterviewRoundParams) (queries.InterviewRound, error)
+	Create(context.Context, queries.CreateInterviewRoundParams) (interviewdomain.InterviewRound, error)
+	ListByApplication(context.Context, string) ([]interviewdomain.InterviewRound, error)
+	Update(context.Context, queries.UpdateInterviewRoundParams) (interviewdomain.InterviewRound, error)
 	Delete(context.Context, string) error
 }
 
 type reminderService interface {
-	Create(context.Context, queries.CreateReminderParams) (queries.Reminder, error)
-	List(context.Context) ([]queries.Reminder, error)
-	ListDue(context.Context) ([]queries.Reminder, error)
-	ListFailed(context.Context) ([]queries.FailedReminderJob, error)
-	Get(context.Context, string) (queries.Reminder, error)
-	Update(context.Context, queries.UpdateReminderParams) (queries.Reminder, error)
-	Cancel(context.Context, string) (queries.Reminder, error)
-	Retry(context.Context, string) (queries.Reminder, error)
+	Create(context.Context, queries.CreateReminderParams) (reminderdomain.Reminder, error)
+	List(context.Context) ([]reminderdomain.Reminder, error)
+	ListDue(context.Context) ([]reminderdomain.Reminder, error)
+	ListFailed(context.Context) ([]reminderdomain.FailedJob, error)
+	Get(context.Context, string) (reminderdomain.Reminder, error)
+	Update(context.Context, queries.UpdateReminderParams) (reminderdomain.Reminder, error)
+	Cancel(context.Context, string) (reminderdomain.Reminder, error)
+	Retry(context.Context, string) (reminderdomain.Reminder, error)
 	Delete(context.Context, string) error
 }
 
@@ -117,8 +124,8 @@ type analyticsService interface {
 }
 
 type roleTrackService interface {
-	Create(context.Context, string) (queries.RoleTrack, error)
-	List(context.Context) ([]queries.RoleTrack, error)
+	Create(context.Context, string) (trackdomain.RoleTrack, error)
+	List(context.Context) ([]trackdomain.RoleTrack, error)
 }
 
 type analysisJobService interface {

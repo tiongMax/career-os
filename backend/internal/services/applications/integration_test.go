@@ -47,7 +47,7 @@ func TestIntegrationApplicationWorkflowCreatesAuditLog(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create resume version: %v", err)
 	}
-	application, err := service.Create(ctx, queries.CreateApplicationParams{
+	application, err := service.Create(ctx, CreateParams{
 		CompanyID:       company.ID,
 		ResumeVersionID: &resume.ID,
 		Title:           "Backend Engineer",

@@ -2,6 +2,7 @@ package applications
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -73,8 +74,19 @@ func TestChangeStatusCreatesAuditForValidTransition(t *testing.T) {
 		t.Fatalf("expected updated status %q, got %q", StatusApplied, updated.Status)
 	}
 	if !store.auditCreated {
-		t.Fatal("expected status update repository method to create audit log")
+		t.Fatal("expected status change to create audit log")
 	}
+	if store.auditLog.EntityType != "application" {
+		t.Fatalf("expected audit entity type application, got %q", store.auditLog.EntityType)
+	}
+	if store.auditLog.EntityID != store.application.ID {
+		t.Fatalf("expected audit entity id %q, got %q", store.application.ID, store.auditLog.EntityID)
+	}
+	if store.auditLog.Action != "status_changed" {
+		t.Fatalf("expected audit action status_changed, got %q", store.auditLog.Action)
+	}
+	assertStatusAuditValue(t, store.auditLog.OldValue, StatusSaved)
+	assertStatusAuditValue(t, store.auditLog.NewValue, StatusApplied)
 }
 
 func TestChangeStatusDoesNotAuditInvalidTransition(t *testing.T) {
@@ -101,6 +113,7 @@ func TestChangeStatusDoesNotAuditInvalidTransition(t *testing.T) {
 type fakeStore struct {
 	application  queries.Application
 	auditCreated bool
+	auditLog     queries.CreateAuditLogParams
 }
 
 func (f *fakeStore) CreateApplication(context.Context, queries.CreateApplicationParams) (queries.Application, error) {
@@ -119,8 +132,9 @@ func (f *fakeStore) UpdateApplication(context.Context, queries.UpdateApplication
 	return queries.Application{}, nil
 }
 
-func (f *fakeStore) UpdateApplicationStatusWithAudit(_ context.Context, _ string, _ string, newStatus string) (queries.Application, error) {
+func (f *fakeStore) UpdateApplicationStatusAndCreateAudit(_ context.Context, _ string, newStatus string, auditLog queries.CreateAuditLogParams) (queries.Application, error) {
 	f.auditCreated = true
+	f.auditLog = auditLog
 	f.application.Status = newStatus
 	return f.application, nil
 }
@@ -131,4 +145,15 @@ func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]q
 
 func (f *fakeStore) DeleteApplication(context.Context, string) error {
 	return nil
+}
+
+func assertStatusAuditValue(t *testing.T, raw []byte, want string) {
+	t.Helper()
+	var value map[string]string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		t.Fatalf("expected audit value to be valid JSON: %v", err)
+	}
+	if value["status"] != want {
+		t.Fatalf("expected audit status %q, got %q", want, value["status"])
+	}
 }

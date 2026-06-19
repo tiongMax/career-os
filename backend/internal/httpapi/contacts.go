@@ -2,9 +2,24 @@ package httpapi
 
 import (
 	"net/http"
+	"time"
 
 	"careeros/backend/internal/db/queries"
+	contactdomain "careeros/backend/internal/domain/contacts"
 )
+
+type contactResponse struct {
+	ID           string    `json:"id"`
+	CompanyID    string    `json:"company_id"`
+	Name         string    `json:"name"`
+	Role         *string   `json:"role,omitempty"`
+	Email        *string   `json:"email,omitempty"`
+	LinkedinURL  *string   `json:"linkedin_url,omitempty"`
+	Relationship *string   `json:"relationship,omitempty"`
+	Notes        *string   `json:"notes,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
 
 func (h Handler) createContact(w http.ResponseWriter, r *http.Request) {
 	var req queries.CreateContactParams
@@ -17,7 +32,7 @@ func (h Handler) createContact(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, contact)
+	writeJSON(w, http.StatusCreated, contactDTO(contact))
 }
 
 func (h Handler) listContacts(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +41,7 @@ func (h Handler) listContacts(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, contacts)
+	writeJSON(w, http.StatusOK, contactDTOs(contacts))
 }
 
 func (h Handler) getContact(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +55,7 @@ func (h Handler) getContact(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, contact)
+	writeJSON(w, http.StatusOK, contactDTO(contact))
 }
 
 func (h Handler) updateContact(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +75,7 @@ func (h Handler) updateContact(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, contact)
+	writeJSON(w, http.StatusOK, contactDTO(contact))
 }
 
 func (h Handler) deleteContact(w http.ResponseWriter, r *http.Request) {
@@ -74,4 +89,27 @@ func (h Handler) deleteContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeNoContent(w)
+}
+
+func contactDTO(contact contactdomain.Contact) contactResponse {
+	return contactResponse{
+		ID:           contact.ID,
+		CompanyID:    contact.CompanyID,
+		Name:         contact.Name,
+		Role:         contact.Role,
+		Email:        contact.Email,
+		LinkedinURL:  contact.LinkedinURL,
+		Relationship: contact.Relationship,
+		Notes:        contact.Notes,
+		CreatedAt:    contact.CreatedAt,
+		UpdatedAt:    contact.UpdatedAt,
+	}
+}
+
+func contactDTOs(contacts []contactdomain.Contact) []contactResponse {
+	out := make([]contactResponse, 0, len(contacts))
+	for _, contact := range contacts {
+		out = append(out, contactDTO(contact))
+	}
+	return out
 }

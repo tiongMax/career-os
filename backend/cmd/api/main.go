@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"careeros/backend/internal/app"
 	"careeros/backend/internal/config"
 	"careeros/backend/internal/db"
 	"careeros/backend/internal/httpapi"
@@ -42,7 +43,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              cfg.APIAddress(),
-		Handler:           httpapi.NewRouter(log, postgres, redisClient),
+		Handler:           httpapi.NewRouter(log, postgres, redisClient, app.NewServices(postgres, redisClient).HTTP),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

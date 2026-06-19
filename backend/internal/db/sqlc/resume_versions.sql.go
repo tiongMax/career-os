@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: resume_versions.sql
 
-package queries
+package sqlc
 
 import (
 	"context"

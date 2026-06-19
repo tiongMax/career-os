@@ -5,19 +5,6 @@ import (
 	nethttp "net/http"
 	"time"
 
-	"careeros/backend/internal/db/queries"
-	aianalysissvc "careeros/backend/internal/services/aianalysis"
-	analyticssvc "careeros/backend/internal/services/analytics"
-	appsvc "careeros/backend/internal/services/applications"
-	companysvc "careeros/backend/internal/services/companies"
-	contactsvc "careeros/backend/internal/services/contacts"
-	interviewsvc "careeros/backend/internal/services/interviews"
-	jdsvc "careeros/backend/internal/services/jobdescriptions"
-	remindersvc "careeros/backend/internal/services/reminders"
-	resumesvc "careeros/backend/internal/services/resumes"
-	roletracksvc "careeros/backend/internal/services/roletracks"
-	searchsvc "careeros/backend/internal/services/search"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,22 +14,9 @@ import (
 
 // NewRouter builds the API router with production-oriented middleware and all
 // versioned endpoint registrations.
-func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Client) nethttp.Handler {
+func NewRouter(log zerolog.Logger, postgres *pgxpool.Pool, redisClient *redis.Client, services Services) nethttp.Handler {
 	r := chi.NewRouter()
-	store := queries.New(postgres)
-	handler := NewHandler(Services{
-		Companies:       companysvc.New(store),
-		Resumes:         resumesvc.New(store),
-		Applications:    appsvc.New(store),
-		JobDescriptions: jdsvc.New(store),
-		Contacts:        contactsvc.New(store),
-		Interviews:      interviewsvc.New(store),
-		Reminders:       remindersvc.New(store, remindersvc.NewRedisScheduler(redisClient)),
-		Search:          searchsvc.New(store),
-		Analytics:       analyticssvc.New(store),
-		RoleTracks:      roletracksvc.New(store),
-		AnalysisJobs:    aianalysissvc.New(store),
-	})
+	handler := NewHandler(services)
 
 	r.Use(corsMiddleware)
 	r.Use(middleware.RequestID)

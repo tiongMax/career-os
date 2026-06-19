@@ -10,6 +10,12 @@ import (
 	"time"
 
 	"careeros/backend/internal/db/queries"
+	appdomain "careeros/backend/internal/domain/applications"
+	companydomain "careeros/backend/internal/domain/companies"
+	contactdomain "careeros/backend/internal/domain/contacts"
+	interviewdomain "careeros/backend/internal/domain/interviews"
+	reminderdomain "careeros/backend/internal/domain/reminders"
+	resumedomain "careeros/backend/internal/domain/resumes"
 	appsvc "careeros/backend/internal/services/applications"
 
 	"github.com/go-chi/chi/v5"
@@ -233,24 +239,24 @@ type fakeCompanyService struct {
 	getErr  error
 }
 
-func (f *fakeCompanyService) Create(context.Context, queries.CreateCompanyParams) (queries.Company, error) {
+func (f *fakeCompanyService) Create(context.Context, queries.CreateCompanyParams) (companydomain.Company, error) {
 	f.created++
-	return queries.Company{ID: testUUID, Name: "Stripe"}, nil
+	return companydomain.Company{ID: testUUID, Name: "Stripe"}, nil
 }
 
-func (f *fakeCompanyService) List(context.Context) ([]queries.Company, error) {
-	return []queries.Company{{ID: testUUID, Name: "Stripe"}}, nil
+func (f *fakeCompanyService) List(context.Context) ([]companydomain.Company, error) {
+	return []companydomain.Company{{ID: testUUID, Name: "Stripe"}}, nil
 }
 
-func (f *fakeCompanyService) Get(context.Context, string) (queries.Company, error) {
+func (f *fakeCompanyService) Get(context.Context, string) (companydomain.Company, error) {
 	if f.getErr != nil {
-		return queries.Company{}, f.getErr
+		return companydomain.Company{}, f.getErr
 	}
-	return queries.Company{ID: testUUID, Name: "Stripe"}, nil
+	return companydomain.Company{ID: testUUID, Name: "Stripe"}, nil
 }
 
-func (f *fakeCompanyService) Update(context.Context, queries.UpdateCompanyParams) (queries.Company, error) {
-	return queries.Company{ID: testUUID, Name: "Stripe"}, nil
+func (f *fakeCompanyService) Update(context.Context, queries.UpdateCompanyParams) (companydomain.Company, error) {
+	return companydomain.Company{ID: testUUID, Name: "Stripe"}, nil
 }
 
 func (f *fakeCompanyService) Delete(context.Context, string) error {
@@ -261,21 +267,21 @@ type fakeResumeService struct {
 	updated queries.UpdateResumeVersionParams
 }
 
-func (f *fakeResumeService) Create(context.Context, queries.CreateResumeVersionParams) (queries.ResumeVersion, error) {
-	return queries.ResumeVersion{ID: testUUID, Name: "Backend v1", Track: "backend"}, nil
+func (f *fakeResumeService) Create(context.Context, queries.CreateResumeVersionParams) (resumedomain.ResumeVersion, error) {
+	return resumedomain.ResumeVersion{ID: testUUID, Name: "Backend v1", Track: "backend"}, nil
 }
 
-func (f *fakeResumeService) List(context.Context) ([]queries.ResumeVersion, error) {
-	return []queries.ResumeVersion{{ID: testUUID, Name: "Backend v1", Track: "backend"}}, nil
+func (f *fakeResumeService) List(context.Context) ([]resumedomain.ResumeVersion, error) {
+	return []resumedomain.ResumeVersion{{ID: testUUID, Name: "Backend v1", Track: "backend"}}, nil
 }
 
-func (f *fakeResumeService) Get(context.Context, string) (queries.ResumeVersion, error) {
-	return queries.ResumeVersion{ID: testUUID, Name: "Backend v1", Track: "backend"}, nil
+func (f *fakeResumeService) Get(context.Context, string) (resumedomain.ResumeVersion, error) {
+	return resumedomain.ResumeVersion{ID: testUUID, Name: "Backend v1", Track: "backend"}, nil
 }
 
-func (f *fakeResumeService) Update(_ context.Context, arg queries.UpdateResumeVersionParams) (queries.ResumeVersion, error) {
+func (f *fakeResumeService) Update(_ context.Context, arg queries.UpdateResumeVersionParams) (resumedomain.ResumeVersion, error) {
 	f.updated = arg
-	return queries.ResumeVersion{ID: arg.ID, Name: "Backend v1", Track: "backend", Tags: arg.Tags}, nil
+	return resumedomain.ResumeVersion{ID: arg.ID, Name: "Backend v1", Track: "backend", Tags: arg.Tags}, nil
 }
 
 func (f *fakeResumeService) Delete(context.Context, string) error {
@@ -288,22 +294,22 @@ func (f *fakeResumeService) GetPDF(context.Context, string) ([]byte, error) { re
 type fakeApplicationService struct {
 	changedStatus   appsvc.ChangeStatusParams
 	changeStatusErr error
-	updated         queries.UpdateApplicationParams
+	updated         appsvc.UpdateParams
 }
 
-func (f *fakeApplicationService) Create(context.Context, queries.CreateApplicationParams) (queries.Application, error) {
-	return queries.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
+func (f *fakeApplicationService) Create(context.Context, appsvc.CreateParams) (appdomain.Application, error) {
+	return appdomain.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
 }
 
-func (f *fakeApplicationService) List(context.Context) ([]queries.Application, error) {
-	return []queries.Application{{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}}, nil
+func (f *fakeApplicationService) List(context.Context) ([]appdomain.Application, error) {
+	return []appdomain.Application{{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}}, nil
 }
 
-func (f *fakeApplicationService) Get(context.Context, string) (queries.Application, error) {
-	return queries.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
+func (f *fakeApplicationService) Get(context.Context, string) (appdomain.Application, error) {
+	return appdomain.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
 }
 
-func (f *fakeApplicationService) Update(_ context.Context, arg queries.UpdateApplicationParams) (queries.Application, error) {
+func (f *fakeApplicationService) Update(_ context.Context, arg appsvc.UpdateParams) (appdomain.Application, error) {
 	f.updated = arg
 	title := "Backend Engineer"
 	if arg.Title != nil {
@@ -313,21 +319,21 @@ func (f *fakeApplicationService) Update(_ context.Context, arg queries.UpdateApp
 	if arg.Status != nil {
 		status = *arg.Status
 	}
-	return queries.Application{ID: arg.ID, CompanyID: testUUID, Title: title, RoleTrack: "backend", Status: status}, nil
+	return appdomain.Application{ID: arg.ID, CompanyID: testUUID, Title: title, RoleTrack: "backend", Status: status}, nil
 }
 
-func (f *fakeApplicationService) ChangeStatus(_ context.Context, arg appsvc.ChangeStatusParams) (queries.Application, error) {
+func (f *fakeApplicationService) ChangeStatus(_ context.Context, arg appsvc.ChangeStatusParams) (appdomain.Application, error) {
 	f.changedStatus = arg
 	if f.changeStatusErr != nil {
-		return queries.Application{}, f.changeStatusErr
+		return appdomain.Application{}, f.changeStatusErr
 	}
-	return queries.Application{ID: arg.ID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: arg.Status}, nil
+	return appdomain.Application{ID: arg.ID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: arg.Status}, nil
 }
 
-func (f *fakeApplicationService) ListAuditLogs(context.Context, string) ([]queries.AuditLog, error) {
+func (f *fakeApplicationService) ListAuditLogs(context.Context, string) ([]appdomain.AuditLog, error) {
 	oldValue, _ := json.Marshal(map[string]string{"status": appsvc.StatusSaved})
 	newValue, _ := json.Marshal(map[string]string{"status": appsvc.StatusApplied})
-	return []queries.AuditLog{{ID: testUUID, EntityType: "application", EntityID: testUUID, Action: "status_changed", OldValue: oldValue, NewValue: newValue}}, nil
+	return []appdomain.AuditLog{{ID: testUUID, EntityType: "application", EntityID: testUUID, Action: "status_changed", OldValue: oldValue, NewValue: newValue}}, nil
 }
 
 func (f *fakeApplicationService) Delete(context.Context, string) error {
@@ -371,25 +377,25 @@ type fakeContactService struct {
 	updated queries.UpdateContactParams
 }
 
-func (f *fakeContactService) Create(_ context.Context, arg queries.CreateContactParams) (queries.Contact, error) {
-	return queries.Contact{ID: testUUID, CompanyID: arg.CompanyID, Name: arg.Name}, nil
+func (f *fakeContactService) Create(_ context.Context, arg queries.CreateContactParams) (contactdomain.Contact, error) {
+	return contactdomain.Contact{ID: testUUID, CompanyID: arg.CompanyID, Name: arg.Name}, nil
 }
 
-func (f *fakeContactService) List(context.Context) ([]queries.Contact, error) {
-	return []queries.Contact{{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}}, nil
+func (f *fakeContactService) List(context.Context) ([]contactdomain.Contact, error) {
+	return []contactdomain.Contact{{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}}, nil
 }
 
-func (f *fakeContactService) Get(context.Context, string) (queries.Contact, error) {
-	return queries.Contact{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}, nil
+func (f *fakeContactService) Get(context.Context, string) (contactdomain.Contact, error) {
+	return contactdomain.Contact{ID: testUUID, CompanyID: testUUID, Name: "Ada Lovelace"}, nil
 }
 
-func (f *fakeContactService) Update(_ context.Context, arg queries.UpdateContactParams) (queries.Contact, error) {
+func (f *fakeContactService) Update(_ context.Context, arg queries.UpdateContactParams) (contactdomain.Contact, error) {
 	f.updated = arg
 	name := "Ada Lovelace"
 	if arg.Name != nil {
 		name = *arg.Name
 	}
-	return queries.Contact{ID: arg.ID, CompanyID: testUUID, Name: name}, nil
+	return contactdomain.Contact{ID: arg.ID, CompanyID: testUUID, Name: name}, nil
 }
 
 func (f *fakeContactService) Delete(context.Context, string) error {
@@ -401,22 +407,22 @@ type fakeInterviewService struct {
 	updated queries.UpdateInterviewRoundParams
 }
 
-func (f *fakeInterviewService) Create(_ context.Context, arg queries.CreateInterviewRoundParams) (queries.InterviewRound, error) {
+func (f *fakeInterviewService) Create(_ context.Context, arg queries.CreateInterviewRoundParams) (interviewdomain.InterviewRound, error) {
 	f.created = arg
-	return queries.InterviewRound{ID: testUUID, ApplicationID: arg.ApplicationID, RoundType: arg.RoundType}, nil
+	return interviewdomain.InterviewRound{ID: testUUID, ApplicationID: arg.ApplicationID, RoundType: arg.RoundType}, nil
 }
 
-func (f *fakeInterviewService) ListByApplication(_ context.Context, applicationID string) ([]queries.InterviewRound, error) {
-	return []queries.InterviewRound{{ID: testUUID, ApplicationID: applicationID, RoundType: "technical"}}, nil
+func (f *fakeInterviewService) ListByApplication(_ context.Context, applicationID string) ([]interviewdomain.InterviewRound, error) {
+	return []interviewdomain.InterviewRound{{ID: testUUID, ApplicationID: applicationID, RoundType: "technical"}}, nil
 }
 
-func (f *fakeInterviewService) Update(_ context.Context, arg queries.UpdateInterviewRoundParams) (queries.InterviewRound, error) {
+func (f *fakeInterviewService) Update(_ context.Context, arg queries.UpdateInterviewRoundParams) (interviewdomain.InterviewRound, error) {
 	f.updated = arg
 	roundType := "technical"
 	if arg.RoundType != nil {
 		roundType = *arg.RoundType
 	}
-	return queries.InterviewRound{ID: arg.ID, ApplicationID: testUUID, RoundType: roundType}, nil
+	return interviewdomain.InterviewRound{ID: arg.ID, ApplicationID: testUUID, RoundType: roundType}, nil
 }
 
 func (f *fakeInterviewService) Delete(context.Context, string) error {
@@ -427,40 +433,40 @@ type fakeReminderService struct {
 	updated queries.UpdateReminderParams
 }
 
-func (f *fakeReminderService) Create(_ context.Context, arg queries.CreateReminderParams) (queries.Reminder, error) {
-	return queries.Reminder{ID: testUUID, ApplicationID: arg.ApplicationID, Title: arg.Title, DueAt: arg.DueAt, Status: "pending"}, nil
+func (f *fakeReminderService) Create(_ context.Context, arg queries.CreateReminderParams) (reminderdomain.Reminder, error) {
+	return reminderdomain.Reminder{ID: testUUID, ApplicationID: arg.ApplicationID, Title: arg.Title, DueAt: arg.DueAt, Status: "pending"}, nil
 }
 
-func (f *fakeReminderService) List(context.Context) ([]queries.Reminder, error) {
-	return []queries.Reminder{{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}}, nil
+func (f *fakeReminderService) List(context.Context) ([]reminderdomain.Reminder, error) {
+	return []reminderdomain.Reminder{{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}}, nil
 }
 
-func (f *fakeReminderService) ListDue(context.Context) ([]queries.Reminder, error) {
-	return []queries.Reminder{{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}}, nil
+func (f *fakeReminderService) ListDue(context.Context) ([]reminderdomain.Reminder, error) {
+	return []reminderdomain.Reminder{{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}}, nil
 }
 
-func (f *fakeReminderService) Get(context.Context, string) (queries.Reminder, error) {
-	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
+func (f *fakeReminderService) Get(context.Context, string) (reminderdomain.Reminder, error) {
+	return reminderdomain.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
 }
 
-func (f *fakeReminderService) Update(_ context.Context, arg queries.UpdateReminderParams) (queries.Reminder, error) {
+func (f *fakeReminderService) Update(_ context.Context, arg queries.UpdateReminderParams) (reminderdomain.Reminder, error) {
 	f.updated = arg
 	title := "Follow up"
 	if arg.Title != nil {
 		title = *arg.Title
 	}
-	return queries.Reminder{ID: arg.ID, ApplicationID: testUUID, Title: title, DueAt: time.Now(), Status: "pending"}, nil
+	return reminderdomain.Reminder{ID: arg.ID, ApplicationID: testUUID, Title: title, DueAt: time.Now(), Status: "pending"}, nil
 }
 
-func (f *fakeReminderService) Cancel(context.Context, string) (queries.Reminder, error) {
-	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "cancelled"}, nil
+func (f *fakeReminderService) Cancel(context.Context, string) (reminderdomain.Reminder, error) {
+	return reminderdomain.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "cancelled"}, nil
 }
 
-func (f *fakeReminderService) Retry(context.Context, string) (queries.Reminder, error) {
-	return queries.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
+func (f *fakeReminderService) Retry(context.Context, string) (reminderdomain.Reminder, error) {
+	return reminderdomain.Reminder{ID: testUUID, ApplicationID: testUUID, Title: "Follow up", DueAt: time.Now(), Status: "pending"}, nil
 }
 
-func (f *fakeReminderService) ListFailed(context.Context) ([]queries.FailedReminderJob, error) {
+func (f *fakeReminderService) ListFailed(context.Context) ([]reminderdomain.FailedJob, error) {
 	return nil, nil
 }
 

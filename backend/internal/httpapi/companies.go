@@ -2,9 +2,22 @@ package httpapi
 
 import (
 	"net/http"
+	"time"
 
 	"careeros/backend/internal/db/queries"
+	companydomain "careeros/backend/internal/domain/companies"
 )
+
+type companyResponse struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Website   *string   `json:"website,omitempty"`
+	Industry  *string   `json:"industry,omitempty"`
+	Location  *string   `json:"location,omitempty"`
+	Notes     *string   `json:"notes,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
 
 func (h Handler) createCompany(w http.ResponseWriter, r *http.Request) {
 	var req queries.CreateCompanyParams
@@ -17,7 +30,7 @@ func (h Handler) createCompany(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, company)
+	writeJSON(w, http.StatusCreated, companyDTO(company))
 }
 
 func (h Handler) listCompanies(w http.ResponseWriter, r *http.Request) {
@@ -26,7 +39,7 @@ func (h Handler) listCompanies(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, companies)
+	writeJSON(w, http.StatusOK, companyDTOs(companies))
 }
 
 func (h Handler) getCompany(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +53,7 @@ func (h Handler) getCompany(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, company)
+	writeJSON(w, http.StatusOK, companyDTO(company))
 }
 
 func (h Handler) updateCompany(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +73,7 @@ func (h Handler) updateCompany(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, company)
+	writeJSON(w, http.StatusOK, companyDTO(company))
 }
 
 func (h Handler) deleteCompany(w http.ResponseWriter, r *http.Request) {
@@ -74,4 +87,25 @@ func (h Handler) deleteCompany(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeNoContent(w)
+}
+
+func companyDTO(company companydomain.Company) companyResponse {
+	return companyResponse{
+		ID:        company.ID,
+		Name:      company.Name,
+		Website:   company.Website,
+		Industry:  company.Industry,
+		Location:  company.Location,
+		Notes:     company.Notes,
+		CreatedAt: company.CreatedAt,
+		UpdatedAt: company.UpdatedAt,
+	}
+}
+
+func companyDTOs(companies []companydomain.Company) []companyResponse {
+	out := make([]companyResponse, 0, len(companies))
+	for _, company := range companies {
+		out = append(out, companyDTO(company))
+	}
+	return out
 }

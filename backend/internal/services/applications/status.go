@@ -3,17 +3,19 @@ package applications
 import (
 	"errors"
 	"fmt"
+
+	appdomain "careeros/backend/internal/domain/applications"
 )
 
 const (
-	StatusSaved           = "saved"
-	StatusApplied         = "applied"
-	StatusRecruiterScreen = "recruiter_screen"
-	StatusTechnicalScreen = "technical_screen"
-	StatusOnsite          = "onsite"
-	StatusOffer           = "offer"
-	StatusRejected        = "rejected"
-	StatusWithdrawn       = "withdrawn"
+	StatusSaved           = appdomain.StatusSaved
+	StatusApplied         = appdomain.StatusApplied
+	StatusRecruiterScreen = appdomain.StatusRecruiterScreen
+	StatusTechnicalScreen = appdomain.StatusTechnicalScreen
+	StatusOnsite          = appdomain.StatusOnsite
+	StatusOffer           = appdomain.StatusOffer
+	StatusRejected        = appdomain.StatusRejected
+	StatusWithdrawn       = appdomain.StatusWithdrawn
 )
 
 var (

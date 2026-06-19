@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"careeros/backend/internal/db/queries"
+	reminderdomain "careeros/backend/internal/domain/reminders"
 )
 
 const (
@@ -67,79 +68,88 @@ func New(store Store, scheduler Scheduler) *Service {
 }
 
 // Create validates, persists, and schedules a reminder.
-func (s *Service) Create(ctx context.Context, arg queries.CreateReminderParams) (queries.Reminder, error) {
+func (s *Service) Create(ctx context.Context, arg queries.CreateReminderParams) (reminderdomain.Reminder, error) {
 	if strings.TrimSpace(arg.Title) == "" {
-		return queries.Reminder{}, ErrTitleRequired
+		return reminderdomain.Reminder{}, ErrTitleRequired
 	}
 	if arg.DueAt.IsZero() {
-		return queries.Reminder{}, ErrDueAtRequired
+		return reminderdomain.Reminder{}, ErrDueAtRequired
 	}
 	key, err := newIdempotencyKey()
 	if err != nil {
-		return queries.Reminder{}, err
+		return reminderdomain.Reminder{}, err
 	}
 	arg.IdempotencyKey = key
 
 	reminder, err := s.store.CreateReminder(ctx, arg)
 	if err != nil {
-		return queries.Reminder{}, err
+		return reminderdomain.Reminder{}, err
 	}
 	if s.scheduler != nil {
 		if err := s.scheduler.ScheduleReminder(ctx, reminder); err != nil {
-			return queries.Reminder{}, err
+			return reminderdomain.Reminder{}, err
 		}
 	}
-	return reminder, nil
+	return reminderFromStore(reminder), nil
 }
 
 // List returns all reminders ordered by the query layer.
-func (s *Service) List(ctx context.Context) ([]queries.Reminder, error) {
-	return s.store.ListReminders(ctx)
+func (s *Service) List(ctx context.Context) ([]reminderdomain.Reminder, error) {
+	reminders, err := s.store.ListReminders(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return remindersFromStore(reminders), nil
 }
 
 // ListDue returns pending reminders whose due_at is not later than now.
-func (s *Service) ListDue(ctx context.Context) ([]queries.Reminder, error) {
-	return s.store.ListDueReminders(ctx, s.now())
+func (s *Service) ListDue(ctx context.Context) ([]reminderdomain.Reminder, error) {
+	reminders, err := s.store.ListDueReminders(ctx, s.now())
+	if err != nil {
+		return nil, err
+	}
+	return remindersFromStore(reminders), nil
 }
 
 // Get returns one reminder by ID.
-func (s *Service) Get(ctx context.Context, id string) (queries.Reminder, error) {
-	return s.store.GetReminder(ctx, id)
+func (s *Service) Get(ctx context.Context, id string) (reminderdomain.Reminder, error) {
+	reminder, err := s.store.GetReminder(ctx, id)
+	return reminderFromStore(reminder), err
 }
 
 // Update validates mutable reminder fields and reschedules pending reminders
 // when their persisted values change.
-func (s *Service) Update(ctx context.Context, arg queries.UpdateReminderParams) (queries.Reminder, error) {
+func (s *Service) Update(ctx context.Context, arg queries.UpdateReminderParams) (reminderdomain.Reminder, error) {
 	if arg.Title != nil && strings.TrimSpace(*arg.Title) == "" {
-		return queries.Reminder{}, ErrTitleRequired
+		return reminderdomain.Reminder{}, ErrTitleRequired
 	}
 	if arg.DueAt != nil && arg.DueAt.IsZero() {
-		return queries.Reminder{}, ErrDueAtRequired
+		return reminderdomain.Reminder{}, ErrDueAtRequired
 	}
 	reminder, err := s.store.UpdateReminder(ctx, arg)
 	if err != nil {
-		return queries.Reminder{}, err
+		return reminderdomain.Reminder{}, err
 	}
 	if reminder.Status == StatusPending && s.scheduler != nil {
 		if err := s.scheduler.ScheduleReminder(ctx, reminder); err != nil {
-			return queries.Reminder{}, err
+			return reminderdomain.Reminder{}, err
 		}
 	}
-	return reminder, nil
+	return reminderFromStore(reminder), nil
 }
 
 // Cancel marks a reminder cancelled and removes it from the scheduler.
-func (s *Service) Cancel(ctx context.Context, id string) (queries.Reminder, error) {
+func (s *Service) Cancel(ctx context.Context, id string) (reminderdomain.Reminder, error) {
 	reminder, err := s.store.UpdateReminderStatus(ctx, id, StatusCancelled)
 	if err != nil {
-		return queries.Reminder{}, err
+		return reminderdomain.Reminder{}, err
 	}
 	if s.scheduler != nil {
 		if err := s.scheduler.UnscheduleReminder(ctx, id); err != nil {
-			return queries.Reminder{}, err
+			return reminderdomain.Reminder{}, err
 		}
 	}
-	return reminder, nil
+	return reminderFromStore(reminder), nil
 }
 
 // Delete removes a reminder from the scheduler before deleting its row.
@@ -153,23 +163,27 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 }
 
 // ListFailed returns all failed reminder jobs ordered by failed_at DESC.
-func (s *Service) ListFailed(ctx context.Context) ([]queries.FailedReminderJob, error) {
-	return s.store.ListFailedReminderJobs(ctx)
+func (s *Service) ListFailed(ctx context.Context) ([]reminderdomain.FailedJob, error) {
+	jobs, err := s.store.ListFailedReminderJobs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return failedJobsFromStore(jobs), nil
 }
 
 // Retry resets a failed reminder to pending and re-enqueues it in Redis.
 // Returns pgx.ErrNoRows if the reminder is not in 'failed' status.
-func (s *Service) Retry(ctx context.Context, id string) (queries.Reminder, error) {
+func (s *Service) Retry(ctx context.Context, id string) (reminderdomain.Reminder, error) {
 	reminder, err := s.store.ResetReminderForRetry(ctx, id)
 	if err != nil {
-		return queries.Reminder{}, err
+		return reminderdomain.Reminder{}, err
 	}
 	if s.scheduler != nil {
 		if err := s.scheduler.ScheduleReminder(ctx, reminder); err != nil {
-			return queries.Reminder{}, err
+			return reminderdomain.Reminder{}, err
 		}
 	}
-	return reminder, nil
+	return reminderFromStore(reminder), nil
 }
 
 func newIdempotencyKey() (string, error) {
@@ -178,4 +192,49 @@ func newIdempotencyKey() (string, error) {
 		return "", fmt.Errorf("generate reminder idempotency key: %w", err)
 	}
 	return hex.EncodeToString(b[:]), nil
+}
+
+func reminderFromStore(reminder queries.Reminder) reminderdomain.Reminder {
+	return reminderdomain.Reminder{
+		ID:             reminder.ID,
+		ApplicationID:  reminder.ApplicationID,
+		ContactID:      reminder.ContactID,
+		Title:          reminder.Title,
+		Description:    reminder.Description,
+		DueAt:          reminder.DueAt,
+		Status:         reminder.Status,
+		IdempotencyKey: reminder.IdempotencyKey,
+		RetryCount:     reminder.RetryCount,
+		LastError:      reminder.LastError,
+		DeliveredAt:    reminder.DeliveredAt,
+		CreatedAt:      reminder.CreatedAt,
+		UpdatedAt:      reminder.UpdatedAt,
+	}
+}
+
+func remindersFromStore(reminders []queries.Reminder) []reminderdomain.Reminder {
+	out := make([]reminderdomain.Reminder, 0, len(reminders))
+	for _, reminder := range reminders {
+		out = append(out, reminderFromStore(reminder))
+	}
+	return out
+}
+
+func failedJobFromStore(job queries.FailedReminderJob) reminderdomain.FailedJob {
+	return reminderdomain.FailedJob{
+		ID:           job.ID,
+		ReminderID:   job.ReminderID,
+		ErrorMessage: job.ErrorMessage,
+		RetryCount:   job.RetryCount,
+		Payload:      job.Payload,
+		FailedAt:     job.FailedAt,
+	}
+}
+
+func failedJobsFromStore(jobs []queries.FailedReminderJob) []reminderdomain.FailedJob {
+	out := make([]reminderdomain.FailedJob, 0, len(jobs))
+	for _, job := range jobs {
+		out = append(out, failedJobFromStore(job))
+	}
+	return out
 }

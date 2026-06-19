@@ -4,11 +4,24 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"careeros/backend/internal/db/queries"
+	resumedomain "careeros/backend/internal/domain/resumes"
 
 	"github.com/jackc/pgx/v5"
 )
+
+type resumeVersionResponse struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Track       string    `json:"track"`
+	ContentText *string   `json:"content_text,omitempty"`
+	HasPDF      bool      `json:"has_pdf"`
+	Tags        []string  `json:"tags"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
 
 func (h Handler) createResumeVersion(w http.ResponseWriter, r *http.Request) {
 	var req queries.CreateResumeVersionParams
@@ -21,7 +34,7 @@ func (h Handler) createResumeVersion(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, resume)
+	writeJSON(w, http.StatusCreated, resumeVersionDTO(resume))
 }
 
 func (h Handler) listResumeVersions(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +43,7 @@ func (h Handler) listResumeVersions(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, resumes)
+	writeJSON(w, http.StatusOK, resumeVersionDTOs(resumes))
 }
 
 func (h Handler) getResumeVersion(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +57,7 @@ func (h Handler) getResumeVersion(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, resume)
+	writeJSON(w, http.StatusOK, resumeVersionDTO(resume))
 }
 
 type updateResumeVersionRequest struct {
@@ -78,7 +91,7 @@ func (h Handler) updateResumeVersion(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, resume)
+	writeJSON(w, http.StatusOK, resumeVersionDTO(resume))
 }
 
 func (h Handler) deleteResumeVersion(w http.ResponseWriter, r *http.Request) {
@@ -145,4 +158,25 @@ func (h Handler) serveResumePDF(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/pdf")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func resumeVersionDTO(resume resumedomain.ResumeVersion) resumeVersionResponse {
+	return resumeVersionResponse{
+		ID:          resume.ID,
+		Name:        resume.Name,
+		Track:       resume.Track,
+		ContentText: resume.ContentText,
+		HasPDF:      resume.HasPDF,
+		Tags:        resume.Tags,
+		CreatedAt:   resume.CreatedAt,
+		UpdatedAt:   resume.UpdatedAt,
+	}
+}
+
+func resumeVersionDTOs(resumes []resumedomain.ResumeVersion) []resumeVersionResponse {
+	out := make([]resumeVersionResponse, 0, len(resumes))
+	for _, resume := range resumes {
+		out = append(out, resumeVersionDTO(resume))
+	}
+	return out
 }

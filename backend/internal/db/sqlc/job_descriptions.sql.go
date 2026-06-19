@@ -3,7 +3,7 @@
 //   sqlc v1.27.0
 // source: job_descriptions.sql
 
-package queries
+package sqlc
 
 import (
 	"context"
