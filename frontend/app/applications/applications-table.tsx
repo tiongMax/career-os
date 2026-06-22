@@ -10,6 +10,7 @@ import {
   APPLICATION_STATUS_OPTIONS,
   APPLICATION_STATUS_ORDER,
   TRACK_BADGE_CLASSES,
+  formatTrackLabel,
 } from "@/lib/domain/applications";
 
 const DATE_OPTIONS = [
@@ -274,8 +275,8 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
                   <td className="px-5 py-3.5">
                     <div className="flex max-w-48 flex-wrap gap-1">
                       {applicationTracks(app).map((track) => (
-                        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
-                          {track}
+                        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
+                          {formatTrackLabel(track)}
                         </span>
                       ))}
                     </div>
@@ -438,7 +439,7 @@ function TrackFilter({
               </button>
             )}
             {tracks.map((track) => (
-              <CheckRow key={track} checked={selected.includes(track)} label={track} onClick={() => onToggle(track)} />
+              <CheckRow key={track} checked={selected.includes(track)} label={formatTrackLabel(track)} onClick={() => onToggle(track)} />
             ))}
           </div>
         </>

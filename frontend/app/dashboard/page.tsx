@@ -17,7 +17,7 @@ export default async function DashboardPage() {
     total: summary?.total ?? 0,
     active: summary?.active ?? 0,
     offers: summary?.offers ?? 0,
-    responseRate: summary ? Math.round(summary.response_rate * 100) : 0,
+    responseRate: summary ? Math.round(summary.response_rate) : 0,
     pendingReminders: summary?.pending_reminders ?? 0,
     recentApps: applications.slice(-5).reverse(),
   };

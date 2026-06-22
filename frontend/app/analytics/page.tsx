@@ -15,7 +15,7 @@ import {
   type FunnelStep,
   type UpcomingData,
 } from "@/lib/api";
-import { APPLICATION_STATUS_CHART_COLORS } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_CHART_COLORS, formatTrackLabel } from "@/lib/domain/applications";
 import { BarChart2, Activity, TrendingUp, Award, Bell } from "lucide-react";
 
 const TRACK_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f97316", "#ec4899", "#06b6d4", "#f59e0b"];
@@ -94,7 +94,7 @@ export default async function AnalyticsPage() {
             byTrack.map((t, i) => (
               <Bar
                 key={t.track}
-                label={t.track}
+                label={formatTrackLabel(t.track)}
                 value={t.count}
                 max={maxTrackCount}
                 color={TRACK_COLORS[i % TRACK_COLORS.length]}
@@ -146,7 +146,7 @@ export default async function AnalyticsPage() {
                   <tr key={rv.id} className="hover:bg-neutral-50">
                     <td className="px-4 py-3 font-medium text-neutral-900">{rv.name}</td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 capitalize">{rv.track}</span>
+                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">{formatTrackLabel(rv.track)}</span>
                     </td>
                     <td className="px-4 py-3 text-right text-neutral-700">{rv.applications}</td>
                     <td className="px-4 py-3 text-right text-neutral-700">{rv.responses}</td>

@@ -47,3 +47,11 @@ export const TRACK_BADGE_CLASSES: Record<string, string> = {
   fullstack: "bg-cyan-50 text-cyan-700",
   platform: "bg-indigo-50 text-indigo-700",
 };
+
+export const TRACK_LABELS: Record<string, string> = {
+  ai: "AI",
+};
+
+export function formatTrackLabel(track: string): string {
+  return TRACK_LABELS[track] ?? track.charAt(0).toUpperCase() + track.slice(1);
+}

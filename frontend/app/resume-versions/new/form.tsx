@@ -7,10 +7,11 @@ import { X, Paperclip, FileText } from "lucide-react";
 import { createResumeVersion, uploadResumePDF } from "@/lib/api";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
+import { formatTrackLabel } from "@/lib/domain/applications";
 
 const TRACK_OPTIONS: Option[] = ["backend", "ai", "quant", "general"].map((t) => ({
   value: t,
-  label: t.charAt(0).toUpperCase() + t.slice(1),
+  label: formatTrackLabel(t),
 }));
 
 export function NewResumeForm() {

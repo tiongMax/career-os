@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { compareResume, type ResumeVersion, type ResumeMatchResult } from "@/lib/api";
+import { formatTrackLabel } from "@/lib/domain/applications";
 
 interface Props {
   jdId: string;
@@ -40,7 +41,7 @@ export function CompareResumeCard({ jdId, resumeVersions }: Props) {
           <option value="">Select a resume version…</option>
           {resumeVersions.map((rv) => (
             <option key={rv.id} value={rv.id}>
-              {rv.name} ({rv.track})
+              {rv.name} ({formatTrackLabel(rv.track)})
             </option>
           ))}
         </select>

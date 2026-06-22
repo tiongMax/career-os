@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, FileText, FileX } from "lucide-react";
 import { getResumeVersions, getResumePDFUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
+import { formatTrackLabel } from "@/lib/domain/applications";
 
 const TRACK_STYLE: Record<string, { dot: string; label: string; border: string }> = {
   backend: { dot: "bg-blue-500",    label: "bg-blue-50 text-blue-700",     border: "border-l-blue-400"    },
@@ -52,7 +53,7 @@ export default async function ResumeVersionsPage() {
               <div key={track}>
                 <div className="flex items-center gap-2.5 mb-4">
                   <span className={`h-2 w-2 rounded-full ${style.dot}`} />
-                  <h2 className="text-sm font-semibold text-neutral-700 capitalize">{track}</h2>
+                  <h2 className="text-sm font-semibold text-neutral-700">{formatTrackLabel(track)}</h2>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${style.label}`}>{items.length}</span>
                   <div className="flex-1 h-px bg-neutral-100" />
                 </div>
