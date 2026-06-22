@@ -209,9 +209,12 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
         <section className="space-y-5">
           <Card title="Resume">
             {resume ? (
-              <div>
-                <p className="text-sm font-medium text-neutral-800">{resume.name}</p>
-                <p className="text-xs text-neutral-400 mt-0.5">{formatTrackLabel(resume.track)}</p>
+              <Link
+                href={`/resume-versions/${resume.id}/edit`}
+                className="group inline-block max-w-full rounded-sm transition-colors"
+              >
+                <p className="text-sm font-medium text-neutral-800 group-hover:text-blue-600 group-hover:underline">{resume.name}</p>
+                <p className="text-xs text-neutral-400 mt-0.5 group-hover:text-neutral-500">{formatTrackLabel(resume.track)}</p>
                 {resume.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {resume.tags.map((t) => (
@@ -219,7 +222,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                     ))}
                   </div>
                 )}
-              </div>
+              </Link>
             ) : (
               <p className="text-sm text-neutral-400">No resume attached</p>
             )}
