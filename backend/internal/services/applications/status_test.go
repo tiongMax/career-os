@@ -123,6 +123,10 @@ func (f *fakeStore) ListApplications(context.Context) ([]postgres.Application, e
 	return nil, nil
 }
 
+func (f *fakeStore) ListApplicationsPage(context.Context, int, int) (postgres.ApplicationPage, error) {
+	return postgres.ApplicationPage{}, nil
+}
+
 func (f *fakeStore) GetApplication(_ context.Context, _ string) (postgres.Application, error) {
 	return f.application, nil
 }

@@ -19,6 +19,7 @@ var (
 type Store interface {
 	CreateApplication(context.Context, postgres.CreateApplicationParams) (postgres.Application, error)
 	ListApplications(context.Context) ([]postgres.Application, error)
+	ListApplicationsPage(context.Context, int, int) (postgres.ApplicationPage, error)
 	GetApplication(context.Context, string) (postgres.Application, error)
 	UpdateApplication(context.Context, postgres.UpdateApplicationParams) (postgres.Application, error)
 	UpdateApplicationStatusAndCreateAudit(context.Context, string, string, postgres.CreateAuditLogParams) (postgres.Application, error)
@@ -72,6 +73,13 @@ type ChangeStatusParams struct {
 	Status string `json:"status"`
 }
 
+type ListPage struct {
+	Items  []appdomain.Application
+	Total  int
+	Limit  int
+	Offset int
+}
+
 func New(store Store) *Service {
 	return &Service{store: store}
 }
@@ -98,6 +106,29 @@ func (s *Service) List(ctx context.Context) ([]appdomain.Application, error) {
 		return nil, err
 	}
 	return applicationsFromStore(applications), nil
+}
+
+func (s *Service) ListPaginated(ctx context.Context, limit, offset int) (ListPage, error) {
+	if limit < 1 {
+		limit = 25
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	page, err := s.store.ListApplicationsPage(ctx, limit, offset)
+	if err != nil {
+		return ListPage{}, err
+	}
+	return ListPage{
+		Items:  applicationsFromStore(page.Items),
+		Total:  page.Total,
+		Limit:  page.Limit,
+		Offset: page.Offset,
+	}, nil
 }
 
 func (s *Service) Get(ctx context.Context, id string) (appdomain.Application, error) {

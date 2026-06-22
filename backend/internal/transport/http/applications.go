@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	appdomain "careeros/backend/internal/domain/applications"
@@ -66,6 +67,13 @@ type applicationResponse struct {
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
+type applicationsPageResponse struct {
+	Items  []applicationResponse `json:"items"`
+	Total  int                   `json:"total"`
+	Limit  int                   `json:"limit"`
+	Offset int                   `json:"offset"`
+}
+
 type auditLogResponse struct {
 	ID         string          `json:"id"`
 	EntityType string          `json:"entity_type"`
@@ -91,12 +99,49 @@ func (h Handler) createApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) listApplications(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	if query.Has("limit") || query.Has("offset") {
+		limit, ok := intQuery(w, r, "limit", 25)
+		if !ok {
+			return
+		}
+		offset, ok := intQuery(w, r, "offset", 0)
+		if !ok {
+			return
+		}
+		page, err := h.applications.ListPaginated(r.Context(), limit, offset)
+		if err != nil {
+			h.writeServiceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, applicationsPageResponse{
+			Items:  applicationDTOs(page.Items),
+			Total:  page.Total,
+			Limit:  page.Limit,
+			Offset: page.Offset,
+		})
+		return
+	}
+
 	applications, err := h.applications.List(r.Context())
 	if err != nil {
 		h.writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, applicationDTOs(applications))
+}
+
+func intQuery(w http.ResponseWriter, r *http.Request, key string, fallback int) (int, bool) {
+	raw := r.URL.Query().Get(key)
+	if raw == "" {
+		return fallback, true
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid "+key)
+		return 0, false
+	}
+	return value, true
 }
 
 func (h Handler) getApplication(w http.ResponseWriter, r *http.Request) {
