@@ -11,7 +11,7 @@ import { Field, FormSection, inputClass } from "@/components/forms/form-section"
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_OPTIONS, formatTrackLabel } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_OPTIONS, formatTrackLabel, isVisibleTrack } from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
@@ -59,10 +59,12 @@ export function EditApplicationForm({
 
   const defaultCompanyName = companies.find((company) => company.id === application.company_id)?.name ?? "";
 
-  const trackOptions: Option[] = tracks.map((track) => ({
-    value: track.name,
-    label: formatTrackLabel(track.name),
-  }));
+  const trackOptions: Option[] = tracks
+    .filter((track) => isVisibleTrack(track.name))
+    .map((track) => ({
+      value: track.name,
+      label: formatTrackLabel(track.name),
+    }));
 
   const resumeOptions: Option[] = resumes.map((resume) => ({
     value: resume.id,
