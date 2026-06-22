@@ -53,7 +53,15 @@ var allowedTransitions = map[string]map[string]struct{}{
 		StatusWithdrawn: {},
 		StatusRejected:  {},
 	},
-	StatusRejected:  {},
+	StatusRejected: {
+		StatusSaved:           {},
+		StatusApplied:         {},
+		StatusRecruiterScreen: {},
+		StatusTechnicalScreen: {},
+		StatusOnsite:          {},
+		StatusOffer:           {},
+		StatusWithdrawn:       {},
+	},
 	StatusWithdrawn: {},
 }
 
