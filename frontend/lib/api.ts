@@ -75,6 +75,13 @@ export interface Application {
   updated_at: string;
 }
 
+export interface ApplicationPage {
+  items: Application[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface JobDescription {
   id: string;
   application_id: string;
@@ -258,6 +265,23 @@ export const getResumePDFUrl = (id: string) => apiUrl(`/resume-versions/${id}/pd
 // ─── Applications ────────────────────────────────────────────────────────────
 
 export const getApplications = () => apiFetch<Application[]>("/applications");
+export const getApplicationsPage = async ({ limit, offset }: { limit: number; offset: number }): Promise<ApplicationPage> => {
+  const data = await apiFetch<ApplicationPage | Application[]>(`/applications?limit=${limit}&offset=${offset}`);
+  if (Array.isArray(data)) {
+    return {
+      items: data.slice(offset, offset + limit),
+      total: data.length,
+      limit,
+      offset,
+    };
+  }
+  return {
+    items: data.items ?? [],
+    total: data.total ?? data.items?.length ?? 0,
+    limit: data.limit ?? limit,
+    offset: data.offset ?? offset,
+  };
+};
 export const getApplication = (id: string) =>
   apiFetch<Application>(`/applications/${id}`);
 export interface CreateApplicationPayload {

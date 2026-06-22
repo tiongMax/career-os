@@ -52,6 +52,12 @@ export const TRACK_LABELS: Record<string, string> = {
   ai: "AI",
 };
 
+export const HIDDEN_TRACKS = new Set(["decode-probe-track"]);
+
 export function formatTrackLabel(track: string): string {
   return TRACK_LABELS[track] ?? track.charAt(0).toUpperCase() + track.slice(1);
+}
+
+export function isVisibleTrack(track: string): boolean {
+  return !HIDDEN_TRACKS.has(track);
 }
