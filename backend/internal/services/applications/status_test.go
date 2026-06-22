@@ -28,10 +28,9 @@ func TestValidateTransition(t *testing.T) {
 			wantErr: ErrInvalidTransition,
 		},
 		{
-			name:    "rejected is terminal",
-			from:    StatusRejected,
-			to:      StatusApplied,
-			wantErr: ErrInvalidTransition,
+			name: "rejected can reopen to applied",
+			from: StatusRejected,
+			to:   StatusApplied,
 		},
 		{
 			name:    "withdrawn is terminal",

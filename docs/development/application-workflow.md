@@ -27,7 +27,6 @@ Application status rules are implemented in:
 
 Terminal statuses in the current state machine:
 
-- `rejected`
 - `withdrawn`
 
 `offer` is not terminal because the code allows it to move to `rejected` or
@@ -43,7 +42,7 @@ Terminal statuses in the current state machine:
 | `technical_screen` | `onsite`, `rejected`, `withdrawn` |
 | `onsite` | `offer`, `rejected`, `withdrawn` |
 | `offer` | `withdrawn`, `rejected` |
-| `rejected` | none |
+| `rejected` | `saved`, `applied`, `recruiter_screen`, `technical_screen`, `onsite`, `offer`, `withdrawn` |
 | `withdrawn` | none |
 
 Invalid transitions return HTTP `409` from `PATCH /api/v1/applications/{id}/status`.
@@ -106,6 +105,7 @@ Coverage should include:
 - Valid forward transitions.
 - Invalid skipped transitions.
 - Terminal statuses reject further changes.
+- Rejected applications can be reopened while still writing audit history.
 - Audit log is written on success.
 - No audit log is written when transition validation fails.
 - Transaction rolls back if audit insert fails.

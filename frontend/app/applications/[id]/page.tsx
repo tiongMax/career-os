@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import {
+  type Application,
+  type AuditLog,
   getApplication,
   getApplicationAuditLogs,
   getApplicationJobDescription,
@@ -19,7 +21,7 @@ import { PrepBriefCard } from "./prep-brief-card";
 import { CompareResumeCard } from "./compare-resume-card";
 import { AnalysisJobsCard } from "./analysis-jobs-card";
 import { PortalPassword } from "./portal-password";
-import { TRACK_BADGE_CLASSES } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_LABELS, TRACK_BADGE_CLASSES } from "@/lib/domain/applications";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -44,6 +46,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
   const recommendedResume = jobDescription && jobDescription.extracted_keywords.length > 0
     ? await getRecommendedResume(id).catch(() => null)
     : null;
+  const timelineEvents = statusTimelineEvents(app, auditLogs);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -248,15 +251,27 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
             </Card>
           )}
 
-          <Card title={`Audit Log (${auditLogs.length})`}>
-            {auditLogs.length === 0 ? (
-              <p className="text-sm text-neutral-400">No changes yet</p>
+          <Card title={`Status Timeline (${timelineEvents.length})`}>
+            {timelineEvents.length === 0 ? (
+              <p className="text-sm text-neutral-400">No status history yet</p>
             ) : (
-              <ul className="space-y-3">
-                {auditLogs.slice().reverse().map((log) => (
-                  <li key={log.id} className="text-xs">
-                    <p className="font-medium text-neutral-700 capitalize">{log.action.replace("_", " ")}</p>
-                    <p className="text-neutral-400 mt-0.5">{formatRelative(log.created_at)}</p>
+              <ul className="relative space-y-0">
+                {timelineEvents.map((event, index) => (
+                  <li key={event.id} className="relative flex gap-3 pb-4 last:pb-0">
+                    {index < timelineEvents.length - 1 && (
+                      <span className="absolute left-1.5 top-3 h-full w-px bg-neutral-200" />
+                    )}
+                    <span className={`relative mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-white ${timelineDotClass(event.status)}`} />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="text-sm font-medium text-neutral-800">{event.title}</p>
+                        {event.detail && (
+                          <p className="text-xs text-neutral-400">{event.detail}</p>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs text-neutral-500">{formatTimestamp(event.at)}</p>
+                      <p className="mt-0.5 text-xs text-neutral-400">{formatRelative(event.at)}</p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -266,6 +281,88 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
       </div>
     </div>
   );
+}
+
+type StatusTimelineEvent = {
+  id: string;
+  status: string;
+  title: string;
+  detail?: string;
+  at: string;
+};
+
+function statusTimelineEvents(application: Application, auditLogs: AuditLog[]): StatusTimelineEvent[] {
+  const events: StatusTimelineEvent[] = [];
+
+  if (application.applied_at) {
+    events.push({
+      id: "applied-at",
+      status: "applied",
+      title: "Applied",
+      detail: "Application date",
+      at: application.applied_at,
+    });
+  }
+
+  for (const log of auditLogs) {
+    const oldStatus = auditStatusValue(log.old_value);
+    const newStatus = auditStatusValue(log.new_value);
+    if (!newStatus) continue;
+
+    const oldLabel = oldStatus ? statusLabel(oldStatus) : null;
+    const newLabel = statusLabel(newStatus);
+    events.push({
+      id: log.id,
+      status: newStatus,
+      title: newLabel,
+      detail: oldLabel ? `${oldLabel} -> ${newLabel}` : log.action.replace("_", " "),
+      at: log.created_at,
+    });
+  }
+
+  return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+}
+
+function statusLabel(status: string): string {
+  return APPLICATION_STATUS_LABELS[status] ?? status;
+}
+
+function timelineDotClass(status: string): string {
+  switch (status) {
+    case "applied":
+      return "bg-blue-500";
+    case "rejected":
+      return "bg-red-500";
+    case "offer":
+      return "bg-green-500";
+    case "withdrawn":
+      return "bg-neutral-400";
+    case "onsite":
+      return "bg-orange-500";
+    case "technical_screen":
+      return "bg-indigo-500";
+    case "recruiter_screen":
+      return "bg-purple-500";
+    default:
+      return "bg-slate-400";
+  }
+}
+
+function formatTimestamp(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function auditStatusValue(value: unknown): string | null {
+  if (!value || typeof value !== "object" || !("status" in value)) return null;
+
+  const status = (value as { status?: unknown }).status;
+  return typeof status === "string" ? status : null;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
