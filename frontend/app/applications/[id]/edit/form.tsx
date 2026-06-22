@@ -11,11 +11,12 @@ import { Field, FormSection, inputClass } from "@/components/forms/form-section"
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_OPTIONS, formatTrackLabel, isVisibleTrack } from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
   { value: "internship", label: "Internship" },
+  { value: "apprentice", label: "Apprentice" },
   { value: "part_time", label: "Part-time" },
   { value: "contract", label: "Contract" },
 ];
@@ -32,7 +33,7 @@ const LOCATION_OPTIONS: Option[] = [
 
 function dateInputValue(value?: string): string {
   if (!value) return "";
-  return new Date(value).toISOString().split("T")[0];
+  return value.slice(0, 10);
 }
 
 function optionForValue(options: Option[], value?: string): Option | undefined {
@@ -58,15 +59,17 @@ export function EditApplicationForm({
 
   const defaultCompanyName = companies.find((company) => company.id === application.company_id)?.name ?? "";
 
-  const trackOptions: Option[] = tracks.map((track) => ({
-    value: track.name,
-    label: track.name.charAt(0).toUpperCase() + track.name.slice(1),
-  }));
+  const trackOptions: Option[] = tracks
+    .filter((track) => isVisibleTrack(track.name))
+    .map((track) => ({
+      value: track.name,
+      label: formatTrackLabel(track.name),
+    }));
 
   const resumeOptions: Option[] = resumes.map((resume) => ({
     value: resume.id,
     label: resume.name,
-    meta: resume.track,
+    meta: formatTrackLabel(resume.track),
   }));
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -123,9 +126,6 @@ export function EditApplicationForm({
 
       const appliedAt = fd.get("applied_at") as string;
       if (appliedAt) payload.applied_at = new Date(appliedAt).toISOString();
-
-      const deadlineAt = fd.get("deadline_at") as string;
-      if (deadlineAt) payload.deadline_at = new Date(deadlineAt).toISOString();
 
       await updateApplication(application.id, payload);
       const nextStatus = (fd.get("status") as string) || "saved";
@@ -274,9 +274,6 @@ export function EditApplicationForm({
             />
           </Field>
         </div>
-        <Field label="Deadline">
-          <input name="deadline_at" type="date" defaultValue={dateInputValue(application.deadline_at)} className={inputClass} />
-        </Field>
         <Field label="Notes">
           <textarea
             name="notes"

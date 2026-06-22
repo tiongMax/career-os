@@ -305,6 +305,11 @@ func (f *fakeApplicationService) List(context.Context) ([]appdomain.Application,
 	return []appdomain.Application{{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}}, nil
 }
 
+func (f *fakeApplicationService) ListPaginated(context.Context, int, int) (appsvc.ListPage, error) {
+	item := appdomain.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}
+	return appsvc.ListPage{Items: []appdomain.Application{item}, Total: 1, Limit: 25, Offset: 0}, nil
+}
+
 func (f *fakeApplicationService) Get(context.Context, string) (appdomain.Application, error) {
 	return appdomain.Application{ID: testUUID, CompanyID: testUUID, Title: "Backend Engineer", RoleTrack: "backend", Status: appsvc.StatusSaved}, nil
 }

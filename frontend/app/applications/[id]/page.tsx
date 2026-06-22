@@ -21,7 +21,7 @@ import { PrepBriefCard } from "./prep-brief-card";
 import { CompareResumeCard } from "./compare-resume-card";
 import { AnalysisJobsCard } from "./analysis-jobs-card";
 import { PortalPassword } from "./portal-password";
-import { APPLICATION_STATUS_LABELS, TRACK_BADGE_CLASSES } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_LABELS, TRACK_BADGE_CLASSES, formatTrackLabel } from "@/lib/domain/applications";
 
 export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
   const { id } = await props.params;
@@ -81,7 +81,6 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               <Detail label="Location" value={app.location} />
               <Detail label="Employment" value={app.employment_type} />
               <Detail label="Applied" value={formatDate(app.applied_at)} />
-              <Detail label="Deadline" value={formatDate(app.deadline_at)} />
               {app.job_url && (
                 <div className="col-span-2">
                   <dt className="text-xs text-neutral-400">Job URL</dt>
@@ -139,7 +138,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-sm font-medium text-neutral-800">{recommendedResume.resume_version.name}</p>
-                  <p className="text-xs text-neutral-400 capitalize mt-0.5">{recommendedResume.resume_version.track}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">{formatTrackLabel(recommendedResume.resume_version.track)}</p>
                 </div>
                 <span className={`text-lg font-semibold ${recommendedResume.score >= 0.7 ? "text-green-600" : recommendedResume.score >= 0.4 ? "text-yellow-600" : "text-red-500"}`}>
                   {Math.round(recommendedResume.score * 100)}%
@@ -210,9 +209,12 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
         <section className="space-y-5">
           <Card title="Resume">
             {resume ? (
-              <div>
-                <p className="text-sm font-medium text-neutral-800">{resume.name}</p>
-                <p className="text-xs text-neutral-400 mt-0.5 capitalize">{resume.track}</p>
+              <Link
+                href={`/resume-versions/${resume.id}/edit`}
+                className="group inline-block max-w-full rounded-sm transition-colors"
+              >
+                <p className="text-sm font-medium text-neutral-800 group-hover:text-blue-600 group-hover:underline">{resume.name}</p>
+                <p className="text-xs text-neutral-400 mt-0.5 group-hover:text-neutral-500">{formatTrackLabel(resume.track)}</p>
                 {resume.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {resume.tags.map((t) => (
@@ -220,7 +222,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                     ))}
                   </div>
                 )}
-              </div>
+              </Link>
             ) : (
               <p className="text-sm text-neutral-400">No resume attached</p>
             )}
@@ -269,7 +271,7 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                           <p className="text-xs text-neutral-400">{event.detail}</p>
                         )}
                       </div>
-                      <p className="mt-0.5 text-xs text-neutral-500">{formatTimestamp(event.at)}</p>
+                      <p className="mt-0.5 text-xs text-neutral-500">{formatTimestamp(event.at, event.dateOnly)}</p>
                       <p className="mt-0.5 text-xs text-neutral-400">{formatRelative(event.at)}</p>
                     </div>
                   </li>
@@ -289,6 +291,7 @@ type StatusTimelineEvent = {
   title: string;
   detail?: string;
   at: string;
+  dateOnly?: boolean;
 };
 
 function statusTimelineEvents(application: Application, auditLogs: AuditLog[]): StatusTimelineEvent[] {
@@ -301,6 +304,7 @@ function statusTimelineEvents(application: Application, auditLogs: AuditLog[]): 
       title: "Applied",
       detail: "Application date",
       at: application.applied_at,
+      dateOnly: true,
     });
   }
 
@@ -348,14 +352,19 @@ function timelineDotClass(status: string): string {
   }
 }
 
-function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
+function formatTimestamp(iso: string, dateOnly = false): string {
+  const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  };
+
+  if (!dateOnly) {
+    options.hour = "numeric";
+    options.minute = "2-digit";
+  }
+
+  return new Date(iso).toLocaleString("en-US", options);
 }
 
 function auditStatusValue(value: unknown): string | null {
@@ -387,8 +396,8 @@ function TrackBadges({ tracks }: { tracks: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {tracks.filter(Boolean).map((track) => (
-        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
-          {track}
+        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
+          {formatTrackLabel(track)}
         </span>
       ))}
     </div>

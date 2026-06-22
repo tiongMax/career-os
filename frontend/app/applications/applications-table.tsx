@@ -2,23 +2,17 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
+import { Search, ChevronUp, ChevronDown, ChevronsUpDown, X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Application } from "@/lib/api";
-import { formatRelative } from "@/lib/utils";
+import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import {
   APPLICATION_STATUS_OPTIONS,
   APPLICATION_STATUS_ORDER,
   TRACK_BADGE_CLASSES,
+  formatTrackLabel,
+  isVisibleTrack,
 } from "@/lib/domain/applications";
-
-const DATE_OPTIONS = [
-  { value: "today",   label: "Today" },
-  { value: "7d",      label: "Last 7 days" },
-  { value: "30d",     label: "Last 30 days" },
-  { value: "90d",     label: "Last 3 months" },
-  { value: "year",    label: "This year" },
-];
 
 type SortCol = "title" | "company" | "track" | "status" | "applied";
 type SortDir = "asc" | "desc";
@@ -33,25 +27,28 @@ function fuzzyMatch(query: string, target: string): boolean {
   return qi === q.length;
 }
 
-function dateThreshold(range: string): Date {
-  const now = new Date();
-  switch (range) {
-    case "today": {
-      const d = new Date(now);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    case "7d":   return new Date(now.getTime() - 7  * 86400_000);
-    case "30d":  return new Date(now.getTime() - 30 * 86400_000);
-    case "90d":  return new Date(now.getTime() - 90 * 86400_000);
-    case "year": return new Date(now.getFullYear(), 0, 1);
-    default:     return new Date(0);
-  }
+function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function dateKey(date: Date): string {
+  return `${monthKey(date)}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addMonths(date: Date, amount: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function formatMonthYear(date: Date): string {
+  return date.toLocaleString("en-US", { month: "long", year: "numeric" });
 }
 
 interface Props {
   applications: Application[];
   companyMap: Record<string, string>;
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
 function SortIcon({ col, sortCol, sortDir }: { col: SortCol; sortCol: SortCol; sortDir: SortDir }) {
@@ -61,13 +58,14 @@ function SortIcon({ col, sortCol, sortDir }: { col: SortCol; sortCol: SortCol; s
     : <ChevronDown className="w-3.5 h-3.5 ml-1 text-neutral-700" />;
 }
 
-export function ApplicationsTable({ applications, companyMap }: Props) {
+export function ApplicationsTable({ applications, companyMap, page, pageSize, total }: Props) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState<string[]>([]);
-  const [dateFilter, setDateFilter] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 200);
@@ -89,6 +87,16 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       .filter((c) => c.name)
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [applications, companyMap]);
+
+  const applicationCountsByDate = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const application of applications) {
+      const appliedAt = application.applied_at ?? application.created_at;
+      const key = dateKey(new Date(appliedAt));
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [applications]);
 
   const handleSort = (col: SortCol) => {
     if (sortCol === col) {
@@ -122,11 +130,10 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
     if (companyFilter.length > 0)
       list = list.filter((a) => companyFilter.includes(a.company_id));
 
-    if (dateFilter) {
-      const threshold = dateThreshold(dateFilter);
+    if (selectedDate) {
       list = list.filter((a) => {
-        if (!a.applied_at) return false;
-        return new Date(a.applied_at) >= threshold;
+        const appliedAt = a.applied_at ?? a.created_at;
+        return dateKey(new Date(appliedAt)) === selectedDate;
       });
     }
 
@@ -154,16 +161,19 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [applications, companyMap, debouncedSearch, trackFilter, statusFilter, companyFilter, dateFilter, sortCol, sortDir]);
+  }, [applications, companyMap, debouncedSearch, trackFilter, statusFilter, companyFilter, selectedDate, sortCol, sortDir]);
 
-  const hasFilters = search.trim() || trackFilter.length > 0 || statusFilter.length > 0 || companyFilter.length > 0 || dateFilter;
+  const hasFilters = search.trim() || trackFilter.length > 0 || statusFilter.length > 0 || companyFilter.length > 0 || selectedDate;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastItem = Math.min(total, page * pageSize);
 
   const clearAll = () => {
     setSearch("");
     setTrackFilter([]);
     setStatusFilter([]);
     setCompanyFilter([]);
-    setDateFilter("");
+    setSelectedDate("");
   };
 
   return (
@@ -173,9 +183,9 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900">Applications</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            {filtered.length !== applications.length
-              ? `${filtered.length} of ${applications.length} total`
-              : `${applications.length} total`}
+            {hasFilters
+              ? `${filtered.length} filtered on this page`
+              : `Showing ${firstItem}-${lastItem} of ${total}`}
           </p>
         </div>
         <Link
@@ -211,7 +221,13 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
         <CompanyFilter companies={allCompanies} selected={companyFilter} onToggle={toggleCompany} onClear={() => setCompanyFilter([])} />
         <TrackFilter tracks={allTracks} selected={trackFilter} onToggle={toggleTrack} onClear={() => setTrackFilter([])} />
         <StatusFilter selected={statusFilter} onToggle={toggleStatus} onClear={() => setStatusFilter([])} />
-        <DateFilter selected={dateFilter} onChange={setDateFilter} />
+        <DateFilter
+          countsByDate={applicationCountsByDate}
+          selected={selectedDate}
+          selectedMonth={selectedMonth}
+          onChange={setSelectedDate}
+          onMonthChange={setSelectedMonth}
+        />
 
         {hasFilters && (
           <button
@@ -232,72 +248,124 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           </button>
         </div>
       ) : (
-        <div className={`rounded-lg border border-neutral-200 bg-white overflow-hidden transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50">
-                {(
-                  [
-                    { col: "title"   as SortCol, label: "Role" },
-                    { col: "company" as SortCol, label: "Company" },
-                    { col: "track"   as SortCol, label: "Track" },
-                    { col: "status"  as SortCol, label: "Status" },
-                    { col: "applied" as SortCol, label: "Applied" },
-                  ] as const
-                ).map(({ col, label }) => (
-                  <th key={col} className="px-5 py-3 text-left">
-                    <button
-                      onClick={() => handleSort(col)}
-                      className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
-                    >
-                      {label}
-                      <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
-                    </button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {filtered.map((app) => (
-                <tr key={app.id} className="hover:bg-neutral-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <Link
-                      href={`/applications/${app.id}`}
-                      className="font-medium text-neutral-800 hover:text-blue-600 transition-colors"
-                    >
-                      {app.title}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-neutral-500">
-                    {companyMap[app.company_id] ?? "—"}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex max-w-48 flex-wrap gap-1">
-                      {applicationTracks(app).map((track) => (
-                        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
-                          {track}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <StatusBadge status={app.status} />
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-neutral-400">
-                    {formatRelative(app.applied_at ?? app.created_at)}
-                  </td>
+        <>
+          <div className={`rounded-lg border border-neutral-200 bg-white overflow-hidden transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-neutral-100 bg-neutral-50">
+                  {(
+                    [
+                      { col: "title"   as SortCol, label: "Role" },
+                      { col: "company" as SortCol, label: "Company" },
+                      { col: "track"   as SortCol, label: "Track" },
+                      { col: "status"  as SortCol, label: "Status" },
+                      { col: "applied" as SortCol, label: "Applied" },
+                    ] as const
+                  ).map(({ col, label }) => (
+                    <th key={col} className="px-5 py-3 text-left">
+                      <button
+                        onClick={() => handleSort(col)}
+                        className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+                      >
+                        {label}
+                        <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
+                      </button>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {filtered.map((app) => (
+                  <tr key={app.id} className="hover:bg-neutral-50 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <Link
+                        href={`/applications/${app.id}`}
+                        className="font-medium text-neutral-800 hover:text-blue-600 transition-colors"
+                      >
+                        {app.title}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-neutral-500">
+                      {companyMap[app.company_id] ?? "—"}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex max-w-48 flex-wrap gap-1">
+                        {applicationTracks(app).map((track) => (
+                          <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
+                            {formatTrackLabel(track)}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusBadge status={app.status} />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="text-xs text-neutral-500">{formatDate(app.applied_at ?? app.created_at)}</div>
+                      <div className="mt-0.5 text-xs text-neutral-400">{formatRelative(app.applied_at ?? app.created_at)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} totalPages={totalPages} firstItem={firstItem} lastItem={lastItem} total={total} />
+        </>
       )}
     </>
   );
 }
 
 function applicationTracks(application: Application): string[] {
-  return application.role_tracks?.length ? application.role_tracks : [application.role_track].filter(Boolean);
+  const tracks = application.role_tracks?.length ? application.role_tracks : [application.role_track].filter(Boolean);
+  return tracks.filter(isVisibleTrack);
+}
+
+function Pagination({
+  page,
+  totalPages,
+  firstItem,
+  lastItem,
+  total,
+}: {
+  page: number;
+  totalPages: number;
+  firstItem: number;
+  lastItem: number;
+  total: number;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-xs text-neutral-400">
+        Showing {firstItem}-{lastItem} of {total}
+      </p>
+      <div className="flex items-center gap-2">
+        <PageLink page={page - 1} disabled={page <= 1}>
+          Previous
+        </PageLink>
+        <span className="text-xs text-neutral-500">
+          Page {page} of {totalPages}
+        </span>
+        <PageLink page={page + 1} disabled={page >= totalPages}>
+          Next
+        </PageLink>
+      </div>
+    </div>
+  );
+}
+
+function PageLink({ page, disabled, children }: { page: number; disabled: boolean; children: React.ReactNode }) {
+  const className = `rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+    disabled
+      ? "pointer-events-none border-neutral-200 text-neutral-300"
+      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+  }`;
+
+  return (
+    <Link href={`/applications?page=${page}`} aria-disabled={disabled} className={className}>
+      {children}
+    </Link>
+  );
 }
 
 // ── Shared checkbox row ───────────────────────────────────────────────────────
@@ -428,7 +496,7 @@ function TrackFilter({
       {open && (
         <>
           <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-[140px]">
+          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-35">
             {selected.length > 0 && (
               <button
                 onClick={() => { onClear(); setOpen(false); }}
@@ -438,7 +506,7 @@ function TrackFilter({
               </button>
             )}
             {tracks.map((track) => (
-              <CheckRow key={track} checked={selected.includes(track)} label={track} onClick={() => onToggle(track)} />
+              <CheckRow key={track} checked={selected.includes(track)} label={formatTrackLabel(track)} onClick={() => onToggle(track)} />
             ))}
           </div>
         </>
@@ -467,7 +535,7 @@ function StatusFilter({
       {open && (
         <>
           <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-[160px]">
+          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-40">
             {selected.length > 0 && (
               <button
                 onClick={() => { onClear(); setOpen(false); }}
@@ -489,15 +557,27 @@ function StatusFilter({
 // ── Date filter ───────────────────────────────────────────────────────────────
 
 function DateFilter({
+  countsByDate,
   selected,
+  selectedMonth,
   onChange,
+  onMonthChange,
 }: {
+  countsByDate: Record<string, number>;
   selected: string;
+  selectedMonth: Date;
   onChange: (v: string) => void;
+  onMonthChange: (date: Date) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const activeLabel = DATE_OPTIONS.find((o) => o.value === selected)?.label;
-  const label = activeLabel ?? "Applied";
+  const label = selected ? formatDate(`${selected}T00:00:00`) : "Applied";
+  const firstDay = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
+  const daysInMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0).getDate();
+  const leadingDays = firstDay.getDay();
+  const cells = [
+    ...Array.from({ length: leadingDays }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+  ];
 
   return (
     <div className="relative">
@@ -505,29 +585,69 @@ function DateFilter({
       {open && (
         <>
           <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-37.5">
+          <div className="absolute right-0 top-full mt-1 z-20 w-72 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                aria-label="Previous month"
+                onClick={() => onMonthChange(addMonths(selectedMonth, -1))}
+                className="flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <p className="text-sm font-medium text-neutral-800">{formatMonthYear(selectedMonth)}</p>
+              <button
+                type="button"
+                aria-label="Next month"
+                onClick={() => onMonthChange(addMonths(selectedMonth, 1))}
+                className="flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-neutral-400">
+              {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                <div key={`${day}-${index}`} className="py-1">{day}</div>
+              ))}
+            </div>
+            <div className="mt-1 grid grid-cols-7 gap-1">
+              {cells.map((day, index) => {
+                if (!day) return <div key={`empty-${index}`} className="h-9" />;
+
+                const key = dateKey(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), day));
+                const count = countsByDate[key] ?? 0;
+                const isSelected = selected === key;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => { onChange(key); setOpen(false); }}
+                    className={`flex h-9 flex-col items-center justify-center rounded text-xs transition-colors ${
+                      isSelected
+                        ? "bg-neutral-900 text-white"
+                        : count > 0
+                          ? "text-neutral-800 hover:bg-neutral-100"
+                          : "text-neutral-400 hover:bg-neutral-50"
+                    }`}
+                  >
+                    <span className="leading-none">{day}</span>
+                    <span className={`mt-0.5 text-[10px] leading-none ${isSelected ? "text-neutral-200" : count > 0 ? "text-blue-600" : "text-neutral-300"}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             {selected && (
               <button
                 onClick={() => { onChange(""); setOpen(false); }}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50"
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-500 transition-colors hover:border-neutral-300 hover:text-neutral-800"
               >
-                <X className="w-3 h-3" /> Clear date filter
+                <X className="h-3 w-3" /> Clear selected day
               </button>
             )}
-            {DATE_OPTIONS.map(({ value, label: optLabel }) => (
-              <button
-                key={value}
-                onClick={() => { onChange(value); setOpen(false); }}
-                className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50 ${selected === value ? "font-medium text-neutral-900" : "text-neutral-700"}`}
-              >
-                {selected === value && (
-                  <svg className="w-3 h-3 text-neutral-900 shrink-0" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                <span className={selected === value ? "" : "ml-5"}>{optLabel}</span>
-              </button>
-            ))}
           </div>
         </>
       )}

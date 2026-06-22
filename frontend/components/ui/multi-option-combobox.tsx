@@ -83,7 +83,7 @@ export function MultiOptionCombobox({
             selectedOptions.map((option) => (
               <span
                 key={option.value}
-                className="inline-flex items-center gap-1 rounded bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700 capitalize"
+                className="inline-flex items-center gap-1 rounded bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700"
               >
                 {option.label}
                 <span

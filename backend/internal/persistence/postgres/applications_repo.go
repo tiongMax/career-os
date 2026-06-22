@@ -3,6 +3,9 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationParams) (Application, error) {
@@ -65,6 +68,84 @@ func (q *Queries) ListApplications(ctx context.Context) ([]Application, error) {
 		applications = append(applications, applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, tracks, row.Source, row.Status, row.Location, row.EmploymentType, row.JobUrl, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt))
 	}
 	return applications, nil
+}
+
+func (q *Queries) ListApplicationsPage(ctx context.Context, limit, offset int) (ApplicationPage, error) {
+	const sql = `
+SELECT id::text, company_id::text, COALESCE(resume_version_id::text, '') AS resume_version_id, title, role_track, source,
+    status, location, employment_type, job_url, portal_account, portal_password, applied_at, deadline_at, notes, created_at, updated_at,
+    COUNT(*) OVER()::int AS total
+FROM applications
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2`
+
+	rows, err := q.db.Query(ctx, sql, limit, offset)
+	if err != nil {
+		return ApplicationPage{}, err
+	}
+	defer rows.Close()
+
+	applications := make([]Application, 0, limit)
+	total := 0
+	for rows.Next() {
+		var row struct {
+			ID              string
+			CompanyID       string
+			ResumeVersionID *string
+			Title           string
+			RoleTrack       string
+			Source          *string
+			Status          string
+			Location        *string
+			EmploymentType  *string
+			JobURL          *string
+			PortalAccount   *string
+			PortalPassword  *string
+			AppliedAt       *time.Time
+			DeadlineAt      *time.Time
+			Notes           *string
+			CreatedAt       pgtype.Timestamptz
+			UpdatedAt       pgtype.Timestamptz
+			Total           int
+		}
+		if err := rows.Scan(
+			&row.ID,
+			&row.CompanyID,
+			&row.ResumeVersionID,
+			&row.Title,
+			&row.RoleTrack,
+			&row.Source,
+			&row.Status,
+			&row.Location,
+			&row.EmploymentType,
+			&row.JobURL,
+			&row.PortalAccount,
+			&row.PortalPassword,
+			&row.AppliedAt,
+			&row.DeadlineAt,
+			&row.Notes,
+			&row.CreatedAt,
+			&row.UpdatedAt,
+			&row.Total,
+		); err != nil {
+			return ApplicationPage{}, err
+		}
+		total = row.Total
+		tracks, err := q.listApplicationTracks(ctx, row.ID, row.RoleTrack)
+		if err != nil {
+			return ApplicationPage{}, err
+		}
+		applications = append(applications, applicationFrom(row.ID, row.CompanyID, row.ResumeVersionID, row.Title, row.RoleTrack, tracks, row.Source, row.Status, row.Location, row.EmploymentType, row.JobURL, row.PortalAccount, row.PortalPassword, row.AppliedAt, row.DeadlineAt, row.Notes, row.CreatedAt, row.UpdatedAt))
+	}
+	if err := rows.Err(); err != nil {
+		return ApplicationPage{}, err
+	}
+	if total == 0 && offset > 0 {
+		if err := q.db.QueryRow(ctx, `SELECT COUNT(*)::int FROM applications`).Scan(&total); err != nil {
+			return ApplicationPage{}, err
+		}
+	}
+	return ApplicationPage{Items: applications, Total: total, Limit: limit, Offset: offset}, nil
 }
 
 func (q *Queries) GetApplication(ctx context.Context, id string) (Application, error) {

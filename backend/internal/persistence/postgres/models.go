@@ -54,6 +54,13 @@ type Application struct {
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
+type ApplicationPage struct {
+	Items  []Application
+	Total  int
+	Limit  int
+	Offset int
+}
+
 type JobDescription struct {
 	ID                string    `json:"id"`
 	ApplicationID     string    `json:"application_id"`

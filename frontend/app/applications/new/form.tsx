@@ -11,11 +11,12 @@ import { Field, FormSection, inputClass } from "@/components/forms/form-section"
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
-import { APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_OPTIONS, formatTrackLabel, isVisibleTrack } from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
   { value: "internship", label: "Internship" },
+  { value: "apprentice", label: "Apprentice" },
   { value: "part_time", label: "Part-time" },
   { value: "contract", label: "Contract" },
 ];
@@ -44,15 +45,17 @@ export function NewApplicationForm({
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
-  const trackOptions: Option[] = tracks.map((track) => ({
-    value: track.name,
-    label: track.name.charAt(0).toUpperCase() + track.name.slice(1),
-  }));
+  const trackOptions: Option[] = tracks
+    .filter((track) => isVisibleTrack(track.name))
+    .map((track) => ({
+      value: track.name,
+      label: formatTrackLabel(track.name),
+    }));
 
   const resumeOptions: Option[] = resumes.map((resume) => ({
     value: resume.id,
     label: resume.name,
-    meta: resume.track,
+    meta: formatTrackLabel(resume.track),
   }));
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

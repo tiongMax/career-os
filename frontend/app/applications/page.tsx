@@ -1,17 +1,24 @@
 import { Briefcase } from "lucide-react";
 import Link from "next/link";
-import { getApplications, getCompanies } from "@/lib/api";
+import { getApplicationsPage, getCompanies } from "@/lib/api";
 import { ApplicationsTable } from "./applications-table";
 
-export default async function ApplicationsPage() {
-  const [applications, companies] = await Promise.all([
-    getApplications().catch(() => []),
+const PAGE_SIZE = 25;
+
+export default async function ApplicationsPage(props: PageProps<"/applications">) {
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+
+  const [applicationPage, companies] = await Promise.all([
+    getApplicationsPage({ limit: PAGE_SIZE, offset }).catch(() => ({ items: [], total: 0, limit: PAGE_SIZE, offset })),
     getCompanies().catch(() => []),
   ]);
+  const applications = applicationPage.items ?? [];
 
   const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]));
 
-  if (applications.length === 0) {
+  if (applicationPage.total === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -43,7 +50,13 @@ export default async function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <ApplicationsTable applications={applications} companyMap={companyMap} />
+      <ApplicationsTable
+        applications={applications}
+        companyMap={companyMap}
+        page={page}
+        pageSize={applicationPage.limit}
+        total={applicationPage.total}
+      />
     </div>
   );
 }

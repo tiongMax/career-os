@@ -64,6 +64,7 @@ type resumeService interface {
 type applicationService interface {
 	Create(context.Context, appsvc.CreateParams) (appdomain.Application, error)
 	List(context.Context) ([]appdomain.Application, error)
+	ListPaginated(context.Context, int, int) (appsvc.ListPage, error)
 	Get(context.Context, string) (appdomain.Application, error)
 	Update(context.Context, appsvc.UpdateParams) (appdomain.Application, error)
 	ChangeStatus(context.Context, appsvc.ChangeStatusParams) (appdomain.Application, error)
