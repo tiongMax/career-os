@@ -213,16 +213,25 @@ falls back to the primary `role_track`.
 Status values:
 
 ```text
-saved, applied, recruiter_screen, technical_screen, onsite, offer, rejected, withdrawn
+saved, applied, online_assessment, recruiter_screen, technical_screen, technical_screen_2, technical_screen_3, technical_screen_4, onsite, offer, rejected, withdrawn
 ```
 
 Status transition request:
 
 ```json
 {
-  "status": "applied"
+  "status": "technical_screen",
+  "received_at": "2026-06-23T00:00:00Z",
+  "completed_at": "2026-06-25T00:00:00Z"
 }
 ```
+
+`received_at` is optional for company-response statuses such as
+`online_assessment`, `recruiter_screen`, `technical_screen*`, `onsite`,
+`offer`, and `rejected`. `completed_at` is optional for completable stages such
+as `online_assessment`, `technical_screen*`, and `onsite`. Sending the current
+status with allowed dates records timeline dates without changing the
+application status.
 
 Invalid transitions return `409`.
 

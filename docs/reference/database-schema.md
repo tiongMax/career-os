@@ -104,8 +104,12 @@ Allowed statuses:
 
 - `saved`
 - `applied`
+- `online_assessment`
 - `recruiter_screen`
 - `technical_screen`
+- `technical_screen_2`
+- `technical_screen_3`
+- `technical_screen_4`
 - `onsite`
 - `offer`
 - `rejected`

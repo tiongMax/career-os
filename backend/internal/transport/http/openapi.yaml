@@ -266,6 +266,16 @@ paths:
               required: [status]
               properties:
                 status: { $ref: "#/components/schemas/ApplicationStatus" }
+                received_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: Optional for company-response statuses such as online assessment, recruiter screen, technical screens, onsite, offer, and rejected.
+                completed_at:
+                  type: string
+                  format: date-time
+                  nullable: true
+                  description: Optional for completable stages such as online assessment, technical screens, and onsite.
       responses:
         "200":
           description: Updated
@@ -856,8 +866,12 @@ components:
       enum:
         - saved
         - applied
+        - online_assessment
         - recruiter_screen
         - technical_screen
+        - technical_screen_2
+        - technical_screen_3
+        - technical_screen_4
         - onsite
         - offer
         - rejected

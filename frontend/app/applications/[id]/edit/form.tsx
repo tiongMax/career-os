@@ -4,14 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Briefcase, FileText, Globe, MapPin } from "lucide-react";
-import type { Application, Company, ResumeVersion, RoleTrack, UpdateApplicationPayload } from "@/lib/api";
+import type { Application, AuditLog, Company, ResumeVersion, RoleTrack, UpdateApplicationPayload } from "@/lib/api";
 import { createCompany, createRoleTrack, updateApplication, updateApplicationStatus } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_OPTIONS, formatTrackLabel, isVisibleTrack } from "@/lib/domain/applications";
+import {
+  APPLICATION_STATUS_LABELS,
+  APPLICATION_STATUS_OPTIONS,
+  formatTrackLabel,
+  isVisibleTrack,
+  statusHasCompletionDate,
+  statusHasReceivedDate,
+} from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
@@ -41,21 +48,51 @@ function optionForValue(options: Option[], value?: string): Option | undefined {
   return options.find((option) => option.value === value) ?? { value, label: value };
 }
 
+function statusDateDefaults(application: Application, auditLogs: AuditLog[], selectedStatus: string) {
+  for (const log of auditLogs) {
+    const value = log.new_value;
+    if (!value || typeof value !== "object") continue;
+    const status = (value as { status?: unknown }).status;
+    if (status !== selectedStatus) continue;
+
+    const receivedAt = (value as { received_at?: unknown }).received_at;
+    const completedAt = (value as { completed_at?: unknown }).completed_at;
+    return {
+      receivedAt: typeof receivedAt === "string" ? dateInputValue(receivedAt) : "",
+      completedAt: typeof completedAt === "string" ? dateInputValue(completedAt) : "",
+    };
+  }
+
+  return {
+    receivedAt: selectedStatus === "applied" ? dateInputValue(application.applied_at) : "",
+    completedAt: "",
+  };
+}
+
+function dateInputToISO(value: string): string | undefined {
+  return value ? new Date(`${value}T00:00:00`).toISOString() : undefined;
+}
+
 export function EditApplicationForm({
   application,
   companies,
   resumes,
   tracks,
+  auditLogs,
 }: {
   application: Application;
   companies: Company[];
   resumes: ResumeVersion[];
   tracks: RoleTrack[];
+  auditLogs: AuditLog[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(application.status);
+  const defaultStatusDates = statusDateDefaults(application, auditLogs, status);
+  const showReceivedDate = statusHasReceivedDate(status);
+  const showCompletionDate = statusHasCompletionDate(status);
 
   const defaultCompanyName = companies.find((company) => company.id === application.company_id)?.name ?? "";
 
@@ -129,8 +166,18 @@ export function EditApplicationForm({
 
       await updateApplication(application.id, payload);
       const nextStatus = (fd.get("status") as string) || "saved";
-      if (nextStatus !== application.status) {
-        await updateApplicationStatus(application.id, nextStatus);
+      const shouldSaveReceivedAt = statusHasReceivedDate(nextStatus);
+      const shouldSaveCompletedAt = statusHasCompletionDate(nextStatus);
+      const receivedAt = shouldSaveReceivedAt ? ((fd.get("status_received_at") as string) || "") : "";
+      const completedAt = shouldSaveCompletedAt ? ((fd.get("status_completed_at") as string) || "") : "";
+      const statusDatesChanged =
+        receivedAt !== (shouldSaveReceivedAt ? defaultStatusDates.receivedAt : "") ||
+        completedAt !== (shouldSaveCompletedAt ? defaultStatusDates.completedAt : "");
+      if (nextStatus !== application.status || statusDatesChanged) {
+        await updateApplicationStatus(application.id, nextStatus, {
+          received_at: dateInputToISO(receivedAt),
+          completed_at: dateInputToISO(completedAt),
+        });
       }
       router.push(`/applications/${application.id}`);
       router.refresh();
@@ -216,6 +263,31 @@ export function EditApplicationForm({
             </Field>
           )}
         </div>
+
+        {(showReceivedDate || showCompletionDate) && (
+          <div key={status} className="grid grid-cols-2 gap-4">
+            {showReceivedDate && (
+              <Field label="Received Date">
+                <input
+                  name="status_received_at"
+                  type="date"
+                  defaultValue={defaultStatusDates.receivedAt}
+                  className={inputClass}
+                />
+              </Field>
+            )}
+            {showCompletionDate && (
+              <Field label="Completion Date">
+                <input
+                  name="status_completed_at"
+                  type="date"
+                  defaultValue={defaultStatusDates.completedAt}
+                  className={inputClass}
+                />
+              </Field>
+            )}
+          </div>
+        )}
       </FormSection>
 
       <FormSection title="Resume">

@@ -11,8 +11,8 @@ func (q *Queries) GetAnalyticsSummary(ctx context.Context) (AnalyticsSummary, er
 	const sql = `
 		SELECT
 			COUNT(*)                                                                                                     AS total,
-			COUNT(*) FILTER (WHERE status IN ('applied','recruiter_screen','technical_screen','onsite','offer'))         AS active,
-			COUNT(*) FILTER (WHERE status IN ('recruiter_screen','technical_screen','onsite','offer','rejected'))        AS responded,
+			COUNT(*) FILTER (WHERE status IN ('applied','online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer')) AS active,
+			COUNT(*) FILTER (WHERE status IN ('online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer','rejected')) AS responded,
 			COUNT(*) FILTER (WHERE status = 'offer')                                                                     AS offers
 		FROM applications`
 
@@ -109,7 +109,7 @@ func (q *Queries) GetResumeVersionPerformance(ctx context.Context) ([]ResumeVers
 			rv.name                                                                                                        AS name,
 			rv.track                                                                                                       AS track,
 			COUNT(DISTINCT a.id)                                                                                           AS applications,
-			COUNT(DISTINCT a.id) FILTER (WHERE a.status IN ('recruiter_screen','technical_screen','onsite','offer','rejected')) AS responses,
+			COUNT(DISTINCT a.id) FILTER (WHERE a.status IN ('online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer','rejected')) AS responses,
 			COUNT(DISTINCT ir.id)                                                                                          AS interviews,
 			COUNT(DISTINCT a.id) FILTER (WHERE a.status = 'offer')                                                         AS offers
 		FROM resume_versions rv
@@ -148,7 +148,7 @@ func (q *Queries) GetSourcePerformance(ctx context.Context) ([]SourcePerformance
 		SELECT
 			COALESCE(source, 'unknown')                                                                                    AS source,
 			COUNT(*)                                                                                                       AS applications,
-			COUNT(*) FILTER (WHERE status IN ('recruiter_screen','technical_screen','onsite','offer','rejected'))          AS responses,
+			COUNT(*) FILTER (WHERE status IN ('online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer','rejected')) AS responses,
 			COUNT(*) FILTER (WHERE status = 'offer')                                                                       AS offers
 		FROM applications
 		GROUP BY COALESCE(source, 'unknown')
@@ -183,14 +183,18 @@ func (q *Queries) GetApplicationFunnel(ctx context.Context) ([]FunnelStep, error
 		SELECT
 			COUNT(*) FILTER (WHERE status = 'saved')             AS saved,
 			COUNT(*) FILTER (WHERE status = 'applied')           AS applied,
+			COUNT(*) FILTER (WHERE status = 'online_assessment') AS online_assessment,
 			COUNT(*) FILTER (WHERE status = 'recruiter_screen')  AS recruiter_screen,
 			COUNT(*) FILTER (WHERE status = 'technical_screen')  AS technical_screen,
+			COUNT(*) FILTER (WHERE status = 'technical_screen_2') AS technical_screen_2,
+			COUNT(*) FILTER (WHERE status = 'technical_screen_3') AS technical_screen_3,
+			COUNT(*) FILTER (WHERE status = 'technical_screen_4') AS technical_screen_4,
 			COUNT(*) FILTER (WHERE status = 'onsite')            AS onsite,
 			COUNT(*) FILTER (WHERE status = 'offer')             AS offer
 		FROM applications`
 
-	var saved, applied, recruiterScreen, technicalScreen, onsite, offer int64
-	err := q.db.QueryRow(ctx, sql).Scan(&saved, &applied, &recruiterScreen, &technicalScreen, &onsite, &offer)
+	var saved, applied, onlineAssessment, recruiterScreen, technicalScreen, technicalScreen2, technicalScreen3, technicalScreen4, onsite, offer int64
+	err := q.db.QueryRow(ctx, sql).Scan(&saved, &applied, &onlineAssessment, &recruiterScreen, &technicalScreen, &technicalScreen2, &technicalScreen3, &technicalScreen4, &onsite, &offer)
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +202,12 @@ func (q *Queries) GetApplicationFunnel(ctx context.Context) ([]FunnelStep, error
 	return []FunnelStep{
 		{Stage: "saved", Count: saved},
 		{Stage: "applied", Count: applied},
+		{Stage: "online_assessment", Count: onlineAssessment},
 		{Stage: "recruiter_screen", Count: recruiterScreen},
 		{Stage: "technical_screen", Count: technicalScreen},
+		{Stage: "technical_screen_2", Count: technicalScreen2},
+		{Stage: "technical_screen_3", Count: technicalScreen3},
+		{Stage: "technical_screen_4", Count: technicalScreen4},
 		{Stage: "onsite", Count: onsite},
 		{Stage: "offer", Count: offer},
 	}, nil

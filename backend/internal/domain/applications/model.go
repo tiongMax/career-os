@@ -6,14 +6,18 @@ import (
 )
 
 const (
-	StatusSaved           = "saved"
-	StatusApplied         = "applied"
-	StatusRecruiterScreen = "recruiter_screen"
-	StatusTechnicalScreen = "technical_screen"
-	StatusOnsite          = "onsite"
-	StatusOffer           = "offer"
-	StatusRejected        = "rejected"
-	StatusWithdrawn       = "withdrawn"
+	StatusSaved            = "saved"
+	StatusApplied          = "applied"
+	StatusOnlineAssessment = "online_assessment"
+	StatusRecruiterScreen  = "recruiter_screen"
+	StatusTechnicalScreen  = "technical_screen"
+	StatusTechnicalScreen2 = "technical_screen_2"
+	StatusTechnicalScreen3 = "technical_screen_3"
+	StatusTechnicalScreen4 = "technical_screen_4"
+	StatusOnsite           = "onsite"
+	StatusOffer            = "offer"
+	StatusRejected         = "rejected"
+	StatusWithdrawn        = "withdrawn"
 )
 
 type Application struct {
