@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import {
   getApplication,
+  getApplicationAuditLogs,
   getCompanies,
   getResumeVersions,
   getRoleTracks,
@@ -12,8 +13,9 @@ import { EditApplicationForm } from "./form";
 export default async function EditApplicationPage(props: PageProps<"/applications/[id]/edit">) {
   const { id } = await props.params;
 
-  const [application, companies, resumes, tracks] = await Promise.all([
+  const [application, auditLogs, companies, resumes, tracks] = await Promise.all([
     getApplication(id).catch(() => null),
+    getApplicationAuditLogs(id).catch(() => []),
     getCompanies().catch(() => []),
     getResumeVersions().catch(() => []),
     getRoleTracks().catch(() => []),
@@ -42,6 +44,7 @@ export default async function EditApplicationPage(props: PageProps<"/application
         companies={companies}
         resumes={resumes}
         tracks={tracks}
+        auditLogs={auditLogs}
       />
     </div>
   );

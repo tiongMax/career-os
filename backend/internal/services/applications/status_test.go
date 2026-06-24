@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"careeros/backend/internal/persistence/postgres"
 )
@@ -20,6 +21,16 @@ func TestValidateTransition(t *testing.T) {
 			name: "valid saved to applied",
 			from: StatusSaved,
 			to:   StatusApplied,
+		},
+		{
+			name: "valid applied to online assessment",
+			from: StatusApplied,
+			to:   StatusOnlineAssessment,
+		},
+		{
+			name: "valid first technical to second technical",
+			from: StatusTechnicalScreen,
+			to:   StatusTechnicalScreen2,
 		},
 		{
 			name:    "invalid saved to onsite",
@@ -109,6 +120,88 @@ func TestChangeStatusDoesNotAuditInvalidTransition(t *testing.T) {
 	}
 }
 
+func TestChangeStatusRecordsDatesForCurrentStatus(t *testing.T) {
+	store := &fakeStore{
+		application: postgres.Application{
+			ID:     "00000000-0000-4000-8000-000000000001",
+			Status: StatusOnlineAssessment,
+		},
+	}
+	service := New(store)
+	receivedAt := time.Date(2026, 6, 23, 0, 0, 0, 0, time.UTC)
+	completedAt := time.Date(2026, 6, 24, 0, 0, 0, 0, time.UTC)
+
+	updated, err := service.ChangeStatus(context.Background(), ChangeStatusParams{
+		ID:          store.application.ID,
+		Status:      StatusOnlineAssessment,
+		ReceivedAt:  &receivedAt,
+		CompletedAt: &completedAt,
+	})
+	if err != nil {
+		t.Fatalf("ChangeStatus returned error: %v", err)
+	}
+	if updated.Status != StatusOnlineAssessment {
+		t.Fatalf("expected status to remain %q, got %q", StatusOnlineAssessment, updated.Status)
+	}
+	if !store.auditCreated {
+		t.Fatal("expected status date update to create audit log")
+	}
+	if store.auditLog.Action != "status_dates_recorded" {
+		t.Fatalf("expected status_dates_recorded action, got %q", store.auditLog.Action)
+	}
+	assertStatusAuditValue(t, store.auditLog.NewValue, StatusOnlineAssessment)
+	assertAuditValue(t, store.auditLog.NewValue, "received_at", receivedAt.Format(time.RFC3339))
+	assertAuditValue(t, store.auditLog.NewValue, "completed_at", completedAt.Format(time.RFC3339))
+}
+
+func TestChangeStatusRejectsDatesForApplied(t *testing.T) {
+	store := &fakeStore{
+		application: postgres.Application{
+			ID:     "00000000-0000-4000-8000-000000000001",
+			Status: StatusApplied,
+		},
+	}
+	service := New(store)
+	receivedAt := time.Date(2026, 6, 23, 0, 0, 0, 0, time.UTC)
+
+	_, err := service.ChangeStatus(context.Background(), ChangeStatusParams{
+		ID:         store.application.ID,
+		Status:     StatusApplied,
+		ReceivedAt: &receivedAt,
+	})
+	if !errors.Is(err, ErrInvalidStatusDates) {
+		t.Fatalf("expected invalid status dates error, got %v", err)
+	}
+	if store.auditCreated {
+		t.Fatal("did not expect audit log write for applied status dates")
+	}
+}
+
+func TestChangeStatusRejectsCompletionBeforeReceived(t *testing.T) {
+	store := &fakeStore{
+		application: postgres.Application{
+			ID:     "00000000-0000-4000-8000-000000000001",
+			Status: StatusApplied,
+		},
+	}
+	service := New(store)
+	receivedAt := time.Date(2026, 6, 24, 0, 0, 0, 0, time.UTC)
+	completedAt := time.Date(2026, 6, 23, 0, 0, 0, 0, time.UTC)
+
+	_, err := service.ChangeStatus(context.Background(), ChangeStatusParams{
+		ID:          store.application.ID,
+		Status:      StatusApplied,
+		ReceivedAt:  &receivedAt,
+		CompletedAt: &completedAt,
+	})
+	if !errors.Is(err, ErrInvalidStatusDates) {
+		t.Fatalf("expected invalid status dates error, got %v", err)
+	}
+	if store.auditCreated {
+		t.Fatal("did not expect audit log write for invalid dates")
+	}
+}
+
 type fakeStore struct {
 	application  postgres.Application
 	auditCreated bool
@@ -142,6 +235,12 @@ func (f *fakeStore) UpdateApplicationStatusAndCreateAudit(_ context.Context, _ s
 	return f.application, nil
 }
 
+func (f *fakeStore) CreateAuditLog(_ context.Context, auditLog postgres.CreateAuditLogParams) (postgres.AuditLog, error) {
+	f.auditCreated = true
+	f.auditLog = auditLog
+	return postgres.AuditLog{EntityID: auditLog.EntityID, Action: auditLog.Action, NewValue: auditLog.NewValue}, nil
+}
+
 func (f *fakeStore) ListAuditLogsForEntity(context.Context, string, string) ([]postgres.AuditLog, error) {
 	return nil, nil
 }
@@ -152,11 +251,16 @@ func (f *fakeStore) DeleteApplication(context.Context, string) error {
 
 func assertStatusAuditValue(t *testing.T, raw []byte, want string) {
 	t.Helper()
+	assertAuditValue(t, raw, "status", want)
+}
+
+func assertAuditValue(t *testing.T, raw []byte, key string, want string) {
+	t.Helper()
 	var value map[string]string
 	if err := json.Unmarshal(raw, &value); err != nil {
 		t.Fatalf("expected audit value to be valid JSON: %v", err)
 	}
-	if value["status"] != want {
-		t.Fatalf("expected audit status %q, got %q", want, value["status"])
+	if value[key] != want {
+		t.Fatalf("expected audit %s %q, got %q", key, want, value[key])
 	}
 }

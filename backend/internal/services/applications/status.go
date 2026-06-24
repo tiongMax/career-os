@@ -8,14 +8,18 @@ import (
 )
 
 const (
-	StatusSaved           = appdomain.StatusSaved
-	StatusApplied         = appdomain.StatusApplied
-	StatusRecruiterScreen = appdomain.StatusRecruiterScreen
-	StatusTechnicalScreen = appdomain.StatusTechnicalScreen
-	StatusOnsite          = appdomain.StatusOnsite
-	StatusOffer           = appdomain.StatusOffer
-	StatusRejected        = appdomain.StatusRejected
-	StatusWithdrawn       = appdomain.StatusWithdrawn
+	StatusSaved            = appdomain.StatusSaved
+	StatusApplied          = appdomain.StatusApplied
+	StatusOnlineAssessment = appdomain.StatusOnlineAssessment
+	StatusRecruiterScreen  = appdomain.StatusRecruiterScreen
+	StatusTechnicalScreen  = appdomain.StatusTechnicalScreen
+	StatusTechnicalScreen2 = appdomain.StatusTechnicalScreen2
+	StatusTechnicalScreen3 = appdomain.StatusTechnicalScreen3
+	StatusTechnicalScreen4 = appdomain.StatusTechnicalScreen4
+	StatusOnsite           = appdomain.StatusOnsite
+	StatusOffer            = appdomain.StatusOffer
+	StatusRejected         = appdomain.StatusRejected
+	StatusWithdrawn        = appdomain.StatusWithdrawn
 )
 
 var (
@@ -29,17 +33,43 @@ var allowedTransitions = map[string]map[string]struct{}{
 		StatusWithdrawn: {},
 	},
 	StatusApplied: {
+		StatusOnlineAssessment: {},
+		StatusRecruiterScreen:  {},
+		StatusTechnicalScreen:  {},
+		StatusRejected:         {},
+		StatusWithdrawn:        {},
+	},
+	StatusOnlineAssessment: {
 		StatusRecruiterScreen: {},
 		StatusTechnicalScreen: {},
 		StatusRejected:        {},
 		StatusWithdrawn:       {},
 	},
 	StatusRecruiterScreen: {
-		StatusTechnicalScreen: {},
-		StatusRejected:        {},
-		StatusWithdrawn:       {},
+		StatusOnlineAssessment: {},
+		StatusTechnicalScreen:  {},
+		StatusRejected:         {},
+		StatusWithdrawn:        {},
 	},
 	StatusTechnicalScreen: {
+		StatusTechnicalScreen2: {},
+		StatusOnsite:           {},
+		StatusRejected:         {},
+		StatusWithdrawn:        {},
+	},
+	StatusTechnicalScreen2: {
+		StatusTechnicalScreen3: {},
+		StatusOnsite:           {},
+		StatusRejected:         {},
+		StatusWithdrawn:        {},
+	},
+	StatusTechnicalScreen3: {
+		StatusTechnicalScreen4: {},
+		StatusOnsite:           {},
+		StatusRejected:         {},
+		StatusWithdrawn:        {},
+	},
+	StatusTechnicalScreen4: {
 		StatusOnsite:    {},
 		StatusRejected:  {},
 		StatusWithdrawn: {},
@@ -54,13 +84,17 @@ var allowedTransitions = map[string]map[string]struct{}{
 		StatusRejected:  {},
 	},
 	StatusRejected: {
-		StatusSaved:           {},
-		StatusApplied:         {},
-		StatusRecruiterScreen: {},
-		StatusTechnicalScreen: {},
-		StatusOnsite:          {},
-		StatusOffer:           {},
-		StatusWithdrawn:       {},
+		StatusSaved:            {},
+		StatusApplied:          {},
+		StatusOnlineAssessment: {},
+		StatusRecruiterScreen:  {},
+		StatusTechnicalScreen:  {},
+		StatusTechnicalScreen2: {},
+		StatusTechnicalScreen3: {},
+		StatusTechnicalScreen4: {},
+		StatusOnsite:           {},
+		StatusOffer:            {},
+		StatusWithdrawn:        {},
 	},
 	StatusWithdrawn: {},
 }

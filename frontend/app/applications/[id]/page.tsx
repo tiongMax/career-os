@@ -271,6 +271,12 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                           <p className="text-xs text-neutral-400">{event.detail}</p>
                         )}
                       </div>
+                      {(event.receivedAt || event.completedAt) && (
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-neutral-500">
+                          {event.receivedAt && <span>Received {formatTimestamp(event.receivedAt, true)}</span>}
+                          {event.completedAt && <span>Completed {formatTimestamp(event.completedAt, true)}</span>}
+                        </div>
+                      )}
                       <p className="mt-0.5 text-xs text-neutral-500">{formatTimestamp(event.at, event.dateOnly)}</p>
                       <p className="mt-0.5 text-xs text-neutral-400">{formatRelative(event.at)}</p>
                     </div>
@@ -291,6 +297,8 @@ type StatusTimelineEvent = {
   title: string;
   detail?: string;
   at: string;
+  receivedAt?: string;
+  completedAt?: string;
   dateOnly?: boolean;
 };
 
@@ -315,16 +323,20 @@ function statusTimelineEvents(application: Application, auditLogs: AuditLog[]): 
 
     const oldLabel = oldStatus ? statusLabel(oldStatus) : null;
     const newLabel = statusLabel(newStatus);
+    const receivedAt = auditStringValue(log.new_value, "received_at");
+    const completedAt = auditStringValue(log.new_value, "completed_at");
     events.push({
       id: log.id,
       status: newStatus,
       title: newLabel,
-      detail: oldLabel ? `${oldLabel} -> ${newLabel}` : log.action.replace("_", " "),
+      detail: oldLabel ? `${oldLabel} -> ${newLabel}` : statusActionLabel(log.action),
       at: log.created_at,
+      receivedAt: receivedAt ?? undefined,
+      completedAt: completedAt ?? undefined,
     });
   }
 
-  return events.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  return events.sort((a, b) => new Date(a.receivedAt ?? a.at).getTime() - new Date(b.receivedAt ?? b.at).getTime());
 }
 
 function statusLabel(status: string): string {
@@ -344,7 +356,12 @@ function timelineDotClass(status: string): string {
     case "onsite":
       return "bg-orange-500";
     case "technical_screen":
+    case "technical_screen_2":
+    case "technical_screen_3":
+    case "technical_screen_4":
       return "bg-indigo-500";
+    case "online_assessment":
+      return "bg-cyan-500";
     case "recruiter_screen":
       return "bg-purple-500";
     default:
@@ -368,10 +385,19 @@ function formatTimestamp(iso: string, dateOnly = false): string {
 }
 
 function auditStatusValue(value: unknown): string | null {
+  return auditStringValue(value, "status");
+}
+
+function auditStringValue(value: unknown, key: string): string | null {
   if (!value || typeof value !== "object" || !("status" in value)) return null;
 
-  const status = (value as { status?: unknown }).status;
-  return typeof status === "string" ? status : null;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" ? field : null;
+}
+
+function statusActionLabel(action: string): string {
+  if (action === "status_dates_recorded") return "Status dates recorded";
+  return action.replace("_", " ");
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {

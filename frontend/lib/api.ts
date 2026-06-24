@@ -307,10 +307,14 @@ export const createApplication = (payload: CreateApplicationPayload) =>
 export type UpdateApplicationPayload = Partial<CreateApplicationPayload>;
 export const updateApplication = (id: string, payload: UpdateApplicationPayload) =>
   apiFetch<Application>(`/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
-export const updateApplicationStatus = (id: string, status: string) =>
+export const updateApplicationStatus = (
+  id: string,
+  status: string,
+  dates?: { received_at?: string; completed_at?: string }
+) =>
   apiFetch<Application>(`/applications/${id}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, ...dates }),
   });
 export const getApplicationAuditLogs = (id: string) =>
   apiFetch<AuditLog[]>(`/applications/${id}/audit-logs`);

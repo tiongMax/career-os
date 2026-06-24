@@ -14,8 +14,16 @@ import {
   isVisibleTrack,
 } from "@/lib/domain/applications";
 
-type SortCol = "title" | "company" | "track" | "status" | "applied";
+type SortCol = "title" | "company" | "track" | "employment" | "status" | "applied";
 type SortDir = "asc" | "desc";
+
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  full_time: "Full-time",
+  internship: "Internship",
+  apprentice: "Apprentice",
+  part_time: "Part-time",
+  contract: "Contract",
+};
 
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
@@ -149,6 +157,9 @@ export function ApplicationsTable({ applications, companyMap, page, pageSize, to
         case "track":
           cmp = applicationTracks(a).join(", ").localeCompare(applicationTracks(b).join(", "));
           break;
+        case "employment":
+          cmp = employmentTypeLabel(a.employment_type).localeCompare(employmentTypeLabel(b.employment_type));
+          break;
         case "status":
           cmp = APPLICATION_STATUS_ORDER.indexOf(a.status) - APPLICATION_STATUS_ORDER.indexOf(b.status);
           break;
@@ -258,6 +269,7 @@ export function ApplicationsTable({ applications, companyMap, page, pageSize, to
                       { col: "title"   as SortCol, label: "Role" },
                       { col: "company" as SortCol, label: "Company" },
                       { col: "track"   as SortCol, label: "Track" },
+                      { col: "employment" as SortCol, label: "Employment" },
                       { col: "status"  as SortCol, label: "Status" },
                       { col: "applied" as SortCol, label: "Applied" },
                     ] as const
@@ -297,6 +309,9 @@ export function ApplicationsTable({ applications, companyMap, page, pageSize, to
                         ))}
                       </div>
                     </td>
+                    <td className="px-5 py-3.5 text-sm text-neutral-500">
+                      {employmentTypeLabel(app.employment_type)}
+                    </td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={app.status} />
                     </td>
@@ -319,6 +334,11 @@ export function ApplicationsTable({ applications, companyMap, page, pageSize, to
 function applicationTracks(application: Application): string[] {
   const tracks = application.role_tracks?.length ? application.role_tracks : [application.role_track].filter(Boolean);
   return tracks.filter(isVisibleTrack);
+}
+
+function employmentTypeLabel(value?: string): string {
+  if (!value) return "—";
+  return EMPLOYMENT_TYPE_LABELS[value] ?? value.replace(/_/g, " ");
 }
 
 function Pagination({

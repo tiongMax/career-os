@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	ErrTitleRequired = errors.New("application title is required")
-	ErrTrackRequired = errors.New("application track is required")
+	ErrTitleRequired      = errors.New("application title is required")
+	ErrTrackRequired      = errors.New("application track is required")
+	ErrInvalidStatusDates = errors.New("status completion date cannot be before received date")
 )
 
 type Store interface {
@@ -23,6 +24,7 @@ type Store interface {
 	GetApplication(context.Context, string) (postgres.Application, error)
 	UpdateApplication(context.Context, postgres.UpdateApplicationParams) (postgres.Application, error)
 	UpdateApplicationStatusAndCreateAudit(context.Context, string, string, postgres.CreateAuditLogParams) (postgres.Application, error)
+	CreateAuditLog(context.Context, postgres.CreateAuditLogParams) (postgres.AuditLog, error)
 	ListAuditLogsForEntity(context.Context, string, string) ([]postgres.AuditLog, error)
 	DeleteApplication(context.Context, string) error
 }
@@ -69,8 +71,10 @@ type UpdateParams struct {
 }
 
 type ChangeStatusParams struct {
-	ID     string `json:"-"`
-	Status string `json:"status"`
+	ID          string     `json:"-"`
+	Status      string     `json:"status"`
+	ReceivedAt  *time.Time `json:"received_at"`
+	CompletedAt *time.Time `json:"completed_at"`
 }
 
 type ListPage struct {
@@ -153,14 +157,32 @@ func (s *Service) Update(ctx context.Context, arg UpdateParams) (appdomain.Appli
 }
 
 func (s *Service) ChangeStatus(ctx context.Context, arg ChangeStatusParams) (appdomain.Application, error) {
+	if arg.ReceivedAt != nil && arg.CompletedAt != nil && arg.CompletedAt.Before(*arg.ReceivedAt) {
+		return appdomain.Application{}, ErrInvalidStatusDates
+	}
+	if (arg.ReceivedAt != nil && !statusHasReceivedDate(arg.Status)) || (arg.CompletedAt != nil && !statusHasCompletionDate(arg.Status)) {
+		return appdomain.Application{}, ErrInvalidStatusDates
+	}
 	current, err := s.store.GetApplication(ctx, arg.ID)
 	if err != nil {
 		return appdomain.Application{}, err
 	}
+	if current.Status == arg.Status {
+		if arg.ReceivedAt != nil || arg.CompletedAt != nil {
+			auditLog, err := statusDatesAuditLog(arg.ID, arg.Status, arg.ReceivedAt, arg.CompletedAt)
+			if err != nil {
+				return appdomain.Application{}, err
+			}
+			if _, err := s.store.CreateAuditLog(ctx, auditLog); err != nil {
+				return appdomain.Application{}, err
+			}
+		}
+		return applicationFromStore(current), nil
+	}
 	if err := ValidateTransition(current.Status, arg.Status); err != nil {
 		return appdomain.Application{}, err
 	}
-	auditLog, err := statusChangeAuditLog(arg.ID, current.Status, arg.Status)
+	auditLog, err := statusChangeAuditLog(arg.ID, current.Status, arg.Status, arg.ReceivedAt, arg.CompletedAt)
 	if err != nil {
 		return appdomain.Application{}, err
 	}
@@ -230,12 +252,12 @@ func updateStoreParams(arg UpdateParams) postgres.UpdateApplicationParams {
 	}
 }
 
-func statusChangeAuditLog(applicationID string, oldStatus string, newStatus string) (postgres.CreateAuditLogParams, error) {
+func statusChangeAuditLog(applicationID string, oldStatus string, newStatus string, receivedAt, completedAt *time.Time) (postgres.CreateAuditLogParams, error) {
 	oldValue, err := json.Marshal(map[string]string{"status": oldStatus})
 	if err != nil {
 		return postgres.CreateAuditLogParams{}, err
 	}
-	newValue, err := json.Marshal(map[string]string{"status": newStatus})
+	newValue, err := json.Marshal(statusAuditValue(newStatus, receivedAt, completedAt))
 	if err != nil {
 		return postgres.CreateAuditLogParams{}, err
 	}
@@ -246,6 +268,57 @@ func statusChangeAuditLog(applicationID string, oldStatus string, newStatus stri
 		OldValue:   oldValue,
 		NewValue:   newValue,
 	}, nil
+}
+
+func statusDatesAuditLog(applicationID string, status string, receivedAt, completedAt *time.Time) (postgres.CreateAuditLogParams, error) {
+	newValue, err := json.Marshal(statusAuditValue(status, receivedAt, completedAt))
+	if err != nil {
+		return postgres.CreateAuditLogParams{}, err
+	}
+	return postgres.CreateAuditLogParams{
+		EntityType: "application",
+		EntityID:   applicationID,
+		Action:     "status_dates_recorded",
+		NewValue:   newValue,
+	}, nil
+}
+
+func statusAuditValue(status string, receivedAt, completedAt *time.Time) map[string]string {
+	value := map[string]string{"status": status}
+	if receivedAt != nil {
+		value["received_at"] = receivedAt.Format(time.RFC3339)
+	}
+	if completedAt != nil {
+		value["completed_at"] = completedAt.Format(time.RFC3339)
+	}
+	return value
+}
+
+func isTechnicalScreenStatus(status string) bool {
+	switch status {
+	case StatusTechnicalScreen, StatusTechnicalScreen2, StatusTechnicalScreen3, StatusTechnicalScreen4:
+		return true
+	default:
+		return false
+	}
+}
+
+func statusHasReceivedDate(status string) bool {
+	switch status {
+	case StatusOnlineAssessment, StatusRecruiterScreen, StatusOnsite, StatusOffer, StatusRejected:
+		return true
+	default:
+		return isTechnicalScreenStatus(status)
+	}
+}
+
+func statusHasCompletionDate(status string) bool {
+	switch status {
+	case StatusOnlineAssessment, StatusOnsite:
+		return true
+	default:
+		return isTechnicalScreenStatus(status)
+	}
 }
 
 func applicationFromStore(application postgres.Application) appdomain.Application {

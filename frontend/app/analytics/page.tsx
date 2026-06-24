@@ -15,7 +15,7 @@ import {
   type FunnelStep,
   type UpcomingData,
 } from "@/lib/api";
-import { APPLICATION_STATUS_CHART_COLORS, formatTrackLabel } from "@/lib/domain/applications";
+import { APPLICATION_STATUS_CHART_COLORS, APPLICATION_STATUS_LABELS, formatTrackLabel } from "@/lib/domain/applications";
 import { BarChart2, Activity, TrendingUp, Award, Bell } from "lucide-react";
 
 const TRACK_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f97316", "#ec4899", "#06b6d4", "#f59e0b"];
@@ -78,7 +78,7 @@ export default async function AnalyticsPage() {
             byStatus.map((s) => (
               <Bar
                 key={s.status}
-                label={s.status.replace(/_/g, " ")}
+                label={APPLICATION_STATUS_LABELS[s.status] ?? s.status.replace(/_/g, " ")}
                 value={s.count}
                 max={maxStatusCount}
                 color={APPLICATION_STATUS_CHART_COLORS[s.status] ?? "#a3a3a3"}
@@ -112,7 +112,7 @@ export default async function AnalyticsPage() {
             {funnel.map((step) => (
               <Bar
                 key={step.stage}
-                label={step.stage.replace(/_/g, " ")}
+                label={APPLICATION_STATUS_LABELS[step.stage] ?? step.stage.replace(/_/g, " ")}
                 value={step.count}
                 max={maxFunnelCount}
                 color={APPLICATION_STATUS_CHART_COLORS[step.stage] ?? "#a3a3a3"}

@@ -26,6 +26,7 @@ func (h Handler) writeServiceError(w http.ResponseWriter, err error) {
 	case errors.Is(err, appsvc.ErrInvalidStatus),
 		errors.Is(err, appsvc.ErrTitleRequired),
 		errors.Is(err, appsvc.ErrTrackRequired),
+		errors.Is(err, appsvc.ErrInvalidStatusDates),
 		errors.Is(err, companysvc.ErrNameRequired),
 		errors.Is(err, contactsvc.ErrNameRequired),
 		errors.Is(err, interviewsvc.ErrInvalidRoundType),
