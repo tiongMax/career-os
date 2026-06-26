@@ -409,6 +409,7 @@ export const updateContact = (id: string, payload: UpdateContactPayload) =>
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
+export const getReminder = (id: string) => apiFetch<Reminder>(`/reminders/${id}`);
 export const getFailedReminders = () => apiFetch<FailedReminderJob[]>("/reminders/failed");
 export const retryReminder = (id: string) =>
   apiFetch<Reminder>(`/reminders/${id}/retry`, { method: "POST" });
