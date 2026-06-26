@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, Activity, Award, TrendingUp, Bell, ArrowRight } from "lucide-react";
+import { Briefcase, Activity, Award, MessageCircleReply, Bell, ArrowRight } from "lucide-react";
 import { getApplications, getAnalyticsSummary, getCompanies } from "@/lib/api";
 import { formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
@@ -16,6 +16,7 @@ export default async function DashboardPage() {
   const stats = {
     total: summary?.total ?? 0,
     active: summary?.active ?? 0,
+    responded: summary?.responded ?? 0,
     offers: summary?.offers ?? 0,
     responseRate: summary ? Math.round(summary.response_rate) : 0,
     pendingReminders: summary?.pending_reminders ?? 0,
@@ -33,7 +34,13 @@ export default async function DashboardPage() {
         <StatCard label="Total" value={stats.total} icon={Briefcase} />
         <StatCard label="Active" value={stats.active} icon={Activity} accent="blue" />
         <StatCard label="Offers" value={stats.offers} icon={Award} accent="green" />
-        <StatCard label="Response Rate" value={`${stats.responseRate}%`} icon={TrendingUp} accent="purple" />
+        <StatCard
+          label="Heard Back"
+          value={`${stats.responded}/${stats.total}`}
+          subtitle={`${stats.responseRate}% of total apps`}
+          icon={MessageCircleReply}
+          accent="purple"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -107,11 +114,13 @@ export default async function DashboardPage() {
 function StatCard({
   label,
   value,
+  subtitle,
   icon: Icon,
   accent = "neutral",
 }: {
   label: string;
   value: string | number;
+  subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
   accent?: "neutral" | "blue" | "green" | "purple";
 }) {
@@ -130,6 +139,7 @@ function StatCard({
         <Icon className={`w-4 h-4 ${s.icon}`} />
       </div>
       <p className={`text-3xl font-bold ${s.value}`}>{value}</p>
+      {subtitle && <p className="mt-1 text-xs text-neutral-400">{subtitle}</p>}
     </div>
   );
 }

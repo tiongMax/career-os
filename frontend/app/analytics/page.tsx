@@ -16,7 +16,7 @@ import {
   type UpcomingData,
 } from "@/lib/api";
 import { APPLICATION_STATUS_CHART_COLORS, APPLICATION_STATUS_LABELS, formatTrackLabel } from "@/lib/domain/applications";
-import { BarChart2, Activity, TrendingUp, Award, Bell } from "lucide-react";
+import { BarChart2, Activity, MessageCircleReply, Award, Bell } from "lucide-react";
 
 const TRACK_COLORS = ["#3b82f6", "#8b5cf6", "#10b981", "#f97316", "#ec4899", "#06b6d4", "#f59e0b"];
 
@@ -65,7 +65,13 @@ export default async function AnalyticsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Total" value={summary.total} icon={BarChart2} />
         <StatCard label="Active" value={summary.active} icon={Activity} accent="blue" />
-        <StatCard label="Response Rate" value={`${Math.round(summary.response_rate)}%`} icon={TrendingUp} accent="purple" />
+        <StatCard
+          label="Heard Back"
+          value={`${summary.responded}/${summary.total}`}
+          subtitle={`${Math.round(summary.response_rate)}% of total apps`}
+          icon={MessageCircleReply}
+          accent="purple"
+        />
         <StatCard label="Offer Rate" value={`${Math.round(summary.offer_rate)}%`} icon={Award} accent="green" />
         <StatCard label="Reminders" value={summary.pending_reminders} icon={Bell} accent="orange" />
       </div>
@@ -257,11 +263,13 @@ function RateCell({ value }: { value: number }) {
 function StatCard({
   label,
   value,
+  subtitle,
   icon: Icon,
   accent = "neutral",
 }: {
   label: string;
   value: string | number;
+  subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
   accent?: "neutral" | "blue" | "green" | "purple" | "orange";
 }) {
@@ -281,6 +289,7 @@ function StatCard({
         <Icon className={`w-4 h-4 ${s.icon}`} />
       </div>
       <p className={`text-3xl font-bold ${s.value}`}>{value}</p>
+      {subtitle && <p className="mt-1 text-xs text-neutral-400">{subtitle}</p>}
     </div>
   );
 }
