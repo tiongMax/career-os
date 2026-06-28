@@ -307,6 +307,8 @@ export const createApplication = (payload: CreateApplicationPayload) =>
 export type UpdateApplicationPayload = Partial<CreateApplicationPayload>;
 export const updateApplication = (id: string, payload: UpdateApplicationPayload) =>
   apiFetch<Application>(`/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export const deleteApplication = (id: string) =>
+  apiFetch<void>(`/applications/${id}`, { method: "DELETE" });
 export const updateApplicationStatus = (
   id: string,
   status: string,
