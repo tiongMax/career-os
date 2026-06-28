@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Briefcase, FileText, Globe, MapPin } from "lucide-react";
+import { Briefcase, FileText, Globe, MapPin, Trash2 } from "lucide-react";
 import type { Application, AuditLog, Company, ResumeVersion, RoleTrack, UpdateApplicationPayload } from "@/lib/api";
-import { createCompany, createRoleTrack, updateApplication, updateApplicationStatus } from "@/lib/api";
+import { createCompany, createRoleTrack, deleteApplication, updateApplication, updateApplicationStatus } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
 import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
+import { DeleteApplicationDialog, DeleteApplicationToast } from "./delete-application-dialog";
 import {
   APPLICATION_STATUS_LABELS,
   APPLICATION_STATUS_OPTIONS,
@@ -88,7 +89,10 @@ export function EditApplicationForm({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [status, setStatus] = useState(application.status);
   const defaultStatusDates = statusDateDefaults(application, auditLogs, status);
   const showReceivedDate = statusHasReceivedDate(status);
@@ -187,6 +191,22 @@ export function EditApplicationForm({
     }
   }
 
+  async function handleDelete() {
+    setError(null);
+    setToast(null);
+    setDeleting(true);
+
+    try {
+      await deleteApplication(application.id);
+      router.push("/applications");
+      router.refresh();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Failed to delete application");
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
@@ -194,6 +214,7 @@ export function EditApplicationForm({
           {error}
         </div>
       )}
+      {toast && <DeleteApplicationToast message={toast} onClose={() => setToast(null)} />}
 
       <FormSection title="Position">
         <Field label="Company" required>
@@ -357,21 +378,40 @@ export function EditApplicationForm({
         </Field>
       </FormSection>
 
-      <div className="flex gap-3 pt-1">
+      <div className="flex items-center justify-between pt-1">
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={loading || deleting}
+            className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+          <Link
+            href={`/applications/${application.id}`}
+            className="rounded-md border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
+          >
+            Cancel
+          </Link>
+        </div>
         <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          disabled={loading || deleting}
+          className="flex items-center gap-1.5 rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-400 disabled:opacity-50 transition-colors"
         >
-          {loading ? "Saving..." : "Save Changes"}
+          <Trash2 className="h-4 w-4" />
+          {deleting ? "Deleting..." : "Delete"}
         </button>
-        <Link
-          href={`/applications/${application.id}`}
-          className="rounded-md border border-neutral-300 px-5 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
-        >
-          Cancel
-        </Link>
       </div>
+      {deleteOpen && (
+        <DeleteApplicationDialog
+          title={application.title}
+          deleting={deleting}
+          onCancel={() => setDeleteOpen(false)}
+          onConfirm={handleDelete}
+        />
+      )}
     </form>
   );
 }
