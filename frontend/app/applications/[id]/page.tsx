@@ -353,6 +353,8 @@ function timelineDotClass(status: string): string {
       return "bg-green-500";
     case "withdrawn":
       return "bg-neutral-400";
+    case "kiv":
+      return "bg-yellow-500";
     case "onsite":
       return "bg-orange-500";
     case "technical_screen":

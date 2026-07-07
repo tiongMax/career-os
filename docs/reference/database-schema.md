@@ -114,6 +114,7 @@ Allowed statuses:
 - `offer`
 - `rejected`
 - `withdrawn`
+- `kiv`
 
 Delete behavior:
 

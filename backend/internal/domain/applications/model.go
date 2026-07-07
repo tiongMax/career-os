@@ -18,6 +18,7 @@ const (
 	StatusOffer            = "offer"
 	StatusRejected         = "rejected"
 	StatusWithdrawn        = "withdrawn"
+	StatusKIV              = "kiv"
 )
 
 type Application struct {

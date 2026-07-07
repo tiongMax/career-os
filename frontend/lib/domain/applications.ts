@@ -13,6 +13,7 @@ export const APPLICATION_STATUS_OPTIONS: Option[] = [
   { value: "offer", label: "Offer", dot: "bg-green-500" },
   { value: "rejected", label: "Rejected", dot: "bg-red-500" },
   { value: "withdrawn", label: "Withdrawn", dot: "bg-neutral-400" },
+  { value: "kiv", label: "KIV", dot: "bg-yellow-500" },
 ];
 
 export const APPLICATION_STATUS_ORDER = APPLICATION_STATUS_OPTIONS.map((option) => option.value);
@@ -34,6 +35,7 @@ export const APPLICATION_STATUS_BADGE_CLASSES: Record<string, string> = {
   offer: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-600",
   withdrawn: "bg-neutral-100 text-neutral-500",
+  kiv: "bg-yellow-100 text-yellow-800",
 };
 
 export const APPLICATION_STATUS_CHART_COLORS: Record<string, string> = {
@@ -49,6 +51,7 @@ export const APPLICATION_STATUS_CHART_COLORS: Record<string, string> = {
   offer: "#22c55e",
   rejected: "#ef4444",
   withdrawn: "#737373",
+  kiv: "#eab308",
 };
 
 const TECHNICAL_SCREEN_STATUSES = new Set([

@@ -20,6 +20,7 @@ const (
 	StatusOffer            = appdomain.StatusOffer
 	StatusRejected         = appdomain.StatusRejected
 	StatusWithdrawn        = appdomain.StatusWithdrawn
+	StatusKIV              = appdomain.StatusKIV
 )
 
 var (
@@ -31,6 +32,7 @@ var allowedTransitions = map[string]map[string]struct{}{
 	StatusSaved: {
 		StatusApplied:   {},
 		StatusWithdrawn: {},
+		StatusKIV:       {},
 	},
 	StatusApplied: {
 		StatusOnlineAssessment: {},
@@ -38,50 +40,59 @@ var allowedTransitions = map[string]map[string]struct{}{
 		StatusTechnicalScreen:  {},
 		StatusRejected:         {},
 		StatusWithdrawn:        {},
+		StatusKIV:              {},
 	},
 	StatusOnlineAssessment: {
 		StatusRecruiterScreen: {},
 		StatusTechnicalScreen: {},
 		StatusRejected:        {},
 		StatusWithdrawn:       {},
+		StatusKIV:             {},
 	},
 	StatusRecruiterScreen: {
 		StatusOnlineAssessment: {},
 		StatusTechnicalScreen:  {},
 		StatusRejected:         {},
 		StatusWithdrawn:        {},
+		StatusKIV:              {},
 	},
 	StatusTechnicalScreen: {
 		StatusTechnicalScreen2: {},
 		StatusOnsite:           {},
 		StatusRejected:         {},
 		StatusWithdrawn:        {},
+		StatusKIV:              {},
 	},
 	StatusTechnicalScreen2: {
 		StatusTechnicalScreen3: {},
 		StatusOnsite:           {},
 		StatusRejected:         {},
 		StatusWithdrawn:        {},
+		StatusKIV:              {},
 	},
 	StatusTechnicalScreen3: {
 		StatusTechnicalScreen4: {},
 		StatusOnsite:           {},
 		StatusRejected:         {},
 		StatusWithdrawn:        {},
+		StatusKIV:              {},
 	},
 	StatusTechnicalScreen4: {
 		StatusOnsite:    {},
 		StatusRejected:  {},
 		StatusWithdrawn: {},
+		StatusKIV:       {},
 	},
 	StatusOnsite: {
 		StatusOffer:     {},
 		StatusRejected:  {},
 		StatusWithdrawn: {},
+		StatusKIV:       {},
 	},
 	StatusOffer: {
 		StatusWithdrawn: {},
 		StatusRejected:  {},
+		StatusKIV:       {},
 	},
 	StatusRejected: {
 		StatusSaved:            {},
@@ -94,6 +105,21 @@ var allowedTransitions = map[string]map[string]struct{}{
 		StatusTechnicalScreen4: {},
 		StatusOnsite:           {},
 		StatusOffer:            {},
+		StatusWithdrawn:        {},
+		StatusKIV:              {},
+	},
+	StatusKIV: {
+		StatusSaved:            {},
+		StatusApplied:          {},
+		StatusOnlineAssessment: {},
+		StatusRecruiterScreen:  {},
+		StatusTechnicalScreen:  {},
+		StatusTechnicalScreen2: {},
+		StatusTechnicalScreen3: {},
+		StatusTechnicalScreen4: {},
+		StatusOnsite:           {},
+		StatusOffer:            {},
+		StatusRejected:         {},
 		StatusWithdrawn:        {},
 	},
 	StatusWithdrawn: {},
