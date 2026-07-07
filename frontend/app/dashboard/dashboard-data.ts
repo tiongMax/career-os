@@ -5,7 +5,7 @@ export const STALE_DAYS = 14;
 export const DEADLINE_WINDOW_DAYS = 7;
 
 const DAY_MS = 86_400_000;
-const FINAL_STATUSES = new Set(["offer", "rejected", "withdrawn"]);
+const FINAL_STATUSES = new Set(["offer", "rejected", "withdrawn", "kiv"]);
 const RESPONDED_STATUSES = new Set([
   "online_assessment",
   "recruiter_screen",
@@ -40,6 +40,7 @@ const PIPELINE_STAGES = [
   { label: "Onsite", statuses: ["onsite"], color: "bg-orange-500" },
   { label: "Offer", statuses: ["offer"], color: "bg-green-500" },
   { label: "Rejected", statuses: ["rejected"], color: "bg-red-500" },
+  { label: "KIV", statuses: ["kiv"], color: "bg-yellow-500" },
 ];
 
 export type FocusTone = "red" | "amber" | "blue" | "green" | "neutral";

@@ -49,6 +49,16 @@ func TestValidateTransition(t *testing.T) {
 			to:      StatusApplied,
 			wantErr: ErrInvalidTransition,
 		},
+		{
+			name: "applied can move to kiv",
+			from: StatusApplied,
+			to:   StatusKIV,
+		},
+		{
+			name: "kiv can resume to applied",
+			from: StatusKIV,
+			to:   StatusApplied,
+		},
 	}
 
 	for _, tt := range tests {

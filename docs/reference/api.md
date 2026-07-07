@@ -213,7 +213,7 @@ falls back to the primary `role_track`.
 Status values:
 
 ```text
-saved, applied, online_assessment, recruiter_screen, technical_screen, technical_screen_2, technical_screen_3, technical_screen_4, onsite, offer, rejected, withdrawn
+saved, applied, online_assessment, recruiter_screen, technical_screen, technical_screen_2, technical_screen_3, technical_screen_4, onsite, offer, rejected, withdrawn, kiv
 ```
 
 Status transition request:

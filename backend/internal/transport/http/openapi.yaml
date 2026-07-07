@@ -876,6 +876,7 @@ components:
         - offer
         - rejected
         - withdrawn
+        - kiv
 
     Company:
       type: object

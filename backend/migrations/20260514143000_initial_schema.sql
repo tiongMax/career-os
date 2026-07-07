@@ -43,7 +43,8 @@ CREATE TABLE applications (
             'onsite',
             'offer',
             'rejected',
-            'withdrawn'
+            'withdrawn',
+            'kiv'
         )
     ),
     location TEXT,
