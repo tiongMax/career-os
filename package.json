@@ -8,6 +8,11 @@
   },
   "scripts": {
     "build:api": "go -C backend build -o bin/api.exe ./cmd/api",
+    "build:api:ts": "npm run build --prefix backend",
+    "dev:api:ts": "dotenv -e .env -- npm run dev --prefix backend",
+    "lint:api:ts": "npm run lint --prefix backend",
+    "test:api:ts": "npm run test --prefix backend",
+    "typecheck:api:ts": "npm run typecheck --prefix backend",
     "dev": "docker compose up -d postgres redis && dotenv -e .env -- go -C backend run ./cmd/migrate up && dotenv -e .env -- concurrently --names \"api,worker,web\" --prefix-colors \"cyan,yellow,magenta\" \"go -C backend run ./cmd/api\" \"go -C backend run ./cmd/worker\" \"npm run dev --prefix frontend\""
   },
   "repository": {
