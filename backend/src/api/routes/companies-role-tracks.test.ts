@@ -53,7 +53,17 @@ function fakeServices(): ApiServices {
     list: vi.fn().mockResolvedValue([]),
   } satisfies RoleTracksService;
 
-  return { companies, roleTracks };
+  const resumeVersions = {
+    create: vi.fn(),
+    list: vi.fn().mockResolvedValue([]),
+    get: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    storePdf: vi.fn(),
+    getPdf: vi.fn(),
+  };
+
+  return { companies, roleTracks, resumeVersions };
 }
 
 async function createApp(services = fakeServices()) {

@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { type FastifyServerOptions } from "fastify";
@@ -14,6 +15,7 @@ import { registerErrorHandler } from "./errors.js";
 import { companyRoutes } from "./routes/companies.js";
 import { healthRoutes, type HealthChecks } from "./routes/health.js";
 import { roleTrackRoutes } from "./routes/role-tracks.js";
+import { resumeVersionRoutes } from "./routes/resume-versions.js";
 import type { ApiServices } from "../app/services.js";
 
 export interface BuildAppOptions {
@@ -39,6 +41,10 @@ export async function buildApp(options: BuildAppOptions) {
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   });
 
+  await app.register(multipart, {
+    limits: { files: 1, fileSize: 32 * 1024 * 1024 },
+  });
+
   await app.register(swagger, {
     openapi: {
       openapi: "3.1.0",
@@ -59,6 +65,9 @@ export async function buildApp(options: BuildAppOptions) {
   if (options.services !== undefined) {
     await app.register(companyRoutes(options.services.companies), { prefix: "/api/v1" });
     await app.register(roleTrackRoutes(options.services.roleTracks), { prefix: "/api/v1" });
+    await app.register(resumeVersionRoutes(options.services.resumeVersions), {
+      prefix: "/api/v1",
+    });
   }
 
   app.get(

@@ -35,6 +35,12 @@ The TypeScript API currently exposes:
 - `GET, POST /api/v1/tracks`
 - `GET, POST /api/v1/companies`
 - `GET, PATCH, DELETE /api/v1/companies/{id}`
+- `GET, POST /api/v1/resume-versions`
+- `GET, PATCH, DELETE /api/v1/resume-versions/{id}`
+- `GET, POST /api/v1/resume-versions/{id}/pdf`
+
+Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
+The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.
 
 PostgreSQL migrations in `migrations/` remain the authoritative database
 schema history. Do not use schema-push workflows during the migration.

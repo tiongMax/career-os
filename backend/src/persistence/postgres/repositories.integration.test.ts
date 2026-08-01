@@ -3,16 +3,19 @@ import { eq } from "drizzle-orm";
 
 import { DefaultCompaniesService } from "../../domain/companies/company.js";
 import { DefaultRoleTracksService } from "../../domain/role-tracks/role-track.js";
+import { DefaultResumeVersionsService } from "../../domain/resumes/resume-version.js";
 import { createPostgres, type Postgres } from "../../infrastructure/postgres.js";
 import { DrizzleCompaniesRepository } from "./companies-repository.js";
-import { hasPostgresCode } from "./errors.js";
-import { companies, roleTracks } from "./schema.js";
+import { EntityNotFoundError, hasPostgresCode } from "./errors.js";
+import { companies, resumeVersions, roleTracks } from "./schema.js";
 import { DrizzleRoleTracksRepository } from "./role-tracks-repository.js";
+import { DrizzleResumeVersionsRepository } from "./resume-versions-repository.js";
 
 const databaseUrl = process.env.CAREEROS_INTEGRATION_DATABASE_URL;
 const runId = `${String(process.pid)}-${String(Date.now())}`;
 const companyName = `TypeScript integration ${runId}`;
 const roleTrackName = `typescript-integration-${runId}`;
+const resumeName = `TypeScript resume integration ${runId}`;
 
 let postgres: Postgres | undefined;
 
@@ -25,6 +28,7 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     if (postgres === undefined) return;
 
     await postgres.db.delete(companies).where(eq(companies.name, companyName));
+    await postgres.db.delete(resumeVersions).where(eq(resumeVersions.name, resumeName));
     await postgres.db.delete(roleTracks).where(eq(roleTracks.name, roleTrackName));
     await postgres.close();
   });
@@ -75,6 +79,36 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
       duplicateError = error;
     }
     expect(hasPostgresCode(duplicateError, "23505")).toBe(true);
+  });
+
+  it("persists resume metadata and PDF bytes", async () => {
+    const service = new DefaultResumeVersionsService(
+      new DrizzleResumeVersionsRepository(requirePostgres().db),
+    );
+    const pdf = Buffer.from("%PDF-1.4\nDrizzle integration\n");
+    const created = await service.create({
+      name: resumeName,
+      track: "backend",
+      content_text: "TypeScript and Fastify",
+    });
+    expect(created.tags).toEqual([]);
+    expect(created.hasPdf).toBe(false);
+
+    await service.storePdf(created.id, pdf);
+    expect(await service.getPdf(created.id)).toEqual(pdf);
+    expect((await service.get(created.id)).hasPdf).toBe(true);
+
+    const updated = await service.update(created.id, {
+      name: null,
+      content_text: "Updated TypeScript resume",
+      tags: ["TypeScript"],
+    });
+    expect(updated.name).toBe(resumeName);
+    expect(updated.contentText).toBe("Updated TypeScript resume");
+    expect(updated.tags).toEqual(["TypeScript"]);
+
+    await service.delete(created.id);
+    await expect(service.get(created.id)).rejects.toBeInstanceOf(EntityNotFoundError);
   });
 });
 
