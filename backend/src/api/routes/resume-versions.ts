@@ -11,7 +11,7 @@ import { EntityNotFoundError } from "../../persistence/postgres/errors.js";
 import { AppError } from "../errors.js";
 import { errorResponseSchema, idParamsSchema, requireUUID } from "./shared.js";
 
-const resumeVersionResponseSchema = z.object({
+export const resumeVersionResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   track: z.string(),
@@ -188,7 +188,7 @@ export function resumeVersionRoutes(
   };
 }
 
-function resumeVersionDTO(resume: ResumeVersion): ResumeVersionResponse {
+export function resumeVersionDTO(resume: ResumeVersion): ResumeVersionResponse {
   return {
     id: resume.id,
     name: resume.name,

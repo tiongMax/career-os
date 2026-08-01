@@ -151,6 +151,25 @@ export const interviewRounds = pgTable("interview_rounds", {
     .notNull(),
 });
 
+export const jobDescriptions = pgTable("job_descriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => applications.id, { onDelete: "cascade" }),
+  rawText: text("raw_text").notNull(),
+  extractedKeywords: text("extracted_keywords")
+    .array()
+    .default(sql`'{}'::text[]`)
+    .notNull(),
+  aiSummary: text("ai_summary"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type RoleTrackRow = typeof roleTracks.$inferSelect;
 export type ResumeVersionRow = typeof resumeVersions.$inferSelect;
@@ -158,3 +177,4 @@ export type ApplicationRow = typeof applications.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type ContactRow = typeof contacts.$inferSelect;
 export type InterviewRoundRow = typeof interviewRounds.$inferSelect;
+export type JobDescriptionRow = typeof jobDescriptions.$inferSelect;

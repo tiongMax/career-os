@@ -9,7 +9,7 @@ import {
 } from "../../domain/contacts/contact.js";
 import { errorResponseSchema, idParamsSchema, requireUUID } from "./shared.js";
 
-const contactResponseSchema = z.object({
+export const contactResponseSchema = z.object({
   id: z.uuid(),
   company_id: z.uuid(),
   name: z.string(),
@@ -114,7 +114,7 @@ export function contactRoutes(
 function contactId(id: string): string {
   return requireUUID(id, "invalid contact id");
 }
-function contactDTO(contact: Contact): ContactResponse {
+export function contactDTO(contact: Contact): ContactResponse {
   return {
     id: contact.id,
     company_id: contact.companyId,
