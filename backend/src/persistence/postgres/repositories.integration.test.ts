@@ -2,12 +2,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
 import { DefaultCompaniesService } from "../../domain/companies/company.js";
+import { DefaultApplicationsService } from "../../domain/applications/application.js";
 import { DefaultRoleTracksService } from "../../domain/role-tracks/role-track.js";
 import { DefaultResumeVersionsService } from "../../domain/resumes/resume-version.js";
 import { createPostgres, type Postgres } from "../../infrastructure/postgres.js";
 import { DrizzleCompaniesRepository } from "./companies-repository.js";
+import { DrizzleApplicationsRepository } from "./applications-repository.js";
 import { EntityNotFoundError, hasPostgresCode } from "./errors.js";
-import { companies, resumeVersions, roleTracks } from "./schema.js";
+import { applications, auditLogs, companies, resumeVersions, roleTracks } from "./schema.js";
 import { DrizzleRoleTracksRepository } from "./role-tracks-repository.js";
 import { DrizzleResumeVersionsRepository } from "./resume-versions-repository.js";
 
@@ -16,6 +18,7 @@ const runId = `${String(process.pid)}-${String(Date.now())}`;
 const companyName = `TypeScript integration ${runId}`;
 const roleTrackName = `typescript-integration-${runId}`;
 const resumeName = `TypeScript resume integration ${runId}`;
+const applicationCompanyName = `TypeScript application integration ${runId}`;
 
 let postgres: Postgres | undefined;
 
@@ -28,6 +31,7 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     if (postgres === undefined) return;
 
     await postgres.db.delete(companies).where(eq(companies.name, companyName));
+    await postgres.db.delete(companies).where(eq(companies.name, applicationCompanyName));
     await postgres.db.delete(resumeVersions).where(eq(resumeVersions.name, resumeName));
     await postgres.db.delete(roleTracks).where(eq(roleTracks.name, roleTrackName));
     await postgres.close();
@@ -109,6 +113,49 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
 
     await service.delete(created.id);
     await expect(service.get(created.id)).rejects.toBeInstanceOf(EntityNotFoundError);
+  });
+
+  it("keeps application tracks and status audit writes transactional", async () => {
+    const database = requirePostgres().db;
+    const companyService = new DefaultCompaniesService(new DrizzleCompaniesRepository(database));
+    const repository = new DrizzleApplicationsRepository(database);
+    const service = new DefaultApplicationsService(repository);
+    const company = await companyService.create({ name: applicationCompanyName });
+    const created = await service.create({
+      company_id: company.id,
+      title: "TypeScript Platform Engineer",
+      role_track: "backend",
+      role_tracks: [" Backend ", "ai", "backend"],
+    });
+
+    try {
+      expect(created.roleTrack).toBe("backend");
+      expect(created.roleTracks).toEqual(["backend", "ai"]);
+      expect((await service.listPage(1, 0)).total).toBeGreaterThanOrEqual(1);
+
+      await expect(repository.updateStatusWithAudit(created.id, "applied", {
+        entityType: "application",
+        entityId: "not-a-uuid",
+        action: "status_changed",
+      })).rejects.toBeDefined();
+      expect((await service.get(created.id)).status).toBe("saved");
+
+      const updated = await service.changeStatus(created.id, { status: "applied" });
+      expect(updated.status).toBe("applied");
+      expect(await service.listAuditLogs(created.id)).toEqual([
+        expect.objectContaining({
+          entityType: "application",
+          entityId: created.id,
+          action: "status_changed",
+          oldValue: { status: "saved" },
+          newValue: { status: "applied" },
+        }),
+      ]);
+    } finally {
+      await database.delete(applications).where(eq(applications.id, created.id));
+      await database.delete(auditLogs).where(eq(auditLogs.entityId, created.id));
+      await companyService.delete(company.id);
+    }
   });
 });
 

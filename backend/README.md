@@ -38,6 +38,10 @@ The TypeScript API currently exposes:
 - `GET, POST /api/v1/resume-versions`
 - `GET, PATCH, DELETE /api/v1/resume-versions/{id}`
 - `GET, POST /api/v1/resume-versions/{id}/pdf`
+- `GET, POST /api/v1/applications`
+- `GET, PATCH, DELETE /api/v1/applications/{id}`
+- `PATCH /api/v1/applications/{id}/status`
+- `GET /api/v1/applications/{id}/audit-logs`
 
 Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
 The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.

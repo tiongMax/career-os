@@ -36,6 +36,10 @@ afterEach(async () => {
 });
 
 function fakeServices(): ApiServices {
+  const applications = {
+    create: vi.fn(), list: vi.fn().mockResolvedValue([]), listPage: vi.fn(), get: vi.fn(),
+    update: vi.fn(), changeStatus: vi.fn(), listAuditLogs: vi.fn().mockResolvedValue([]), delete: vi.fn(),
+  };
   const companies = {
     create: vi.fn().mockResolvedValue(company),
     list: vi.fn().mockResolvedValue([company]),
@@ -63,7 +67,7 @@ function fakeServices(): ApiServices {
     getPdf: vi.fn(),
   };
 
-  return { companies, roleTracks, resumeVersions };
+  return { applications, companies, roleTracks, resumeVersions };
 }
 
 async function createApp(services = fakeServices()) {

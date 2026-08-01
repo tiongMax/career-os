@@ -41,6 +41,10 @@ function fakeServices(): ApiServices {
   } satisfies ResumeVersionsService;
 
   return {
+    applications: {
+      create: vi.fn(), list: vi.fn().mockResolvedValue([]), listPage: vi.fn(), get: vi.fn(),
+      update: vi.fn(), changeStatus: vi.fn(), listAuditLogs: vi.fn().mockResolvedValue([]), delete: vi.fn(),
+    },
     companies: {
       create: vi.fn(), list: vi.fn().mockResolvedValue([]), get: vi.fn(),
       update: vi.fn(), delete: vi.fn(),

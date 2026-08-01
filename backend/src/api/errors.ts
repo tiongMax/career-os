@@ -1,7 +1,7 @@
 import type { FastifyError, FastifyInstance } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 
-import { DomainValidationError } from "../domain/errors.js";
+import { DomainConflictError, DomainValidationError } from "../domain/errors.js";
 import { EntityNotFoundError, hasPostgresCode } from "../persistence/postgres/errors.js";
 
 export class AppError extends Error {
@@ -34,6 +34,10 @@ export function registerErrorHandler(app: FastifyInstance): void {
 
     if (error instanceof DomainValidationError) {
       return reply.status(400).send({ error: error.message });
+    }
+
+    if (error instanceof DomainConflictError) {
+      return reply.status(409).send({ error: error.message });
     }
 
     if (hasPostgresCode(error, "23505")) {
