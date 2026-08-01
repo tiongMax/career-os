@@ -114,8 +114,47 @@ export const auditLogs = pgTable("audit_logs", {
     .notNull(),
 });
 
+export const contacts = pgTable("contacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role"),
+  email: text("email"),
+  linkedinUrl: text("linkedin_url"),
+  relationship: text("relationship"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
+export const interviewRounds = pgTable("interview_rounds", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => applications.id, { onDelete: "cascade" }),
+  roundType: text("round_type").notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true, mode: "date" }),
+  interviewer: text("interviewer"),
+  notes: text("notes"),
+  outcome: text("outcome"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type RoleTrackRow = typeof roleTracks.$inferSelect;
 export type ResumeVersionRow = typeof resumeVersions.$inferSelect;
 export type ApplicationRow = typeof applications.$inferSelect;
 export type AuditLogRow = typeof auditLogs.$inferSelect;
+export type ContactRow = typeof contacts.$inferSelect;
+export type InterviewRoundRow = typeof interviewRounds.$inferSelect;

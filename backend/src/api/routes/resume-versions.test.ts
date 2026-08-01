@@ -58,6 +58,19 @@ function fakeServices(): ApiServices {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    contacts: {
+      create: vi.fn(),
+      list: vi.fn().mockResolvedValue([]),
+      get: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    interviews: {
+      create: vi.fn(),
+      listByApplication: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
     roleTracks: { create: vi.fn(), list: vi.fn().mockResolvedValue([]) },
     resumeVersions,
   };

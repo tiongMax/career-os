@@ -3,6 +3,14 @@ import {
   type CompaniesService,
 } from "../domain/companies/company.js";
 import {
+  createContactsService,
+  type ContactsService,
+} from "../domain/contacts/contact.js";
+import {
+  createInterviewsService,
+  type InterviewsService,
+} from "../domain/interviews/interview.js";
+import {
   createApplicationsService,
   type ApplicationsService,
 } from "../domain/applications/application.js";
@@ -16,6 +24,8 @@ import {
 } from "../domain/resumes/resume-version.js";
 import type { Database } from "../infrastructure/postgres.js";
 import { createCompaniesRepository } from "../persistence/postgres/companies-repository.js";
+import { createContactsRepository } from "../persistence/postgres/contacts-repository.js";
+import { createInterviewsRepository } from "../persistence/postgres/interviews-repository.js";
 import { createApplicationsRepository } from "../persistence/postgres/applications-repository.js";
 import { createRoleTracksRepository } from "../persistence/postgres/role-tracks-repository.js";
 import { createResumeVersionsRepository } from "../persistence/postgres/resume-versions-repository.js";
@@ -23,6 +33,8 @@ import { createResumeVersionsRepository } from "../persistence/postgres/resume-v
 export interface ApiServices {
   applications: ApplicationsService;
   companies: CompaniesService;
+  contacts: ContactsService;
+  interviews: InterviewsService;
   roleTracks: RoleTracksService;
   resumeVersions: ResumeVersionsService;
 }
@@ -33,6 +45,8 @@ export function createApiServices(database: Database): ApiServices {
       createApplicationsRepository(database),
     ),
     companies: createCompaniesService(createCompaniesRepository(database)),
+    contacts: createContactsService(createContactsRepository(database)),
+    interviews: createInterviewsService(createInterviewsRepository(database)),
     roleTracks: createRoleTracksService(createRoleTracksRepository(database)),
     resumeVersions: createResumeVersionsService(
       createResumeVersionsRepository(database),
