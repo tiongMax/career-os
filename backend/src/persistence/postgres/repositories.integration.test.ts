@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
 import { createCompaniesService } from "../../domain/companies/company.js";
+import { createContactsService } from "../../domain/contacts/contact.js";
+import { createInterviewsService } from "../../domain/interviews/interview.js";
 import { createApplicationsService } from "../../domain/applications/application.js";
 import { createRoleTracksService } from "../../domain/role-tracks/role-track.js";
 import { createResumeVersionsService } from "../../domain/resumes/resume-version.js";
@@ -10,12 +12,16 @@ import {
   type Postgres,
 } from "../../infrastructure/postgres.js";
 import { createCompaniesRepository } from "./companies-repository.js";
+import { createContactsRepository } from "./contacts-repository.js";
+import { createInterviewsRepository } from "./interviews-repository.js";
 import { createApplicationsRepository } from "./applications-repository.js";
 import { EntityNotFoundError, hasPostgresCode } from "./errors.js";
 import {
   applications,
   auditLogs,
   companies,
+  contacts,
+  interviewRounds,
   resumeVersions,
   roleTracks,
 } from "./schema.js";
@@ -28,6 +34,7 @@ const companyName = `TypeScript integration ${runId}`;
 const roleTrackName = `typescript-integration-${runId}`;
 const resumeName = `TypeScript resume integration ${runId}`;
 const applicationCompanyName = `TypeScript application integration ${runId}`;
+const relationshipCompanyName = `TypeScript relationships integration ${runId}`;
 
 let postgres: Postgres | undefined;
 
@@ -43,6 +50,9 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     await postgres.db
       .delete(companies)
       .where(eq(companies.name, applicationCompanyName));
+    await postgres.db
+      .delete(companies)
+      .where(eq(companies.name, relationshipCompanyName));
     await postgres.db
       .delete(resumeVersions)
       .where(eq(resumeVersions.name, resumeName));
@@ -188,6 +198,76 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
         .delete(auditLogs)
         .where(eq(auditLogs.entityId, created.id));
       await companyService.delete(company.id);
+    }
+  });
+
+  it("persists contacts and ordered application interviews", async () => {
+    const database = requirePostgres().db;
+    const companyService = createCompaniesService(
+      createCompaniesRepository(database),
+    );
+    const applicationService = createApplicationsService(
+      createApplicationsRepository(database),
+    );
+    const contactService = createContactsService(
+      createContactsRepository(database),
+    );
+    const interviewService = createInterviewsService(
+      createInterviewsRepository(database),
+    );
+    const company = await companyService.create({
+      name: relationshipCompanyName,
+    });
+    const application = await applicationService.create({
+      company_id: company.id,
+      title: "Relationship Integration Engineer",
+      role_track: "backend",
+    });
+    const contact = await contactService.create({
+      company_id: company.id,
+      name: "Ada Lovelace",
+      role: "Recruiter",
+    });
+    const scheduledAt = new Date("2026-09-01T03:00:00.000Z");
+    const interview = await interviewService.create(application.id, {
+      round_type: "technical",
+      scheduled_at: scheduledAt,
+      interviewer: "Grace Hopper",
+    });
+
+    try {
+      const updatedContact = await contactService.update(contact.id, {
+        role: null,
+        notes: "Follow up after interview",
+      });
+      expect(updatedContact.role).toBe("Recruiter");
+      expect(updatedContact.notes).toBe("Follow up after interview");
+
+      const updatedInterview = await interviewService.update(interview.id, {
+        outcome: "advanced",
+      });
+      expect(updatedInterview.outcome).toBe("advanced");
+      expect(await interviewService.listByApplication(application.id)).toEqual([
+        expect.objectContaining({ id: interview.id, scheduledAt }),
+      ]);
+
+      await contactService.delete(contact.id);
+      await interviewService.delete(interview.id);
+      await expect(contactService.get(contact.id)).rejects.toBeInstanceOf(
+        EntityNotFoundError,
+      );
+      expect(await interviewService.listByApplication(application.id)).toEqual(
+        [],
+      );
+    } finally {
+      await database
+        .delete(interviewRounds)
+        .where(eq(interviewRounds.applicationId, application.id));
+      await database.delete(contacts).where(eq(contacts.companyId, company.id));
+      await database
+        .delete(applications)
+        .where(eq(applications.id, application.id));
+      await companyService.delete(company.id).catch(() => undefined);
     }
   });
 });

@@ -73,7 +73,25 @@ function fakeServices(): ApiServices {
     getPdf: vi.fn(),
   };
 
-  return { applications, companies, roleTracks, resumeVersions };
+  return {
+    applications,
+    companies,
+    contacts: {
+      create: vi.fn(),
+      list: vi.fn().mockResolvedValue([]),
+      get: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    interviews: {
+      create: vi.fn(),
+      listByApplication: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    roleTracks,
+    resumeVersions,
+  };
 }
 
 async function createApp(services = fakeServices()) {

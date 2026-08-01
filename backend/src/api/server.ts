@@ -13,9 +13,11 @@ import { stringify } from "yaml";
 
 import { registerErrorHandler } from "./errors.js";
 import { companyRoutes } from "./routes/companies.js";
+import { contactRoutes } from "./routes/contacts.js";
 import { applicationRoutes } from "./routes/applications.js";
 import { healthRoutes, type HealthChecks } from "./routes/health.js";
 import { roleTrackRoutes } from "./routes/role-tracks.js";
+import { interviewRoutes } from "./routes/interviews.js";
 import { resumeVersionRoutes } from "./routes/resume-versions.js";
 import type { ApiServices } from "../app/services.js";
 
@@ -69,6 +71,12 @@ export async function buildApp(options: BuildAppOptions) {
       prefix: "/api/v1",
     });
     await app.register(companyRoutes(options.services.companies), {
+      prefix: "/api/v1",
+    });
+    await app.register(contactRoutes(options.services.contacts), {
+      prefix: "/api/v1",
+    });
+    await app.register(interviewRoutes(options.services.interviews), {
       prefix: "/api/v1",
     });
     await app.register(roleTrackRoutes(options.services.roleTracks), {
