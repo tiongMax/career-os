@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ApiServices } from "../../app/services.js";
 import {
-  DefaultCompaniesService,
+  createCompaniesService,
   type CompaniesRepository,
   type CompaniesService,
   type Company,
 } from "../../domain/companies/company.js";
 import {
-  DefaultRoleTracksService,
+  createRoleTracksService,
   type RoleTracksRepository,
   type RoleTracksService,
 } from "../../domain/role-tracks/role-track.js";
@@ -36,6 +36,16 @@ afterEach(async () => {
 });
 
 function fakeServices(): ApiServices {
+  const applications = {
+    create: vi.fn(),
+    list: vi.fn().mockResolvedValue([]),
+    listPage: vi.fn(),
+    get: vi.fn(),
+    update: vi.fn(),
+    changeStatus: vi.fn(),
+    listAuditLogs: vi.fn().mockResolvedValue([]),
+    delete: vi.fn(),
+  };
   const companies = {
     create: vi.fn().mockResolvedValue(company),
     list: vi.fn().mockResolvedValue([company]),
@@ -63,7 +73,7 @@ function fakeServices(): ApiServices {
     getPdf: vi.fn(),
   };
 
-  return { companies, roleTracks, resumeVersions };
+  return { applications, companies, roleTracks, resumeVersions };
 }
 
 async function createApp(services = fakeServices()) {
@@ -107,8 +117,14 @@ describe("company routes", () => {
   it("accepts collection routes with and without a trailing slash", async () => {
     const app = await createApp();
 
-    const withoutSlash = await app.inject({ method: "GET", url: "/api/v1/companies" });
-    const withSlash = await app.inject({ method: "GET", url: "/api/v1/companies/" });
+    const withoutSlash = await app.inject({
+      method: "GET",
+      url: "/api/v1/companies",
+    });
+    const withSlash = await app.inject({
+      method: "GET",
+      url: "/api/v1/companies/",
+    });
 
     expect(withoutSlash.statusCode).toBe(200);
     expect(withSlash.statusCode).toBe(200);
@@ -145,7 +161,7 @@ describe("company routes", () => {
 
   it("returns the domain validation error when the name is missing", async () => {
     const services = fakeServices();
-    services.companies = new DefaultCompaniesService({
+    services.companies = createCompaniesService({
       create: vi.fn(),
       list: vi.fn(),
       get: vi.fn(),
@@ -178,7 +194,9 @@ describe("company routes", () => {
 
   it("maps missing companies to 404", async () => {
     const services = fakeServices();
-    vi.mocked(services.companies.get).mockRejectedValue(new EntityNotFoundError("company"));
+    vi.mocked(services.companies.get).mockRejectedValue(
+      new EntityNotFoundError("company"),
+    );
     const app = await createApp(services);
 
     const response = await app.inject({
@@ -239,7 +257,7 @@ describe("role-track routes", () => {
 
   it("returns the domain validation error when the name is missing", async () => {
     const services = fakeServices();
-    services.roleTracks = new DefaultRoleTracksService({
+    services.roleTracks = createRoleTracksService({
       create: vi.fn(),
       list: vi.fn(),
     } satisfies RoleTracksRepository);

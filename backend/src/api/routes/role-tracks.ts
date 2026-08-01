@@ -16,7 +16,9 @@ const roleTrackResponseSchema = z.object({
 
 type RoleTrackResponse = z.infer<typeof roleTrackResponseSchema>;
 
-export function roleTrackRoutes(service: RoleTracksService): FastifyPluginCallbackZod {
+export function roleTrackRoutes(
+  service: RoleTracksService,
+): FastifyPluginCallbackZod {
   return function registerRoleTrackRoutes(app, _options, done) {
     app.post(
       "/tracks",

@@ -1,11 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm";
 
-import type {
-  CreateResumeVersionInput,
-  ResumeVersion,
-  ResumeVersionsRepository,
-  UpdateResumeVersionInput,
-} from "../../domain/resumes/resume-version.js";
+import type { ResumeVersionsRepository } from "../../domain/resumes/resume-version.js";
 import type { Database } from "../../infrastructure/postgres.js";
 import { EntityNotFoundError } from "./errors.js";
 import { resumeVersions } from "./schema.js";
@@ -21,82 +16,87 @@ const resumeSelection = {
   updatedAt: resumeVersions.updatedAt,
 };
 
-export class DrizzleResumeVersionsRepository implements ResumeVersionsRepository {
-  constructor(private readonly database: Database) {}
+export function createResumeVersionsRepository(
+  database: Database,
+): ResumeVersionsRepository {
+  return {
+    async create(input) {
+      const [resume] = await database
+        .insert(resumeVersions)
+        .values({
+          name: input.name,
+          track: input.track,
+          contentText: input.content_text ?? null,
+          tags: input.tags,
+        })
+        .returning(resumeSelection);
 
-  async create(input: CreateResumeVersionInput & { tags: string[] }): Promise<ResumeVersion> {
-    const [resume] = await this.database
-      .insert(resumeVersions)
-      .values({
-        name: input.name,
-        track: input.track,
-        contentText: input.content_text ?? null,
-        tags: input.tags,
-      })
-      .returning(resumeSelection);
+      if (resume === undefined)
+        throw new Error("resume version insert returned no row");
+      return resume;
+    },
 
-    if (resume === undefined) throw new Error("resume version insert returned no row");
-    return resume;
-  }
+    async list() {
+      return database
+        .select(resumeSelection)
+        .from(resumeVersions)
+        .orderBy(desc(resumeVersions.createdAt))
+        .limit(200);
+    },
 
-  async list(): Promise<ResumeVersion[]> {
-    return this.database
-      .select(resumeSelection)
-      .from(resumeVersions)
-      .orderBy(desc(resumeVersions.createdAt))
-      .limit(200);
-  }
+    async get(id) {
+      const [resume] = await database
+        .select(resumeSelection)
+        .from(resumeVersions)
+        .where(eq(resumeVersions.id, id))
+        .limit(1);
 
-  async get(id: string): Promise<ResumeVersion> {
-    const [resume] = await this.database
-      .select(resumeSelection)
-      .from(resumeVersions)
-      .where(eq(resumeVersions.id, id))
-      .limit(1);
+      if (resume === undefined) throw new EntityNotFoundError("resume version");
+      return resume;
+    },
 
-    if (resume === undefined) throw new EntityNotFoundError("resume version");
-    return resume;
-  }
+    async update(id, input) {
+      const values: Partial<typeof resumeVersions.$inferInsert> = {
+        updatedAt: new Date(),
+      };
+      if (input.name != null) values.name = input.name;
+      if (input.track != null) values.track = input.track;
+      if (input.content_text != null) values.contentText = input.content_text;
+      if (input.tags != null) values.tags = input.tags;
 
-  async update(id: string, input: UpdateResumeVersionInput): Promise<ResumeVersion> {
-    const values: Partial<typeof resumeVersions.$inferInsert> = { updatedAt: new Date() };
-    if (input.name != null) values.name = input.name;
-    if (input.track != null) values.track = input.track;
-    if (input.content_text != null) values.contentText = input.content_text;
-    if (input.tags != null) values.tags = input.tags;
+      const [resume] = await database
+        .update(resumeVersions)
+        .set(values)
+        .where(eq(resumeVersions.id, id))
+        .returning(resumeSelection);
 
-    const [resume] = await this.database
-      .update(resumeVersions)
-      .set(values)
-      .where(eq(resumeVersions.id, id))
-      .returning(resumeSelection);
+      if (resume === undefined) throw new EntityNotFoundError("resume version");
+      return resume;
+    },
 
-    if (resume === undefined) throw new EntityNotFoundError("resume version");
-    return resume;
-  }
+    async delete(id) {
+      const deleted = await database
+        .delete(resumeVersions)
+        .where(eq(resumeVersions.id, id))
+        .returning({ id: resumeVersions.id });
+      if (deleted.length === 0) throw new EntityNotFoundError("resume version");
+    },
 
-  async delete(id: string): Promise<void> {
-    const deleted = await this.database
-      .delete(resumeVersions)
-      .where(eq(resumeVersions.id, id))
-      .returning({ id: resumeVersions.id });
-    if (deleted.length === 0) throw new EntityNotFoundError("resume version");
-  }
+    async storePdf(id, data) {
+      await database
+        .update(resumeVersions)
+        .set({ pdfData: data, updatedAt: new Date() })
+        .where(eq(resumeVersions.id, id));
+    },
 
-  async storePdf(id: string, data: Buffer): Promise<void> {
-    await this.database
-      .update(resumeVersions)
-      .set({ pdfData: data, updatedAt: new Date() })
-      .where(eq(resumeVersions.id, id));
-  }
-
-  async getPdf(id: string): Promise<Buffer | null> {
-    const [resume] = await this.database
-      .select({ pdfData: resumeVersions.pdfData })
-      .from(resumeVersions)
-      .where(eq(resumeVersions.id, id))
-      .limit(1);
-    if (resume === undefined) throw new EntityNotFoundError("resume version");
-    return resume.pdfData;
-  }
+    async getPdf(id) {
+      const [resume] = await database
+        .select({ pdfData: resumeVersions.pdfData })
+        .from(resumeVersions)
+        .where(eq(resumeVersions.id, id))
+        .limit(1);
+      if (resume === undefined) throw new EntityNotFoundError("resume version");
+      return resume.pdfData;
+    },
+  };
 }

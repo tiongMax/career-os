@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DomainValidationError } from "../errors.js";
 import {
-  DefaultRoleTracksService,
+  createRoleTracksService,
   type RoleTracksRepository,
 } from "./role-track.js";
 
@@ -17,10 +17,10 @@ function repository(): RoleTracksRepository {
   };
 }
 
-describe("DefaultRoleTracksService", () => {
+describe("createRoleTracksService", () => {
   it("normalizes role-track names before persistence", async () => {
     const repo = repository();
-    const service = new DefaultRoleTracksService(repo);
+    const service = createRoleTracksService(repo);
 
     await service.create({ name: "  Platform  " });
 
@@ -28,7 +28,7 @@ describe("DefaultRoleTracksService", () => {
   });
 
   it("rejects a blank role-track name", async () => {
-    const service = new DefaultRoleTracksService(repository());
+    const service = createRoleTracksService(repository());
 
     await expect(service.create({ name: "   " })).rejects.toEqual(
       new DomainValidationError("role track name is required"),

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { DomainValidationError } from "../errors.js";
 import {
-  DefaultResumeVersionsService,
+  createResumeVersionsService,
   type ResumeVersion,
   type ResumeVersionsRepository,
 } from "./resume-version.js";
@@ -31,24 +31,30 @@ function fakeRepository(): ResumeVersionsRepository {
   };
 }
 
-describe("DefaultResumeVersionsService", () => {
+describe("createResumeVersionsService", () => {
   it("requires a non-blank name", async () => {
-    const service = new DefaultResumeVersionsService(fakeRepository());
-    await expect(service.create({ name: " ", track: "backend" })).rejects.toEqual(
+    const service = createResumeVersionsService(fakeRepository());
+    await expect(
+      service.create({ name: " ", track: "backend" }),
+    ).rejects.toEqual(
       new DomainValidationError("resume version name is required"),
     );
   });
 
   it("requires one of the four Go-compatible tracks", async () => {
-    const service = new DefaultResumeVersionsService(fakeRepository());
-    await expect(service.create({ name: "Mobile", track: "mobile" })).rejects.toEqual(
-      new DomainValidationError("resume track must be one of backend, ai, quant, general"),
+    const service = createResumeVersionsService(fakeRepository());
+    await expect(
+      service.create({ name: "Mobile", track: "mobile" }),
+    ).rejects.toEqual(
+      new DomainValidationError(
+        "resume track must be one of backend, ai, quant, general",
+      ),
     );
   });
 
   it("defaults omitted and null tags to an empty array", async () => {
     const repository = fakeRepository();
-    const service = new DefaultResumeVersionsService(repository);
+    const service = createResumeVersionsService(repository);
 
     await service.create({ name: "Backend", track: "backend", tags: null });
 
@@ -61,7 +67,7 @@ describe("DefaultResumeVersionsService", () => {
 
   it("validates only non-null patch values", async () => {
     const repository = fakeRepository();
-    const service = new DefaultResumeVersionsService(repository);
+    const service = createResumeVersionsService(repository);
 
     await service.update(resume.id, {
       name: null,

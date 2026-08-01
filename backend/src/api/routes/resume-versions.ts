@@ -24,7 +24,9 @@ const resumeVersionResponseSchema = z.object({
 
 type ResumeVersionResponse = z.infer<typeof resumeVersionResponseSchema>;
 
-export function resumeVersionRoutes(service: ResumeVersionsService): FastifyPluginCallbackZod {
+export function resumeVersionRoutes(
+  service: ResumeVersionsService,
+): FastifyPluginCallbackZod {
   return function registerResumeVersionRoutes(app, _options, done) {
     app.post(
       "/resume-versions",
@@ -33,7 +35,10 @@ export function resumeVersionRoutes(service: ResumeVersionsService): FastifyPlug
           tags: ["Resume Versions"],
           summary: "Create resume version",
           body: createResumeVersionInputSchema,
-          response: { 201: resumeVersionResponseSchema, 400: errorResponseSchema },
+          response: {
+            201: resumeVersionResponseSchema,
+            400: errorResponseSchema,
+          },
         },
       },
       async (request, reply) => {
@@ -102,7 +107,11 @@ export function resumeVersionRoutes(service: ResumeVersionsService): FastifyPlug
           tags: ["Resume Versions"],
           summary: "Delete resume version",
           params: idParamsSchema,
-          response: { 204: z.null(), 400: errorResponseSchema, 404: errorResponseSchema },
+          response: {
+            204: z.null(),
+            400: errorResponseSchema,
+            404: errorResponseSchema,
+          },
         },
       },
       async (request, reply) => {
@@ -152,7 +161,11 @@ export function resumeVersionRoutes(service: ResumeVersionsService): FastifyPlug
           tags: ["Resume Versions"],
           summary: "Download attached PDF",
           params: idParamsSchema,
-          response: { 200: z.any(), 400: errorResponseSchema, 404: errorResponseSchema },
+          response: {
+            200: z.any(),
+            400: errorResponseSchema,
+            404: errorResponseSchema,
+          },
         },
       },
       async (request, reply) => {
@@ -180,7 +193,9 @@ function resumeVersionDTO(resume: ResumeVersion): ResumeVersionResponse {
     id: resume.id,
     name: resume.name,
     track: resume.track,
-    ...(resume.contentText === null ? {} : { content_text: resume.contentText }),
+    ...(resume.contentText === null
+      ? {}
+      : { content_text: resume.contentText }),
     has_pdf: resume.hasPdf,
     tags: resume.tags,
     created_at: resume.createdAt.toISOString(),

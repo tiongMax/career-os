@@ -22,7 +22,9 @@ const companyResponseSchema = z.object({
 
 type CompanyResponse = z.infer<typeof companyResponseSchema>;
 
-export function companyRoutes(service: CompaniesService): FastifyPluginCallbackZod {
+export function companyRoutes(
+  service: CompaniesService,
+): FastifyPluginCallbackZod {
   return function registerCompanyRoutes(app, _options, done) {
     app.post(
       "/companies",
