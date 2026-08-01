@@ -1,4 +1,5 @@
 import { buildApp } from "../api/server.js";
+import { createApiServices } from "../app/services.js";
 import { loadConfig } from "../config/config.js";
 import { createPostgres } from "../infrastructure/postgres.js";
 import {
@@ -11,6 +12,7 @@ const postgres = createPostgres(config.DATABASE_URL);
 let redisConnection: RedisConnection | undefined;
 const app = await buildApp({
   logLevel: config.LOG_LEVEL,
+  services: createApiServices(postgres.db),
   healthChecks: {
     postgres: () => postgres.ping(),
     redis: async () => {

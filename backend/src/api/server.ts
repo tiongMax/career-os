@@ -11,18 +11,23 @@ import {
 import { stringify } from "yaml";
 
 import { registerErrorHandler } from "./errors.js";
+import { companyRoutes } from "./routes/companies.js";
 import { healthRoutes, type HealthChecks } from "./routes/health.js";
+import { roleTrackRoutes } from "./routes/role-tracks.js";
+import type { ApiServices } from "../app/services.js";
 
 export interface BuildAppOptions {
   healthChecks: HealthChecks;
   logger?: FastifyServerOptions["logger"];
   logLevel?: string;
+  services?: ApiServices;
 }
 
 export async function buildApp(options: BuildAppOptions) {
   const app = Fastify({
     logger: options.logger ?? { level: options.logLevel ?? "info" },
     requestIdHeader: "x-request-id",
+    routerOptions: { ignoreTrailingSlash: true },
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
@@ -51,6 +56,10 @@ export async function buildApp(options: BuildAppOptions) {
   });
 
   await app.register(healthRoutes(options.healthChecks), { prefix: "/api/v1" });
+  if (options.services !== undefined) {
+    await app.register(companyRoutes(options.services.companies), { prefix: "/api/v1" });
+    await app.register(roleTrackRoutes(options.services.roleTracks), { prefix: "/api/v1" });
+  }
 
   app.get(
     "/api/v1/openapi.yaml",

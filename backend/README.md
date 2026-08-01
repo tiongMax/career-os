@@ -3,7 +3,7 @@
 The TypeScript backend is being migrated incrementally alongside the existing
 Go service. The Go API remains the default runtime until the final cutover.
 
-## Foundation commands
+## TypeScript backend commands
 
 Install dependencies from the repository root:
 
@@ -14,6 +14,7 @@ npm install --prefix backend
 Run the TypeScript API with the repository `.env` file:
 
 ```sh
+npm run migrate:up
 npm run dev:api:ts
 ```
 
@@ -26,11 +27,14 @@ npm run test:api:ts
 npm run build:api:ts
 ```
 
-The TypeScript API currently exposes the foundation endpoints:
+The TypeScript API currently exposes:
 
 - `GET /api/v1/health`
 - `GET /api/v1/openapi.yaml`
 - `GET /api/v1/docs`
+- `GET, POST /api/v1/tracks`
+- `GET, POST /api/v1/companies`
+- `GET, PATCH, DELETE /api/v1/companies/{id}`
 
 PostgreSQL migrations in `migrations/` remain the authoritative database
 schema history. Do not use schema-push workflows during the migration.
