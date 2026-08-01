@@ -74,6 +74,16 @@ function fakeServices(): ApiServices {
   };
 
   return {
+    analytics: {
+      summary: vi.fn(),
+      byStatus: vi.fn(),
+      byTrack: vi.fn(),
+      byResume: vi.fn(),
+      sources: vi.fn(),
+      funnel: vi.fn(),
+      upcoming: vi.fn(),
+    },
+    search: { search: vi.fn() },
     applications,
     companies,
     contacts: {

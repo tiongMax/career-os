@@ -61,6 +61,9 @@ The TypeScript API currently exposes:
 - `GET, PATCH, DELETE /api/v1/reminders/{id}`
 - `POST /api/v1/reminders/{id}/cancel`
 - `POST /api/v1/reminders/{id}/retry`
+- `GET /api/v1/search?q={query}`
+- `GET /api/v1/analytics/{summary,by-status,by-role-track,by-resume-version,source-performance,funnel,upcoming}`
+- `GET /api/v1/exports/{applications,contacts,reminders}.csv`
 
 Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
 The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.

@@ -22,6 +22,9 @@ import { jobDescriptionRoutes } from "./routes/job-descriptions.js";
 import { resumeVersionRoutes } from "./routes/resume-versions.js";
 import { reminderRoutes } from "./routes/reminders.js";
 import type { ApiServices } from "../app/services.js";
+import { analyticsRoutes } from "./routes/analytics.js";
+import { exportRoutes } from "./routes/exports.js";
+import { searchRoutes } from "./routes/search.js";
 
 export interface BuildAppOptions {
   healthChecks: HealthChecks;
@@ -69,6 +72,9 @@ export async function buildApp(options: BuildAppOptions) {
 
   await app.register(healthRoutes(options.healthChecks), { prefix: "/api/v1" });
   if (options.services !== undefined) {
+    await app.register(analyticsRoutes(options.services.analytics), {
+      prefix: "/api/v1",
+    });
     await app.register(applicationRoutes(options.services.applications), {
       prefix: "/api/v1",
     });
@@ -87,6 +93,10 @@ export async function buildApp(options: BuildAppOptions) {
     await app.register(reminderRoutes(options.services.reminders), {
       prefix: "/api/v1",
     });
+    await app.register(searchRoutes(options.services.search), {
+      prefix: "/api/v1",
+    });
+    await app.register(exportRoutes(options.services), { prefix: "/api/v1" });
     await app.register(roleTrackRoutes(options.services.roleTracks), {
       prefix: "/api/v1",
     });

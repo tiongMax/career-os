@@ -32,6 +32,16 @@ import {
   type RemindersService,
 } from "../domain/reminders/reminder.js";
 import type { Database } from "../infrastructure/postgres.js";
+import {
+  createAnalyticsService,
+  type AnalyticsService,
+} from "../domain/analytics/analytics.js";
+import {
+  createSearchService,
+  type SearchService,
+} from "../domain/search/search.js";
+import { createAnalyticsRepository } from "../persistence/postgres/analytics-repository.js";
+import { createSearchRepository } from "../persistence/postgres/search-repository.js";
 import { createCompaniesRepository } from "../persistence/postgres/companies-repository.js";
 import { createContactsRepository } from "../persistence/postgres/contacts-repository.js";
 import { createInterviewsRepository } from "../persistence/postgres/interviews-repository.js";
@@ -42,12 +52,14 @@ import { createResumeVersionsRepository } from "../persistence/postgres/resume-v
 import { createRemindersRepository } from "../persistence/postgres/reminders-repository.js";
 
 export interface ApiServices {
+  analytics: AnalyticsService;
   applications: ApplicationsService;
   companies: CompaniesService;
   contacts: ContactsService;
   interviews: InterviewsService;
   jobDescriptions: JobDescriptionsService;
   reminders: RemindersService;
+  search: SearchService;
   roleTracks: RoleTracksService;
   resumeVersions: ResumeVersionsService;
 }
@@ -61,6 +73,7 @@ export function createApiServices(
   dependencies: ApiServiceDependencies = {},
 ): ApiServices {
   return {
+    analytics: createAnalyticsService(createAnalyticsRepository(database)),
     applications: createApplicationsService(
       createApplicationsRepository(database),
     ),
@@ -74,6 +87,7 @@ export function createApiServices(
       createRemindersRepository(database),
       dependencies.reminderScheduler,
     ),
+    search: createSearchService(createSearchRepository(database)),
     roleTracks: createRoleTracksService(createRoleTracksRepository(database)),
     resumeVersions: createResumeVersionsService(
       createResumeVersionsRepository(database),

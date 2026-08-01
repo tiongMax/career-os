@@ -10,6 +10,8 @@ import { createRoleTracksService } from "../../domain/role-tracks/role-track.js"
 import { createResumeVersionsService } from "../../domain/resumes/resume-version.js";
 import { createRemindersService } from "../../domain/reminders/reminder.js";
 import { createReminderWorker } from "../../workers/reminder-worker.js";
+import { createSearchService } from "../../domain/search/search.js";
+import { createAnalyticsService } from "../../domain/analytics/analytics.js";
 import {
   createPostgres,
   type Postgres,
@@ -35,6 +37,8 @@ import {
 import { createRoleTracksRepository } from "./role-tracks-repository.js";
 import { createResumeVersionsRepository } from "./resume-versions-repository.js";
 import { createRemindersRepository } from "./reminders-repository.js";
+import { createSearchRepository } from "./search-repository.js";
+import { createAnalyticsRepository } from "./analytics-repository.js";
 
 const databaseUrl = process.env.CAREEROS_INTEGRATION_DATABASE_URL;
 const runId = `${String(process.pid)}-${String(Date.now())}`;
@@ -330,6 +334,10 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
       const recommended = await service.recommendedResume(application.id);
       const context = await service.prepContext(application.id);
       const brief = await service.generatePrepBrief(application.id);
+      const search = createSearchService(createSearchRepository(database));
+      const analytics = createAnalyticsService(
+        createAnalyticsRepository(database),
+      );
 
       expect(extracted.extractedKeywords).toEqual([
         "TypeScript",
@@ -351,6 +359,16 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
         "Platform Engineer at " + company.name + " · Remote",
       );
       expect(brief.keyGaps).toEqual(["Kubernetes"]);
+      expect(await search.search("Kubernetes")).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: application.id,
+            type: "job_description",
+          }),
+        ]),
+      );
+      expect((await analytics.summary()).total).toBeGreaterThanOrEqual(1);
+      expect(await analytics.funnel()).toHaveLength(10);
     } finally {
       await database
         .delete(jobDescriptions)
