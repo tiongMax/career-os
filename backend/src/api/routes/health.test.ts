@@ -25,7 +25,11 @@ describe("GET /api/v1/health", () => {
     const response = await app.inject({ method: "GET", url: "/api/v1/health" });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ status: "ok", postgres: "ok", redis: "ok" });
+    expect(response.json()).toEqual({
+      status: "ok",
+      postgres: "ok",
+      redis: "ok",
+    });
   });
 
   it("returns degraded and identifies failed dependencies", async () => {
@@ -37,7 +41,11 @@ describe("GET /api/v1/health", () => {
     const response = await app.inject({ method: "GET", url: "/api/v1/health" });
 
     expect(response.statusCode).toBe(503);
-    expect(response.json()).toEqual({ status: "degraded", postgres: "error", redis: "ok" });
+    expect(response.json()).toEqual({
+      status: "degraded",
+      postgres: "error",
+      redis: "ok",
+    });
   });
 });
 
@@ -48,7 +56,10 @@ describe("API documentation", () => {
       redis: vi.fn().mockResolvedValue(undefined),
     });
 
-    const spec = await app.inject({ method: "GET", url: "/api/v1/openapi.yaml" });
+    const spec = await app.inject({
+      method: "GET",
+      url: "/api/v1/openapi.yaml",
+    });
     const docs = await app.inject({ method: "GET", url: "/api/v1/docs/" });
 
     expect(spec.statusCode).toBe(200);

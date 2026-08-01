@@ -48,32 +48,22 @@ export interface CompaniesService {
   delete: (id: string) => Promise<void>;
 }
 
-export class DefaultCompaniesService implements CompaniesService {
-  constructor(private readonly repository: CompaniesRepository) {}
-
-  async create(input: CreateCompanyInput): Promise<Company> {
-    requireCompanyName(input.name);
-    return this.repository.create(input);
-  }
-
-  async list(): Promise<Company[]> {
-    return this.repository.list();
-  }
-
-  async get(id: string): Promise<Company> {
-    return this.repository.get(id);
-  }
-
-  async update(id: string, input: UpdateCompanyInput): Promise<Company> {
-    if (input.name != null) {
+export function createCompaniesService(
+  repository: CompaniesRepository,
+): CompaniesService {
+  return {
+    async create(input) {
       requireCompanyName(input.name);
-    }
-    return this.repository.update(id, input);
-  }
-
-  async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
-  }
+      return repository.create(input);
+    },
+    list: () => repository.list(),
+    get: (id) => repository.get(id),
+    async update(id, input) {
+      if (input.name != null) requireCompanyName(input.name);
+      return repository.update(id, input);
+    },
+    delete: (id) => repository.delete(id),
+  };
 }
 
 function requireCompanyName(name: string): void {

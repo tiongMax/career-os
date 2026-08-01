@@ -14,7 +14,9 @@ const healthResponseSchema = z.object({
 
 const dependencyTimeoutMs = 2_000;
 
-async function checkWithTimeout(check: () => Promise<void>): Promise<"ok" | "error"> {
+async function checkWithTimeout(
+  check: () => Promise<void>,
+): Promise<"ok" | "error"> {
   let timer: NodeJS.Timeout | undefined;
 
   try {

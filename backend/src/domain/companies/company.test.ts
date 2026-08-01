@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { DomainValidationError } from "../errors.js";
-import {
-  DefaultCompaniesService,
-  type CompaniesRepository,
-} from "./company.js";
+import { createCompaniesService, type CompaniesRepository } from "./company.js";
 
 function repository(): CompaniesRepository {
   return {
@@ -16,9 +13,9 @@ function repository(): CompaniesRepository {
   };
 }
 
-describe("DefaultCompaniesService", () => {
+describe("createCompaniesService", () => {
   it("rejects a blank company name on create", async () => {
-    const service = new DefaultCompaniesService(repository());
+    const service = createCompaniesService(repository());
 
     await expect(service.create({ name: "   " })).rejects.toEqual(
       new DomainValidationError("company name is required"),
@@ -26,7 +23,7 @@ describe("DefaultCompaniesService", () => {
   });
 
   it("rejects a blank company name on update", async () => {
-    const service = new DefaultCompaniesService(repository());
+    const service = createCompaniesService(repository());
 
     await expect(service.update("company-id", { name: "" })).rejects.toEqual(
       new DomainValidationError("company name is required"),
@@ -45,10 +42,12 @@ describe("DefaultCompaniesService", () => {
       createdAt: new Date(0),
       updatedAt: new Date(0),
     });
-    const service = new DefaultCompaniesService(repo);
+    const service = createCompaniesService(repo);
 
     await service.update("company-id", { industry: "Software" });
 
-    expect(repo.update).toHaveBeenCalledWith("company-id", { industry: "Software" });
+    expect(repo.update).toHaveBeenCalledWith("company-id", {
+      industry: "Software",
+    });
   });
 });

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ApiServices } from "../../app/services.js";
 import {
-  DefaultResumeVersionsService,
+  createResumeVersionsService,
   type ResumeVersion,
   type ResumeVersionsRepository,
   type ResumeVersionsService,
@@ -42,12 +42,21 @@ function fakeServices(): ApiServices {
 
   return {
     applications: {
-      create: vi.fn(), list: vi.fn().mockResolvedValue([]), listPage: vi.fn(), get: vi.fn(),
-      update: vi.fn(), changeStatus: vi.fn(), listAuditLogs: vi.fn().mockResolvedValue([]), delete: vi.fn(),
+      create: vi.fn(),
+      list: vi.fn().mockResolvedValue([]),
+      listPage: vi.fn(),
+      get: vi.fn(),
+      update: vi.fn(),
+      changeStatus: vi.fn(),
+      listAuditLogs: vi.fn().mockResolvedValue([]),
+      delete: vi.fn(),
     },
     companies: {
-      create: vi.fn(), list: vi.fn().mockResolvedValue([]), get: vi.fn(),
-      update: vi.fn(), delete: vi.fn(),
+      create: vi.fn(),
+      list: vi.fn().mockResolvedValue([]),
+      get: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
     },
     roleTracks: { create: vi.fn(), list: vi.fn().mockResolvedValue([]) },
     resumeVersions,
@@ -91,20 +100,31 @@ describe("resume-version routes", () => {
 
   it("returns Go-compatible validation messages", async () => {
     const services = fakeServices();
-    services.resumeVersions = new DefaultResumeVersionsService({
-      create: vi.fn(), list: vi.fn(), get: vi.fn(), update: vi.fn(), delete: vi.fn(),
-      storePdf: vi.fn(), getPdf: vi.fn(),
+    services.resumeVersions = createResumeVersionsService({
+      create: vi.fn(),
+      list: vi.fn(),
+      get: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      storePdf: vi.fn(),
+      getPdf: vi.fn(),
     } satisfies ResumeVersionsRepository);
     const app = await createApp(services);
 
     const missingName = await app.inject({
-      method: "POST", url: "/api/v1/resume-versions", payload: { track: "backend" },
+      method: "POST",
+      url: "/api/v1/resume-versions",
+      payload: { track: "backend" },
     });
     const invalidTrack = await app.inject({
-      method: "POST", url: "/api/v1/resume-versions", payload: { name: "Mobile", track: "mobile" },
+      method: "POST",
+      url: "/api/v1/resume-versions",
+      payload: { name: "Mobile", track: "mobile" },
     });
 
-    expect(missingName.json()).toEqual({ error: "resume version name is required" });
+    expect(missingName.json()).toEqual({
+      error: "resume version name is required",
+    });
     expect(invalidTrack.json()).toEqual({
       error: "resume track must be one of backend, ai, quant, general",
     });
@@ -129,7 +149,10 @@ describe("resume-version routes", () => {
 
   it("rejects invalid resume ids", async () => {
     const app = await createApp();
-    const response = await app.inject({ method: "GET", url: "/api/v1/resume-versions/nope" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/resume-versions/nope",
+    });
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({ error: "invalid resume version id" });
   });
@@ -152,7 +175,10 @@ describe("resume-version routes", () => {
     });
 
     expect(upload.statusCode).toBe(204);
-    expect(services.resumeVersions.storePdf).toHaveBeenCalledWith(resumeId, pdf);
+    expect(services.resumeVersions.storePdf).toHaveBeenCalledWith(
+      resumeId,
+      pdf,
+    );
     expect(download.statusCode).toBe(200);
     expect(download.headers["content-type"]).toContain("application/pdf");
     expect(download.rawPayload).toEqual(pdf);
@@ -167,9 +193,17 @@ describe("resume-version routes", () => {
       headers: { "content-type": "multipart/form-data; boundary=careeros" },
       payload: multipartBody("careeros", "other", Buffer.from("x")),
     });
-    const noPdf = await app.inject({ method: "GET", url: `/api/v1/resume-versions/${resumeId}/pdf` });
-    vi.mocked(services.resumeVersions.getPdf).mockRejectedValue(new EntityNotFoundError("resume"));
-    const noResume = await app.inject({ method: "GET", url: `/api/v1/resume-versions/${resumeId}/pdf` });
+    const noPdf = await app.inject({
+      method: "GET",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+    });
+    vi.mocked(services.resumeVersions.getPdf).mockRejectedValue(
+      new EntityNotFoundError("resume"),
+    );
+    const noResume = await app.inject({
+      method: "GET",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+    });
 
     expect(missingFile.json()).toEqual({ error: "missing file field" });
     expect(noPdf.json()).toEqual({ error: "no PDF attached" });
@@ -178,14 +212,23 @@ describe("resume-version routes", () => {
 
   it("includes resume routes in generated OpenAPI", async () => {
     const app = await createApp();
-    const response = await app.inject({ method: "GET", url: "/api/v1/openapi.yaml" });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/v1/openapi.yaml",
+    });
     expect(response.body).toContain("/api/v1/resume-versions");
   });
 });
 
-function multipartBody(boundary: string, fieldName: string, data: Buffer): Buffer {
+function multipartBody(
+  boundary: string,
+  fieldName: string,
+  data: Buffer,
+): Buffer {
   return Buffer.concat([
-    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="resume.pdf"\r\nContent-Type: application/pdf\r\n\r\n`),
+    Buffer.from(
+      `--${boundary}\r\nContent-Disposition: form-data; name="${fieldName}"; filename="resume.pdf"\r\nContent-Type: application/pdf\r\n\r\n`,
+    ),
     data,
     Buffer.from(`\r\n--${boundary}--\r\n`),
   ]);

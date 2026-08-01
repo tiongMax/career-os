@@ -10,6 +10,7 @@
     "build:api": "go -C backend build -o bin/api.exe ./cmd/api",
     "build:api:ts": "npm run build --prefix backend",
     "dev:api:ts": "dotenv -e .env -- npm run dev --prefix backend",
+    "format:check:api:ts": "npm run format:check --prefix backend",
     "lint:api:ts": "npm run lint --prefix backend",
     "migrate:down": "dotenv -e .env -- go -C backend run ./cmd/migrate down",
     "migrate:status": "dotenv -e .env -- go -C backend run ./cmd/migrate status",

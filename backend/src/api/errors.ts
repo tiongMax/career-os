@@ -1,8 +1,14 @@
 import type { FastifyError, FastifyInstance } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 
-import { DomainConflictError, DomainValidationError } from "../domain/errors.js";
-import { EntityNotFoundError, hasPostgresCode } from "../persistence/postgres/errors.js";
+import {
+  DomainConflictError,
+  DomainValidationError,
+} from "../domain/errors.js";
+import {
+  EntityNotFoundError,
+  hasPostgresCode,
+} from "../persistence/postgres/errors.js";
 
 export class AppError extends Error {
   constructor(
@@ -49,7 +55,9 @@ export function registerErrorHandler(app: FastifyInstance): void {
     }
 
     if (hasPostgresCode(error, "23514") || hasPostgresCode(error, "22P02")) {
-      return reply.status(400).send({ error: "request violates data constraints" });
+      return reply
+        .status(400)
+        .send({ error: "request violates data constraints" });
     }
 
     request.log.error({ err: error }, "request failed");

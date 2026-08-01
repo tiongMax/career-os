@@ -51,7 +51,8 @@ export async function buildApp(options: BuildAppOptions) {
       openapi: "3.1.0",
       info: {
         title: "CareerOS API",
-        description: "REST API for the CareerOS job application operating system.",
+        description:
+          "REST API for the CareerOS job application operating system.",
         version: "1.0.0",
       },
     },
@@ -64,9 +65,15 @@ export async function buildApp(options: BuildAppOptions) {
 
   await app.register(healthRoutes(options.healthChecks), { prefix: "/api/v1" });
   if (options.services !== undefined) {
-    await app.register(applicationRoutes(options.services.applications), { prefix: "/api/v1" });
-    await app.register(companyRoutes(options.services.companies), { prefix: "/api/v1" });
-    await app.register(roleTrackRoutes(options.services.roleTracks), { prefix: "/api/v1" });
+    await app.register(applicationRoutes(options.services.applications), {
+      prefix: "/api/v1",
+    });
+    await app.register(companyRoutes(options.services.companies), {
+      prefix: "/api/v1",
+    });
+    await app.register(roleTrackRoutes(options.services.roleTracks), {
+      prefix: "/api/v1",
+    });
     await app.register(resumeVersionRoutes(options.services.resumeVersions), {
       prefix: "/api/v1",
     });

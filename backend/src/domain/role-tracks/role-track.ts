@@ -24,18 +24,16 @@ export interface RoleTracksService {
   list: () => Promise<RoleTrack[]>;
 }
 
-export class DefaultRoleTracksService implements RoleTracksService {
-  constructor(private readonly repository: RoleTracksRepository) {}
-
-  async create(input: CreateRoleTrackInput): Promise<RoleTrack> {
-    const name = input.name.trim().toLowerCase();
-    if (name === "") {
-      throw new DomainValidationError("role track name is required");
-    }
-    return this.repository.create(name);
-  }
-
-  async list(): Promise<RoleTrack[]> {
-    return this.repository.list();
-  }
+export function createRoleTracksService(
+  repository: RoleTracksRepository,
+): RoleTracksService {
+  return {
+    async create(input) {
+      const name = input.name.trim().toLowerCase();
+      if (name === "")
+        throw new DomainValidationError("role track name is required");
+      return repository.create(name);
+    },
+    list: () => repository.list(),
+  };
 }
