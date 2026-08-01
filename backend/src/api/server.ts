@@ -18,6 +18,7 @@ import { applicationRoutes } from "./routes/applications.js";
 import { healthRoutes, type HealthChecks } from "./routes/health.js";
 import { roleTrackRoutes } from "./routes/role-tracks.js";
 import { interviewRoutes } from "./routes/interviews.js";
+import { jobDescriptionRoutes } from "./routes/job-descriptions.js";
 import { resumeVersionRoutes } from "./routes/resume-versions.js";
 import type { ApiServices } from "../app/services.js";
 
@@ -77,6 +78,9 @@ export async function buildApp(options: BuildAppOptions) {
       prefix: "/api/v1",
     });
     await app.register(interviewRoutes(options.services.interviews), {
+      prefix: "/api/v1",
+    });
+    await app.register(jobDescriptionRoutes(options.services.jobDescriptions), {
       prefix: "/api/v1",
     });
     await app.register(roleTrackRoutes(options.services.roleTracks), {

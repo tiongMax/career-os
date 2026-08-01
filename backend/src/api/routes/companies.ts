@@ -9,7 +9,7 @@ import {
 } from "../../domain/companies/company.js";
 import { errorResponseSchema, idParamsSchema, requireUUID } from "./shared.js";
 
-const companyResponseSchema = z.object({
+export const companyResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   website: z.string().optional(),
@@ -125,7 +125,7 @@ export function companyRoutes(
   };
 }
 
-function companyDTO(company: Company): CompanyResponse {
+export function companyDTO(company: Company): CompanyResponse {
   return {
     id: company.id,
     name: company.name,

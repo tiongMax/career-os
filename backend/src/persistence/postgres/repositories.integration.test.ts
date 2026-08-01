@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { createCompaniesService } from "../../domain/companies/company.js";
 import { createContactsService } from "../../domain/contacts/contact.js";
 import { createInterviewsService } from "../../domain/interviews/interview.js";
+import { createJobDescriptionsService } from "../../domain/job-descriptions/job-description.js";
 import { createApplicationsService } from "../../domain/applications/application.js";
 import { createRoleTracksService } from "../../domain/role-tracks/role-track.js";
 import { createResumeVersionsService } from "../../domain/resumes/resume-version.js";
@@ -14,6 +15,7 @@ import {
 import { createCompaniesRepository } from "./companies-repository.js";
 import { createContactsRepository } from "./contacts-repository.js";
 import { createInterviewsRepository } from "./interviews-repository.js";
+import { createJobDescriptionsRepository } from "./job-descriptions-repository.js";
 import { createApplicationsRepository } from "./applications-repository.js";
 import { EntityNotFoundError, hasPostgresCode } from "./errors.js";
 import {
@@ -22,6 +24,7 @@ import {
   companies,
   contacts,
   interviewRounds,
+  jobDescriptions,
   resumeVersions,
   roleTracks,
 } from "./schema.js";
@@ -35,6 +38,8 @@ const roleTrackName = `typescript-integration-${runId}`;
 const resumeName = `TypeScript resume integration ${runId}`;
 const applicationCompanyName = `TypeScript application integration ${runId}`;
 const relationshipCompanyName = `TypeScript relationships integration ${runId}`;
+const jobDescriptionCompanyName = `TypeScript JD integration ${runId}`;
+const jobDescriptionResumeName = `TypeScript JD resume ${runId}`;
 
 let postgres: Postgres | undefined;
 
@@ -54,8 +59,14 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
       .delete(companies)
       .where(eq(companies.name, relationshipCompanyName));
     await postgres.db
+      .delete(companies)
+      .where(eq(companies.name, jobDescriptionCompanyName));
+    await postgres.db
       .delete(resumeVersions)
       .where(eq(resumeVersions.name, resumeName));
+    await postgres.db
+      .delete(resumeVersions)
+      .where(eq(resumeVersions.name, jobDescriptionResumeName));
     await postgres.db
       .delete(roleTracks)
       .where(eq(roleTracks.name, roleTrackName));
@@ -267,6 +278,78 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
       await database
         .delete(applications)
         .where(eq(applications.id, application.id));
+      await companyService.delete(company.id).catch(() => undefined);
+    }
+  });
+
+  it("persists job descriptions and builds complete prep data", async () => {
+    const database = requirePostgres().db;
+    const companyService = createCompaniesService(
+      createCompaniesRepository(database),
+    );
+    const applicationService = createApplicationsService(
+      createApplicationsRepository(database),
+    );
+    const resumeService = createResumeVersionsService(
+      createResumeVersionsRepository(database),
+    );
+    const service = createJobDescriptionsService(
+      createJobDescriptionsRepository(database),
+    );
+    const company = await companyService.create({
+      name: jobDescriptionCompanyName,
+    });
+    const resume = await resumeService.create({
+      name: jobDescriptionResumeName,
+      track: "backend",
+      content_text: "TypeScript, Redis and Fastify platform work",
+    });
+    const application = await applicationService.create({
+      company_id: company.id,
+      resume_version_id: resume.id,
+      title: "Platform Engineer",
+      role_track: "backend",
+      location: "Remote",
+    });
+
+    try {
+      const created = await service.create(application.id, {
+        raw_text: "We need TypeScript, Redis and Kubernetes experience.",
+      });
+      const extracted = await service.extractKeywords(created.id);
+      const compared = await service.compareResume(created.id, resume.id);
+      const recommended = await service.recommendedResume(application.id);
+      const context = await service.prepContext(application.id);
+      const brief = await service.generatePrepBrief(application.id);
+
+      expect(extracted.extractedKeywords).toEqual([
+        "TypeScript",
+        "R",
+        "Redis",
+        "Kubernetes",
+      ]);
+      expect(compared.matched).toEqual(["TypeScript", "R", "Redis"]);
+      expect(recommended.resumeVersion.id).toBe(resume.id);
+      expect(context).toMatchObject({
+        application: { id: application.id },
+        company: { id: company.id },
+        jobDescription: { id: created.id },
+        resume: { id: resume.id },
+        interviews: [],
+        contacts: [],
+      });
+      expect(brief.roleSummary).toBe(
+        "Platform Engineer at " + company.name + " · Remote",
+      );
+      expect(brief.keyGaps).toEqual(["Kubernetes"]);
+    } finally {
+      await database
+        .delete(jobDescriptions)
+        .where(eq(jobDescriptions.applicationId, application.id));
+      await database
+        .delete(applications)
+        .where(eq(applications.id, application.id));
+      await resumeService.delete(resume.id).catch(() => undefined);
       await companyService.delete(company.id).catch(() => undefined);
     }
   });

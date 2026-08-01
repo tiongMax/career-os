@@ -9,7 +9,7 @@ import {
 } from "../../domain/interviews/interview.js";
 import { errorResponseSchema, idParamsSchema, requireUUID } from "./shared.js";
 
-const interviewResponseSchema = z.object({
+export const interviewResponseSchema = z.object({
   id: z.uuid(),
   application_id: z.uuid(),
   round_type: z.string(),
@@ -116,7 +116,7 @@ function applicationId(id: string): string {
 function interviewId(id: string): string {
   return requireUUID(id, "invalid interview id");
 }
-function interviewDTO(interview: InterviewRound): InterviewResponse {
+export function interviewDTO(interview: InterviewRound): InterviewResponse {
   return {
     id: interview.id,
     application_id: interview.applicationId,

@@ -89,6 +89,16 @@ function fakeServices(): ApiServices {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    jobDescriptions: {
+      create: vi.fn(),
+      getByApplication: vi.fn(),
+      update: vi.fn(),
+      extractKeywords: vi.fn(),
+      compareResume: vi.fn(),
+      recommendedResume: vi.fn(),
+      prepContext: vi.fn(),
+      generatePrepBrief: vi.fn(),
+    },
     roleTracks,
     resumeVersions,
   };

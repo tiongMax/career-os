@@ -12,7 +12,7 @@ import {
 import { AppError } from "../errors.js";
 import { errorResponseSchema, idParamsSchema, requireUUID } from "./shared.js";
 
-const applicationResponseSchema = z.object({
+export const applicationResponseSchema = z.object({
   id: z.uuid(),
   company_id: z.uuid(),
   resume_version_id: z.uuid().optional(),
@@ -40,7 +40,7 @@ const applicationPageResponseSchema = z.object({
   offset: z.number().int(),
 });
 
-const auditLogResponseSchema = z.object({
+export const auditLogResponseSchema = z.object({
   id: z.uuid(),
   entity_type: z.string(),
   entity_id: z.uuid(),
@@ -232,7 +232,7 @@ function parseInteger(
   return value;
 }
 
-function applicationDTO(application: Application): ApplicationResponse {
+export function applicationDTO(application: Application): ApplicationResponse {
   return {
     id: application.id,
     company_id: application.companyId,
@@ -269,7 +269,7 @@ function applicationDTO(application: Application): ApplicationResponse {
   };
 }
 
-function auditLogDTO(log: AuditLog) {
+export function auditLogDTO(log: AuditLog) {
   return {
     id: log.id,
     entity_type: log.entityType,
