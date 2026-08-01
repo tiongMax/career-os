@@ -6,13 +6,20 @@ import {
   createRedisConnection,
   type RedisConnection,
 } from "../infrastructure/redis.js";
+import { createRedisReminderScheduler } from "../infrastructure/reminders-redis.js";
 
 const config = loadConfig();
 const postgres = createPostgres(config.DATABASE_URL);
 let redisConnection: RedisConnection | undefined;
 const app = await buildApp({
   logLevel: config.LOG_LEVEL,
-  services: createApiServices(postgres.db),
+  services: createApiServices(postgres.db, {
+    reminderScheduler: createRedisReminderScheduler(() => {
+      if (redisConnection === undefined)
+        throw new Error("redis is not connected");
+      return redisConnection.client;
+    }),
+  }),
   healthChecks: {
     postgres: () => postgres.ping(),
     redis: async () => {

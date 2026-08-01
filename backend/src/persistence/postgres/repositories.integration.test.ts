@@ -8,6 +8,8 @@ import { createJobDescriptionsService } from "../../domain/job-descriptions/job-
 import { createApplicationsService } from "../../domain/applications/application.js";
 import { createRoleTracksService } from "../../domain/role-tracks/role-track.js";
 import { createResumeVersionsService } from "../../domain/resumes/resume-version.js";
+import { createRemindersService } from "../../domain/reminders/reminder.js";
+import { createReminderWorker } from "../../workers/reminder-worker.js";
 import {
   createPostgres,
   type Postgres,
@@ -23,13 +25,16 @@ import {
   auditLogs,
   companies,
   contacts,
+  failedReminderJobs,
   interviewRounds,
   jobDescriptions,
+  reminders,
   resumeVersions,
   roleTracks,
 } from "./schema.js";
 import { createRoleTracksRepository } from "./role-tracks-repository.js";
 import { createResumeVersionsRepository } from "./resume-versions-repository.js";
+import { createRemindersRepository } from "./reminders-repository.js";
 
 const databaseUrl = process.env.CAREEROS_INTEGRATION_DATABASE_URL;
 const runId = `${String(process.pid)}-${String(Date.now())}`;
@@ -40,6 +45,7 @@ const applicationCompanyName = `TypeScript application integration ${runId}`;
 const relationshipCompanyName = `TypeScript relationships integration ${runId}`;
 const jobDescriptionCompanyName = `TypeScript JD integration ${runId}`;
 const jobDescriptionResumeName = `TypeScript JD resume ${runId}`;
+const reminderCompanyName = `TypeScript reminder integration ${runId}`;
 
 let postgres: Postgres | undefined;
 
@@ -61,6 +67,9 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     await postgres.db
       .delete(companies)
       .where(eq(companies.name, jobDescriptionCompanyName));
+    await postgres.db
+      .delete(companies)
+      .where(eq(companies.name, reminderCompanyName));
     await postgres.db
       .delete(resumeVersions)
       .where(eq(resumeVersions.name, resumeName));
@@ -353,7 +362,93 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
       await companyService.delete(company.id).catch(() => undefined);
     }
   });
+
+  it("persists reminder delivery, failure, and manual retry state", async () => {
+    const database = requirePostgres().db;
+    const companyService = createCompaniesService(
+      createCompaniesRepository(database),
+    );
+    const applicationService = createApplicationsService(
+      createApplicationsRepository(database),
+    );
+    const persistence = createRemindersRepository(database);
+    const service = createRemindersService(persistence);
+    const company = await companyService.create({ name: reminderCompanyName });
+    const application = await applicationService.create({
+      company_id: company.id,
+      title: "Reminder Integration Engineer",
+      role_track: "backend",
+    });
+    const successful = await service.create({
+      application_id: application.id,
+      title: "Successful follow-up",
+      due_at: new Date(Date.now() - 60_000),
+    });
+    const failing = await service.create({
+      application_id: application.id,
+      title: "Failed follow-up",
+      due_at: new Date(Date.now() - 60_000),
+    });
+
+    try {
+      expect((await service.listDue()).map((item) => item.id)).toEqual(
+        expect.arrayContaining([successful.id, failing.id]),
+      );
+      await createReminderWorker({
+        store: persistence,
+        queue: oneItemQueue(successful.id),
+        pollIntervalMs: 1_000,
+        maxRetries: 3,
+      }).processDue();
+      const delivered = await service.get(successful.id);
+      expect(delivered.status).toBe("sent");
+      expect(delivered.deliveredAt).toBeInstanceOf(Date);
+
+      await createReminderWorker({
+        store: persistence,
+        queue: oneItemQueue(failing.id),
+        deliver: () => Promise.reject(new Error("integration provider error")),
+        pollIntervalMs: 1_000,
+        maxRetries: 1,
+      }).processDue();
+      expect(await service.get(failing.id)).toMatchObject({
+        status: "failed",
+        retryCount: 1,
+        lastError: "integration provider error",
+      });
+      expect(await service.listFailed()).toEqual([
+        expect.objectContaining({
+          reminderId: failing.id,
+          errorMessage: "integration provider error",
+        }),
+      ]);
+      expect(await service.retry(failing.id)).toMatchObject({
+        status: "pending",
+        retryCount: 0,
+        lastError: null,
+      });
+    } finally {
+      await database
+        .delete(failedReminderJobs)
+        .where(eq(failedReminderJobs.reminderId, failing.id));
+      await database
+        .delete(reminders)
+        .where(eq(reminders.applicationId, application.id));
+      await database
+        .delete(applications)
+        .where(eq(applications.id, application.id));
+      await companyService.delete(company.id).catch(() => undefined);
+    }
+  });
 });
+
+function oneItemQueue(id: string) {
+  return {
+    dueIds: () => Promise.resolve([id]),
+    claim: () => Promise.resolve(true),
+    schedule: () => Promise.resolve(),
+  };
+}
 
 function requireDatabaseUrl(): string {
   if (databaseUrl === undefined) {

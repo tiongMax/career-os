@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  integer,
   customType,
   jsonb,
   pgTable,
@@ -170,6 +171,63 @@ export const jobDescriptions = pgTable("job_descriptions", {
     .notNull(),
 });
 
+export const reminders = pgTable("reminders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => applications.id, { onDelete: "cascade" }),
+  contactId: uuid("contact_id").references(() => contacts.id, {
+    onDelete: "set null",
+  }),
+  title: text("title").notNull(),
+  description: text("description"),
+  dueAt: timestamp("due_at", { withTimezone: true, mode: "date" }).notNull(),
+  status: text("status").default("pending").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  retryCount: integer("retry_count").default(0).notNull(),
+  lastError: text("last_error"),
+  deliveredAt: timestamp("delivered_at", {
+    withTimezone: true,
+    mode: "date",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
+export const reminderDeliveries = pgTable("reminder_deliveries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reminderId: uuid("reminder_id")
+    .notNull()
+    .references(() => reminders.id, { onDelete: "cascade" }),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  deliveredAt: timestamp("delivered_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
+export const failedReminderJobs = pgTable("failed_reminder_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reminderId: uuid("reminder_id").references(() => reminders.id, {
+    onDelete: "set null",
+  }),
+  errorMessage: text("error_message").notNull(),
+  retryCount: integer("retry_count").notNull(),
+  payload: jsonb("payload").default({}).notNull(),
+  failedAt: timestamp("failed_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type RoleTrackRow = typeof roleTracks.$inferSelect;
 export type ResumeVersionRow = typeof resumeVersions.$inferSelect;
@@ -178,3 +236,4 @@ export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type ContactRow = typeof contacts.$inferSelect;
 export type InterviewRoundRow = typeof interviewRounds.$inferSelect;
 export type JobDescriptionRow = typeof jobDescriptions.$inferSelect;
+export type ReminderRow = typeof reminders.$inferSelect;

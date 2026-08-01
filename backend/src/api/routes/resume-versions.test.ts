@@ -81,6 +81,17 @@ function fakeServices(): ApiServices {
       prepContext: vi.fn(),
       generatePrepBrief: vi.fn(),
     },
+    reminders: {
+      create: vi.fn(),
+      list: vi.fn(),
+      listDue: vi.fn(),
+      get: vi.fn(),
+      update: vi.fn(),
+      cancel: vi.fn(),
+      delete: vi.fn(),
+      listFailed: vi.fn(),
+      retry: vi.fn(),
+    },
     roleTracks: { create: vi.fn(), list: vi.fn().mockResolvedValue([]) },
     resumeVersions,
   };
