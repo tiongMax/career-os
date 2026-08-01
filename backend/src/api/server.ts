@@ -20,6 +20,7 @@ import { roleTrackRoutes } from "./routes/role-tracks.js";
 import { interviewRoutes } from "./routes/interviews.js";
 import { jobDescriptionRoutes } from "./routes/job-descriptions.js";
 import { resumeVersionRoutes } from "./routes/resume-versions.js";
+import { reminderRoutes } from "./routes/reminders.js";
 import type { ApiServices } from "../app/services.js";
 
 export interface BuildAppOptions {
@@ -81,6 +82,9 @@ export async function buildApp(options: BuildAppOptions) {
       prefix: "/api/v1",
     });
     await app.register(jobDescriptionRoutes(options.services.jobDescriptions), {
+      prefix: "/api/v1",
+    });
+    await app.register(reminderRoutes(options.services.reminders), {
       prefix: "/api/v1",
     });
     await app.register(roleTrackRoutes(options.services.roleTracks), {

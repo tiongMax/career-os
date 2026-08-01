@@ -8,8 +8,10 @@
   },
   "scripts": {
     "dev": "tsx watch src/commands/api.ts",
+    "dev:worker": "tsx watch src/commands/worker.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/commands/api.js",
+    "start:worker": "node dist/commands/worker.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --max-warnings=0",
     "format": "prettier --write \"src/**/*.ts\"",

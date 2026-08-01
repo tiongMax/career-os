@@ -26,6 +26,11 @@ import {
   createResumeVersionsService,
   type ResumeVersionsService,
 } from "../domain/resumes/resume-version.js";
+import {
+  createRemindersService,
+  type ReminderScheduler,
+  type RemindersService,
+} from "../domain/reminders/reminder.js";
 import type { Database } from "../infrastructure/postgres.js";
 import { createCompaniesRepository } from "../persistence/postgres/companies-repository.js";
 import { createContactsRepository } from "../persistence/postgres/contacts-repository.js";
@@ -34,6 +39,7 @@ import { createJobDescriptionsRepository } from "../persistence/postgres/job-des
 import { createApplicationsRepository } from "../persistence/postgres/applications-repository.js";
 import { createRoleTracksRepository } from "../persistence/postgres/role-tracks-repository.js";
 import { createResumeVersionsRepository } from "../persistence/postgres/resume-versions-repository.js";
+import { createRemindersRepository } from "../persistence/postgres/reminders-repository.js";
 
 export interface ApiServices {
   applications: ApplicationsService;
@@ -41,11 +47,19 @@ export interface ApiServices {
   contacts: ContactsService;
   interviews: InterviewsService;
   jobDescriptions: JobDescriptionsService;
+  reminders: RemindersService;
   roleTracks: RoleTracksService;
   resumeVersions: ResumeVersionsService;
 }
 
-export function createApiServices(database: Database): ApiServices {
+export interface ApiServiceDependencies {
+  reminderScheduler?: ReminderScheduler;
+}
+
+export function createApiServices(
+  database: Database,
+  dependencies: ApiServiceDependencies = {},
+): ApiServices {
   return {
     applications: createApplicationsService(
       createApplicationsRepository(database),
@@ -55,6 +69,10 @@ export function createApiServices(database: Database): ApiServices {
     interviews: createInterviewsService(createInterviewsRepository(database)),
     jobDescriptions: createJobDescriptionsService(
       createJobDescriptionsRepository(database),
+    ),
+    reminders: createRemindersService(
+      createRemindersRepository(database),
+      dependencies.reminderScheduler,
     ),
     roleTracks: createRoleTracksService(createRoleTracksRepository(database)),
     resumeVersions: createResumeVersionsService(

@@ -16,6 +16,7 @@ Run the TypeScript API with the repository `.env` file:
 ```sh
 npm run migrate:up
 npm run dev:api:ts
+npm run dev:worker:ts
 ```
 
 Run the verification gates:
@@ -54,6 +55,12 @@ The TypeScript API currently exposes:
 - `GET /api/v1/applications/{id}/recommended-resume`
 - `GET /api/v1/applications/{id}/prep-context`
 - `POST /api/v1/applications/{id}/generate-prep-brief`
+- `GET, POST /api/v1/reminders`
+- `GET /api/v1/reminders/due`
+- `GET /api/v1/reminders/failed`
+- `GET, PATCH, DELETE /api/v1/reminders/{id}`
+- `POST /api/v1/reminders/{id}/cancel`
+- `POST /api/v1/reminders/{id}/retry`
 
 Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
 The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.
