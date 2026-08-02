@@ -1,3 +1,4 @@
+import pino from "pino";
 import { loadConfig } from "../config/config.js";
 import { createPostgres } from "../infrastructure/postgres.js";
 import { createRedisReminderQueue } from "../infrastructure/reminders-redis.js";
@@ -8,24 +9,31 @@ import { createJobDescriptionsRepository } from "../persistence/postgres/job-des
 import { createResumeVersionsRepository } from "../persistence/postgres/resume-versions-repository.js";
 import { createGeminiProvider } from "../infrastructure/gemini.js";
 import { createAnalysisProcessor } from "../workers/analysis-worker.js";
+import { createLoggerOptions } from "../infrastructure/logger.js";
 import {
   createReminderWorker,
   type ReminderWorkerLogger,
 } from "../workers/reminder-worker.js";
 
+const config = loadConfig();
+const baseLogger = pino(
+  createLoggerOptions(config.LOG_LEVEL, config.LOG_PRETTY),
+);
 const logger: ReminderWorkerLogger = {
   info(message, context) {
-    writeLog("info", message, context);
+    baseLogger.info(context ?? {}, message);
   },
   error(message, error, context) {
-    writeLog("error", message, {
-      ...context,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    baseLogger.error(
+      {
+        ...context,
+        err: error,
+      },
+      message,
+    );
   },
 };
 
-const config = loadConfig();
 const postgres = createPostgres(config.DATABASE_URL);
 const redis = await createRedisConnection(config.REDIS_URL, (error) => {
   logger.error("redis client error", error);
@@ -102,19 +110,4 @@ try {
 } finally {
   await redis.close();
   await postgres.close();
-}
-
-function writeLog(
-  level: "info" | "error",
-  message: string,
-  context?: Record<string, unknown>,
-): void {
-  const record = JSON.stringify({
-    level,
-    time: new Date().toISOString(),
-    message,
-    ...context,
-  });
-  if (level === "error") console.error(record);
-  else console.log(record);
 }

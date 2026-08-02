@@ -2,6 +2,7 @@ import { buildApp } from "../api/server.js";
 import { createApiServices } from "../app/services.js";
 import { loadConfig } from "../config/config.js";
 import { createPostgres } from "../infrastructure/postgres.js";
+import { createLoggerOptions } from "../infrastructure/logger.js";
 import {
   createRedisConnection,
   type RedisConnection,
@@ -12,7 +13,7 @@ const config = loadConfig();
 const postgres = createPostgres(config.DATABASE_URL);
 let redisConnection: RedisConnection | undefined;
 const app = await buildApp({
-  logLevel: config.LOG_LEVEL,
+  logger: createLoggerOptions(config.LOG_LEVEL, config.LOG_PRETTY),
   services: createApiServices(postgres.db, {
     reminderScheduler: createRedisReminderScheduler(() => {
       if (redisConnection === undefined)

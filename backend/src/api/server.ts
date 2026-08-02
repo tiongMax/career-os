@@ -2,7 +2,7 @@ import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
-import Fastify, { type FastifyServerOptions } from "fastify";
+import Fastify, { LogController, type FastifyServerOptions } from "fastify";
 import {
   jsonSchemaTransform,
   serializerCompiler,
@@ -24,6 +24,7 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions) {
   const app = Fastify({
     logger: options.logger ?? { level: options.logLevel ?? "info" },
+    logController: new LogController({ disableRequestLogging: true }),
     requestIdHeader: "x-request-id",
     routerOptions: { ignoreTrailingSlash: true },
   }).withTypeProvider<ZodTypeProvider>();
@@ -31,6 +32,19 @@ export async function buildApp(options: BuildAppOptions) {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandler(app);
+
+  app.addHook("onResponse", (request, reply, done) => {
+    request.log.info(
+      {
+        method: request.method,
+        path: request.url,
+        responseTimeMs: Number(reply.elapsedTime.toFixed(1)),
+        statusCode: reply.statusCode,
+      },
+      "request completed",
+    );
+    done();
+  });
 
   await app.register(cors, {
     origin: "*",

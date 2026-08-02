@@ -66,6 +66,7 @@ REMINDER_MAX_RETRIES
 DATABASE_URL
 REDIS_URL
 LOG_LEVEL
+LOG_PRETTY
 ```
 
 Defaults are defined in `backend/src/config/config.ts`.

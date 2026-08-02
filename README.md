@@ -39,11 +39,13 @@ The default `.env.example` connects the API to PostgreSQL on `localhost:5433` an
 Run the backend and frontend together:
 
 ```sh
-npm run build:api
 npm run dev
 ```
 
-This starts Docker infrastructure, applies migrations, loads `.env`, and runs the TypeScript API, worker, and Next.js dev server.
+This starts PostgreSQL and Redis, applies migrations, loads `.env`, and runs the
+TypeScript API, worker, and Next.js dev server. Press `Ctrl+C` once to stop all
+three development processes; the database containers remain running for the
+next session.
 
 Run processes separately:
 
