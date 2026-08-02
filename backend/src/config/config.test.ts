@@ -9,6 +9,14 @@ describe("loadConfig", () => {
     expect(config.API_PORT).toBe(8080);
     expect(config.APP_ENV).toBe("development");
     expect(config.REMINDER_MAX_RETRIES).toBe(3);
+    expect(config.LOG_PRETTY).toBe(true);
+  });
+
+  it("uses JSON logs outside development unless explicitly overridden", () => {
+    expect(loadConfig({ APP_ENV: "production" }).LOG_PRETTY).toBe(false);
+    expect(
+      loadConfig({ APP_ENV: "production", LOG_PRETTY: "true" }).LOG_PRETTY,
+    ).toBe(true);
   });
 
   it("coerces numeric environment variables", () => {
