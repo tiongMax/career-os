@@ -68,7 +68,7 @@ REDIS_URL
 LOG_LEVEL
 ```
 
-Defaults are defined in `backend/internal/config/config.go`.
+Defaults are defined in `backend/src/config/config.ts`.
 
 ## Tests
 

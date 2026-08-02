@@ -1,30 +1,27 @@
-FROM golang:1.24.13-alpine3.22 AS builder
-
-WORKDIR /app
-
-RUN apk upgrade --no-cache
+FROM node:22-alpine3.22 AS builder
 
 WORKDIR /app/backend
 
-COPY backend/go.mod backend/go.sum* ./
-RUN go mod download
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci
 
-COPY backend ./
-RUN go build -o /out/api ./cmd/api
-RUN go build -o /out/worker ./cmd/worker
-RUN go build -o /out/migrate ./cmd/migrate
+COPY backend/tsconfig.json backend/tsconfig.build.json ./
+COPY backend/src ./src
+RUN npm run build
 
-FROM alpine:3.22
+FROM node:22-alpine3.22
 
-WORKDIR /app
+ENV NODE_ENV=production
+WORKDIR /app/backend
 
-RUN apk upgrade --no-cache
+COPY backend/package.json backend/package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --from=builder /out/api ./api
-COPY --from=builder /out/worker ./worker
-COPY --from=builder /out/migrate ./migrate
-COPY backend/migrations ./backend/migrations
+COPY --from=builder /app/backend/dist ./dist
+COPY backend/migrations ./migrations
+
+USER node
 
 EXPOSE 8080
 
-CMD ["./api"]
+CMD ["node", "dist/commands/api.js"]

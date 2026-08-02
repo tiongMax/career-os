@@ -1,7 +1,7 @@
 # CareerOS TypeScript Backend
 
-The TypeScript backend is being migrated incrementally alongside the existing
-Go service. The Go API remains the default runtime until the final cutover.
+The CareerOS API, worker, and migration runner are implemented in TypeScript
+with Fastify, Zod, Drizzle, PostgreSQL, and Redis.
 
 ## TypeScript backend commands
 
@@ -15,8 +15,8 @@ Run the TypeScript API with the repository `.env` file:
 
 ```sh
 npm run migrate:up
-npm run dev:api:ts
-npm run dev:worker:ts
+npm run dev:api
+npm run dev:worker
 ```
 
 Run the verification gates:

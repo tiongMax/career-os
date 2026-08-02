@@ -7,10 +7,9 @@ status lifecycle and where the code enforces it.
 
 Application status rules are implemented in:
 
-- `backend/internal/services/applications/status.go`
-- `backend/internal/services/applications/service.go`
-- `backend/internal/db/queries/applications.sql.go`
-- `backend/internal/httpapi/applications.go`
+- `backend/src/domain/applications/application.ts`
+- `backend/src/persistence/postgres/applications-repository.ts`
+- `backend/src/api/routes/applications.ts`
 
 ## Status Values
 
@@ -108,10 +107,10 @@ The `audit_logs` table is intentionally generic, so consistency in
 Keep the workflow split like this:
 
 ```text
-backend/internal/services/applications/status.go
-backend/internal/services/applications/service.go
-backend/internal/httpapi/applications.go
-backend/queries/applications.sql
+backend/src/domain/applications/application.ts
+backend/src/persistence/postgres/applications-repository.ts
+backend/src/api/routes/applications.ts
+backend/src/persistence/postgres/schema.ts
 ```
 
 Keep validation in the service. The HTTP handler should parse input and return

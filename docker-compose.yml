@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["sh", "-c", "./migrate up && ./api"]
+    command: ["sh", "-c", "node dist/commands/migrate.js up && node dist/commands/api.js"]
     env_file:
       - .env.example
     environment:
@@ -49,7 +49,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["./worker"]
+    command: ["node", "dist/commands/worker.js"]
     env_file:
       - .env.example
     environment:

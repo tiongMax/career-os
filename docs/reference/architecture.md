@@ -1,24 +1,21 @@
 # Architecture
 
-CareerOS is split into a server-rendered Next.js frontend, a Go HTTP API, PostgreSQL, Redis, and a background worker process. The backend uses thin HTTP handlers, service packages for business rules, and a query layer shaped around generated/sqlc-style data access.
+CareerOS is split into a server-rendered Next.js frontend, a TypeScript Fastify API, PostgreSQL, Redis, and a background worker process. The backend uses Zod HTTP contracts, functional domain services, repository interfaces, and Drizzle persistence.
 
 ## High-Level Structure
 
 ```text
 career-os/
   backend/
-    cmd/
-      api/          HTTP API process
-      worker/       reminder worker process
-      migrate/      Goose migration runner
-      seed/         seed command
-    internal/
-      config/       environment loading and defaults
-      db/           PostgreSQL and Redis clients
-      httpapi/      routes, handlers, OpenAPI serving, HTTP helpers
-      logger/       zerolog configuration
-      services/     business rules and orchestration
-      workers/      background reminder delivery loop
+    src/
+      api/          Fastify server and route plugins
+      app/          dependency composition
+      commands/     API, worker, and migration entry points
+      config/       Zod-validated environment configuration
+      domain/       business rules and repository contracts
+      infrastructure/ PostgreSQL, Redis, Gemini, and migrations
+      persistence/  Drizzle repositories and schema mapping
+      workers/      reminder and AI-analysis processors
     migrations/     database schema migrations
     queries/        sqlc query source files
   frontend/
@@ -37,9 +34,9 @@ career-os/
 | Component | Entry point | Responsibility |
 | --- | --- | --- |
 | Frontend | `frontend/app` | Server-rendered operational UI for dashboard, applications, contacts, resume versions, reminders, and analytics. |
-| API | `backend/cmd/api/main.go` | Serves `/api/v1/*`, connects to PostgreSQL and Redis, exposes Swagger/OpenAPI docs. |
-| Worker | `backend/cmd/worker/main.go` | Polls Redis for due reminders, updates reminder state in PostgreSQL, retries failures, dead-letters exhausted reminder jobs, and optionally processes Gemini-backed AI analysis jobs when `GEMINI_API_KEY` is set. |
-| Migrator | `backend/cmd/migrate/main.go` | Applies and rolls back Goose migrations. |
+| API | `backend/src/commands/api.ts` | Serves `/api/v1/*`, connects to PostgreSQL and Redis, and exposes Swagger/OpenAPI docs. |
+| Worker | `backend/src/commands/worker.ts` | Polls Redis for reminders and optionally processes Gemini-backed AI analysis jobs. |
+| Migrator | `backend/src/commands/migrate.ts` | Applies and rolls back the existing Goose-format SQL migrations. |
 | PostgreSQL | `docker-compose.yml` | Stores companies, applications, resume versions, job descriptions, contacts, interviews, reminders, audit logs, and analytics source data. |
 | Redis | `docker-compose.yml` | Stores reminder schedule state used by the API and worker. |
 
@@ -47,10 +44,10 @@ career-os/
 
 ```text
 HTTP request
-  -> chi router and middleware
-  -> httpapi handler
-  -> service package
-  -> db/queries package
+  -> Fastify route and Zod schema
+  -> domain service
+  -> repository interface
+  -> Drizzle repository
   -> PostgreSQL
 
 Reminder API calls
@@ -67,7 +64,7 @@ Handlers own HTTP concerns: JSON decoding, path params, status codes, and respon
 Next.js page or form
   -> frontend/lib/api.ts
   -> fetch http://localhost:8080/api/v1/*
-  -> Go API
+  -> TypeScript API
   -> JSON response
   -> server-rendered or client-side UI
 ```
@@ -79,8 +76,8 @@ The frontend API base URL is `NEXT_PUBLIC_API_URL` when set, otherwise `http://l
 ```mermaid
 flowchart LR
   User[User] --> UI[Next.js Frontend]
-  UI -->|REST JSON / multipart PDF| API[Go API]
-  API -->|pgx| DB[(PostgreSQL)]
+  UI -->|REST JSON / multipart PDF| API[TypeScript Fastify API]
+  API -->|Drizzle / node-postgres| DB[(PostgreSQL)]
   API -->|schedule/cancel reminders| Redis[(Redis)]
   API -->|queue analysis jobs| DB
   Worker[Reminder Worker] -->|poll due reminders| Redis
@@ -121,20 +118,21 @@ No third-party authentication, email, notification, or calendar integration is c
 
 ## Request Middleware
 
-The API router uses:
+The API server uses:
 
 - CORS with `Access-Control-Allow-Origin: *`
-- Chi request IDs
-- Real IP parsing
-- Structured request logging
-- Panic recovery
+- Fastify request IDs and structured logging
+- Zod request and response validation
+- centralized error mapping
 
 ## Deployment Notes
 
-The Dockerfile builds three backend binaries: `api`, `worker`, and `migrate`. In the `full` Compose profile, the API container runs migrations before starting:
+The multi-stage Dockerfile builds a production Node 22 image containing the API,
+worker, migration runner, and SQL files. In the `full` Compose profile, the API
+container runs migrations before starting:
 
 ```sh
-./migrate up && ./api
+node dist/commands/migrate.js up && node dist/commands/api.js
 ```
 
 The frontend is not included in the backend Dockerfile. Production frontend deployment needs separate hosting or a frontend container.

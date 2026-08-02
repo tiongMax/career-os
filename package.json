@@ -7,18 +7,20 @@
     "doc": "docs"
   },
   "scripts": {
-    "build:api": "go -C backend build -o bin/api.exe ./cmd/api",
+    "build:api": "npm run build --prefix backend",
     "build:api:ts": "npm run build --prefix backend",
-    "dev:api:ts": "dotenv -e .env -- npm run dev --prefix backend",
-    "dev:worker:ts": "dotenv -e .env -- npm run dev:worker --prefix backend",
+    "dev:api": "dotenv -e .env -- npm run dev --prefix backend",
+    "dev:api:ts": "npm run dev:api",
+    "dev:worker": "dotenv -e .env -- npm run dev:worker --prefix backend",
+    "dev:worker:ts": "npm run dev:worker",
     "format:check:api:ts": "npm run format:check --prefix backend",
     "lint:api:ts": "npm run lint --prefix backend",
-    "migrate:down": "dotenv -e .env -- go -C backend run ./cmd/migrate down",
-    "migrate:status": "dotenv -e .env -- go -C backend run ./cmd/migrate status",
-    "migrate:up": "dotenv -e .env -- go -C backend run ./cmd/migrate up",
+    "migrate:down": "dotenv -e .env -- npm run migrate --prefix backend -- down",
+    "migrate:status": "dotenv -e .env -- npm run migrate --prefix backend -- status",
+    "migrate:up": "dotenv -e .env -- npm run migrate --prefix backend -- up",
     "test:api:ts": "npm run test --prefix backend",
     "typecheck:api:ts": "npm run typecheck --prefix backend",
-    "dev": "docker compose up -d postgres redis && dotenv -e .env -- go -C backend run ./cmd/migrate up && dotenv -e .env -- concurrently --names \"api,worker,web\" --prefix-colors \"cyan,yellow,magenta\" \"go -C backend run ./cmd/api\" \"go -C backend run ./cmd/worker\" \"npm run dev --prefix frontend\""
+    "dev": "docker compose up -d postgres redis && npm run migrate:up && dotenv -e .env -- concurrently --names \"api,worker,web\" --prefix-colors \"cyan,yellow,magenta\" \"npm run dev --prefix backend\" \"npm run dev:worker --prefix backend\" \"npm run dev --prefix frontend\""
   },
   "repository": {
     "type": "git",
