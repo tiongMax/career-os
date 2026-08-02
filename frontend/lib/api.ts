@@ -153,7 +153,8 @@ export interface AuditLog {
 }
 
 export type AnalysisJobType = "resume_match" | "jd_extract" | "prep_brief";
-export type AnalysisJobStatus = "queued" | "processing" | "completed" | "failed";
+export type AnalysisJobStatus =
+  "queued" | "processing" | "completed" | "failed";
 
 export interface EmbeddingMatch {
   resume_version_id: string;
@@ -226,13 +227,17 @@ export interface CreateCompanyPayload {
 }
 
 export const createCompany = (payload: CreateCompanyPayload) =>
-  apiFetch<Company>("/companies", { method: "POST", body: JSON.stringify(payload) });
+  apiFetch<Company>("/companies", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 export const deleteCompany = (id: string) =>
   apiFetch<void>(`/companies/${id}`, { method: "DELETE" });
 
 // ─── Resume Versions ─────────────────────────────────────────────────────────
 
-export const getResumeVersions = () => apiFetch<ResumeVersion[]>("/resume-versions");
+export const getResumeVersions = () =>
+  apiFetch<ResumeVersion[]>("/resume-versions");
 export const getResumeVersion = (id: string) =>
   apiFetch<ResumeVersion>(`/resume-versions/${id}`);
 export const createResumeVersion = (body: {
@@ -240,33 +245,59 @@ export const createResumeVersion = (body: {
   track: string;
   content_text?: string;
   tags?: string[];
-}) => apiFetch<ResumeVersion>("/resume-versions", { method: "POST", body: JSON.stringify(body) });
-export const updateResumeVersion = (id: string, body: {
-  name?: string;
-  track?: string;
-  content_text?: string;
-  tags?: string[];
-}) => apiFetch<ResumeVersion>(`/resume-versions/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}) =>
+  apiFetch<ResumeVersion>("/resume-versions", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+export const updateResumeVersion = (
+  id: string,
+  body: {
+    name?: string;
+    track?: string;
+    content_text?: string;
+    tags?: string[];
+  },
+) =>
+  apiFetch<ResumeVersion>(`/resume-versions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 export const deleteResumeVersion = (id: string) =>
   apiFetch<void>(`/resume-versions/${id}`, { method: "DELETE" });
 
-export const uploadResumePDF = async (id: string, file: File): Promise<void> => {
+export const uploadResumePDF = async (
+  id: string,
+  file: File,
+): Promise<void> => {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(apiUrl(`/resume-versions/${id}/pdf`), { method: "POST", body: form });
+  const res = await fetch(apiUrl(`/resume-versions/${id}/pdf`), {
+    method: "POST",
+    body: form,
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`API ${res.status}: ${text}`);
   }
 };
 
-export const getResumePDFUrl = (id: string) => apiUrl(`/resume-versions/${id}/pdf`);
+export const getResumePDFUrl = (id: string) =>
+  apiUrl(`/resume-versions/${id}/pdf`);
 
 // ─── Applications ────────────────────────────────────────────────────────────
 
 export const getApplications = () => apiFetch<Application[]>("/applications");
-export const getApplicationsPage = async ({ limit, offset }: { limit: number; offset: number }): Promise<ApplicationPage> => {
-  const data = await apiFetch<ApplicationPage | Application[]>(`/applications?limit=${limit}&offset=${offset}`);
+export const getApplicationsPage = async ({
+  limit,
+  offset,
+}: {
+  limit: number;
+  offset: number;
+}): Promise<ApplicationPage> => {
+  const data = await apiFetch<ApplicationPage | Application[]>(
+    `/applications?limit=${limit}&offset=${offset}`,
+  );
   if (Array.isArray(data)) {
     return {
       items: data.slice(offset, offset + limit),
@@ -303,16 +334,25 @@ export interface CreateApplicationPayload {
 }
 
 export const createApplication = (payload: CreateApplicationPayload) =>
-  apiFetch<Application>("/applications", { method: "POST", body: JSON.stringify(payload) });
+  apiFetch<Application>("/applications", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 export type UpdateApplicationPayload = Partial<CreateApplicationPayload>;
-export const updateApplication = (id: string, payload: UpdateApplicationPayload) =>
-  apiFetch<Application>(`/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export const updateApplication = (
+  id: string,
+  payload: UpdateApplicationPayload,
+) =>
+  apiFetch<Application>(`/applications/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 export const deleteApplication = (id: string) =>
   apiFetch<void>(`/applications/${id}`, { method: "DELETE" });
 export const updateApplicationStatus = (
   id: string,
   status: string,
-  dates?: { received_at?: string; completed_at?: string }
+  dates?: { received_at?: string; completed_at?: string },
 ) =>
   apiFetch<Application>(`/applications/${id}/status`, {
     method: "PATCH",
@@ -325,7 +365,9 @@ export const getApplicationJobDescription = (id: string) =>
 export const getApplicationInterviews = (id: string) =>
   apiFetch<InterviewRound[]>(`/applications/${id}/interviews`);
 export const getRecommendedResume = (applicationId: string) =>
-  apiFetch<RecommendedResumeResult>(`/applications/${applicationId}/recommended-resume`);
+  apiFetch<RecommendedResumeResult>(
+    `/applications/${applicationId}/recommended-resume`,
+  );
 
 export interface ResumeMatchResult {
   matched: string[];
@@ -343,9 +385,14 @@ export interface RecommendedResumeResult {
 }
 
 export const extractKeywords = (jdId: string) =>
-  apiFetch<JobDescription>(`/job-descriptions/${jdId}/extract-keywords`, { method: "POST" });
+  apiFetch<JobDescription>(`/job-descriptions/${jdId}/extract-keywords`, {
+    method: "POST",
+  });
 export const compareResume = (jdId: string, resumeVersionId: string) =>
-  apiFetch<ResumeMatchResult>(`/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`, { method: "POST" });
+  apiFetch<ResumeMatchResult>(
+    `/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`,
+    { method: "POST" },
+  );
 
 export interface PrepContext {
   application: Application;
@@ -368,10 +415,15 @@ export interface PrepBrief {
 export const getPrepContext = (applicationId: string) =>
   apiFetch<PrepContext>(`/applications/${applicationId}/prep-context`);
 export const generatePrepBrief = (applicationId: string) =>
-  apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, { method: "POST" });
+  apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, {
+    method: "POST",
+  });
 export const getApplicationAnalysisJobs = (applicationId: string) =>
   apiFetch<AnalysisJob[]>(`/applications/${applicationId}/ai-analysis-jobs`);
-export const createAnalysisJob = (applicationId: string, jobType: AnalysisJobType) =>
+export const createAnalysisJob = (
+  applicationId: string,
+  jobType: AnalysisJobType,
+) =>
   apiFetch<AnalysisJob>(`/applications/${applicationId}/ai-analysis-jobs`, {
     method: "POST",
     body: JSON.stringify({ job_type: jobType }),
@@ -393,7 +445,10 @@ export interface CreateContactPayload {
 }
 
 export const createContact = (payload: CreateContactPayload) =>
-  apiFetch<Contact>("/contacts", { method: "POST", body: JSON.stringify(payload) });
+  apiFetch<Contact>("/contacts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
 export interface UpdateContactPayload {
   company_id?: string;
@@ -406,13 +461,18 @@ export interface UpdateContactPayload {
 }
 
 export const updateContact = (id: string, payload: UpdateContactPayload) =>
-  apiFetch<Contact>(`/contacts/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+  apiFetch<Contact>(`/contacts/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
-export const getReminder = (id: string) => apiFetch<Reminder>(`/reminders/${id}`);
-export const getFailedReminders = () => apiFetch<FailedReminderJob[]>("/reminders/failed");
+export const getReminder = (id: string) =>
+  apiFetch<Reminder>(`/reminders/${id}`);
+export const getFailedReminders = () =>
+  apiFetch<FailedReminderJob[]>("/reminders/failed");
 export const retryReminder = (id: string) =>
   apiFetch<Reminder>(`/reminders/${id}/retry`, { method: "POST" });
 
@@ -427,7 +487,9 @@ export interface SearchResult {
 }
 
 export const search = (q: string) =>
-  apiFetch<{ query: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`);
+  apiFetch<{ query: string; results: SearchResult[] }>(
+    `/search?q=${encodeURIComponent(q)}`,
+  );
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
 
@@ -496,14 +558,69 @@ export interface UpcomingData {
   reminders: UpcomingReminder[];
 }
 
-export const getAnalyticsSummary = () => apiFetch<AnalyticsSummary>("/analytics/summary");
-export const getAnalyticsByStatus = () => apiFetch<StatusCount[]>("/analytics/by-status");
-export const getAnalyticsByTrack = () => apiFetch<TrackCount[]>("/analytics/by-role-track");
-export const getAnalyticsByResumeVersion = () => apiFetch<ResumeVersionPerformance[]>("/analytics/by-resume-version");
-export const getAnalyticsSourcePerformance = () => apiFetch<SourcePerformance[]>("/analytics/source-performance");
-export const getAnalyticsFunnel = () => apiFetch<FunnelStep[]>("/analytics/funnel");
-export const getAnalyticsUpcoming = () => apiFetch<UpcomingData>("/analytics/upcoming");
+export interface DashboardSnapshot {
+  generated_at: string;
+  summary: {
+    total: number;
+    active: number;
+    responded: number;
+    interviewed: number;
+    offers: number;
+    rejected: number;
+  };
+  attention: {
+    overdue_reminders: number;
+    due_today_reminders: number;
+    stale_applications: number;
+    missing_resume_version: number;
+  };
+  pipeline: Record<string, number>;
+  recent_applications: Array<{
+    id: string;
+    title: string;
+    status: string;
+    company_name: string;
+    updated_at: string;
+  }>;
+  upcoming: {
+    interviews: Array<{
+      id: string;
+      application_title: string;
+      company_name: string;
+      scheduled_at: string;
+    }>;
+    reminders: Array<{
+      id: string;
+      title: string;
+      application_title: string;
+      due_at: string;
+    }>;
+    deadlines: Array<{
+      id: string;
+      title: string;
+      company_name: string;
+      deadline_at: string;
+    }>;
+  };
+}
+
+export const getAnalyticsSummary = () =>
+  apiFetch<AnalyticsSummary>("/analytics/summary");
+export const getAnalyticsByStatus = () =>
+  apiFetch<StatusCount[]>("/analytics/by-status");
+export const getAnalyticsByTrack = () =>
+  apiFetch<TrackCount[]>("/analytics/by-role-track");
+export const getAnalyticsByResumeVersion = () =>
+  apiFetch<ResumeVersionPerformance[]>("/analytics/by-resume-version");
+export const getAnalyticsSourcePerformance = () =>
+  apiFetch<SourcePerformance[]>("/analytics/source-performance");
+export const getAnalyticsFunnel = () =>
+  apiFetch<FunnelStep[]>("/analytics/funnel");
+export const getAnalyticsUpcoming = () =>
+  apiFetch<UpcomingData>("/analytics/upcoming");
+export const getDashboard = () => apiFetch<DashboardSnapshot>("/dashboard");
 
 export type ExportKind = "applications" | "contacts" | "reminders";
 
-export const getExportUrl = (kind: ExportKind) => apiUrl(`/exports/${kind}.csv`);
+export const getExportUrl = (kind: ExportKind) =>
+  apiUrl(`/exports/${kind}.csv`);

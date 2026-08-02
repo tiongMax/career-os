@@ -8,18 +8,30 @@ import {
   type RedisConnection,
 } from "../infrastructure/redis.js";
 import { createRedisReminderScheduler } from "../infrastructure/reminders-redis.js";
+import { createRedisDashboardCache } from "../infrastructure/dashboard-redis.js";
 
 const config = loadConfig();
 const postgres = createPostgres(config.DATABASE_URL);
 let redisConnection: RedisConnection | undefined;
+let reportDashboardCacheError: (error: unknown) => void = () => {
+  // Replaced with the Fastify logger immediately after app construction.
+};
+const getRedisClient = () => {
+  if (redisConnection === undefined) throw new Error("redis is not connected");
+  return redisConnection.client;
+};
+const dashboardCache = createRedisDashboardCache(
+  getRedisClient,
+  config.DASHBOARD_CACHE_TTL_SECONDS,
+  (error) => {
+    reportDashboardCacheError(error);
+  },
+);
 const app = await buildApp({
   logger: createLoggerOptions(config.LOG_LEVEL, config.LOG_PRETTY),
   services: createApiServices(postgres.db, {
-    reminderScheduler: createRedisReminderScheduler(() => {
-      if (redisConnection === undefined)
-        throw new Error("redis is not connected");
-      return redisConnection.client;
-    }),
+    dashboardCache,
+    reminderScheduler: createRedisReminderScheduler(getRedisClient),
   }),
   healthChecks: {
     postgres: () => postgres.ping(),
@@ -31,6 +43,9 @@ const app = await buildApp({
     },
   },
 });
+reportDashboardCacheError = (error) => {
+  app.log.warn({ err: error }, "dashboard cache operation failed");
+};
 
 app.addHook("onClose", async () => {
   await Promise.all([redisConnection?.close(), postgres.close()]);

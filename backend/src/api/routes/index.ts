@@ -6,6 +6,7 @@ import { analyticsRoutes } from "./analytics.js";
 import { applicationRoutes } from "./applications.js";
 import { companyRoutes } from "./companies.js";
 import { contactRoutes } from "./contacts.js";
+import { dashboardRoutes } from "./dashboard.js";
 import { exportRoutes } from "./exports.js";
 import { healthRoutes, type HealthChecks } from "./health.js";
 import { interviewRoutes } from "./interviews.js";
@@ -34,6 +35,7 @@ export function apiRoutes(options: ApiRoutesOptions): FastifyPluginAsyncZod {
     await app.register(applicationRoutes(services.applications));
     await app.register(companyRoutes(services.companies));
     await app.register(contactRoutes(services.contacts));
+    if (services.dashboard) await app.register(dashboardRoutes(services.dashboard));
     await app.register(interviewRoutes(services.interviews));
     await app.register(jobDescriptionRoutes(services.jobDescriptions));
     await app.register(reminderRoutes(services.reminders));
