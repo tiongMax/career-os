@@ -9,8 +9,8 @@ plan.
 
 Implemented today:
 
-- Go API with Chi, pgx, Goose migrations, structured logging, CORS, request IDs,
-  health checks, Swagger UI, and OpenAPI YAML.
+- TypeScript API with Fastify, Zod, Drizzle, structured logging, CORS, request
+  IDs, health checks, Swagger UI, and generated OpenAPI.
 - PostgreSQL schema for companies, applications, resume versions, job
   descriptions, contacts, interviews, reminders, audit logs, role tracks,
   application multi-track labels, reminder deliveries, failed reminder jobs, and
@@ -54,7 +54,8 @@ Implemented today:
 - Add a short demo script that walks through creating an application, adding a
   JD, comparing resumes, updating status, creating a reminder, and viewing
   analytics.
-- Keep `backend/internal/httpapi/openapi.yaml` aligned with handler behavior.
+- Keep route-level Zod schemas aligned with handler behavior and generated
+  OpenAPI output.
 
 ### 3. Testing Depth
 

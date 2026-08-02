@@ -2,22 +2,21 @@
 
 CareerOS is a single-user job application operating system for tracking companies, applications, resume versions, job descriptions, contacts, interviews, reminders, search, and analytics.
 
-The project includes a Go REST API, a Next.js frontend, PostgreSQL persistence, Redis-backed reminder scheduling, database migrations, and k6 benchmark scripts.
+The project includes a TypeScript REST API, a Next.js frontend, PostgreSQL persistence, Redis-backed reminder scheduling, database migrations, and k6 benchmark scripts.
 
 ## Tech Stack
 
 | Area | Technology |
 | --- | --- |
-| Backend | Go 1.24, Chi, pgx, Goose, go-redis, zerolog |
+| Backend | TypeScript, Fastify, Zod, Drizzle ORM, node-postgres, node-redis |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, lucide-react |
 | Database | PostgreSQL 16 |
 | Queue/cache | Redis 7 |
-| Tooling | Docker Compose, Make, sqlc layout, k6 benchmarks |
+| Tooling | Docker Compose, Make, Vitest, ESLint, Prettier, k6 benchmarks |
 
 ## Prerequisites
 
-- Go 1.24 or newer
-- Node.js and npm
+- Node.js 22 or newer and npm
 - Docker Desktop or compatible Docker Compose runtime
 - Make, optional but recommended
 - k6, optional for benchmark scripts
@@ -26,6 +25,7 @@ The project includes a Go REST API, a Next.js frontend, PostgreSQL persistence, 
 
 ```sh
 npm install
+npm install --prefix backend
 npm install --prefix frontend
 cp .env.example .env
 docker compose up -d postgres redis
@@ -43,7 +43,7 @@ npm run build:api
 npm run dev
 ```
 
-This starts Docker infrastructure, loads `.env`, runs the compiled API, and starts the Next.js dev server.
+This starts Docker infrastructure, applies migrations, loads `.env`, and runs the TypeScript API, worker, and Next.js dev server.
 
 Run processes separately:
 
@@ -72,7 +72,8 @@ docker compose --profile full up --build
 make migrate-up       # Apply database migrations
 make migrate-down     # Roll back one migration
 make seed             # Run seed command
-make test             # Run Go tests
+make test             # Run TypeScript backend tests
+make test-go          # Run legacy Go regression tests during decommissioning
 npm run lint --prefix frontend
 npm run build --prefix frontend
 make bench-search     # Run k6 search benchmark
