@@ -64,6 +64,12 @@ function services(): ApiServices {
     delete: vi.fn().mockResolvedValue(undefined),
   } satisfies InterviewsService;
   return {
+    analysis: {
+      create: vi.fn(),
+      list: vi.fn(),
+      listByApplication: vi.fn(),
+      get: vi.fn(),
+    },
     analytics: {
       summary: vi.fn(),
       byStatus: vi.fn(),

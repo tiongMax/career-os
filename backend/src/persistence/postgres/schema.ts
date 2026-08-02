@@ -228,6 +228,28 @@ export const failedReminderJobs = pgTable("failed_reminder_jobs", {
     .notNull(),
 });
 
+export const analysisJobs = pgTable("analysis_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => applications.id, { onDelete: "cascade" }),
+  jobType: text("job_type").notNull(),
+  status: text("status").default("queued").notNull(),
+  inputSnapshot: jsonb("input_snapshot").default({}).notNull(),
+  result: jsonb("result"),
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").default(0).notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
+  completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" })
+    .defaultNow()
+    .notNull(),
+});
+
 export type CompanyRow = typeof companies.$inferSelect;
 export type RoleTrackRow = typeof roleTracks.$inferSelect;
 export type ResumeVersionRow = typeof resumeVersions.$inferSelect;

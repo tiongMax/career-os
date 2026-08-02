@@ -42,6 +42,11 @@ import {
 } from "../domain/search/search.js";
 import { createAnalyticsRepository } from "../persistence/postgres/analytics-repository.js";
 import { createSearchRepository } from "../persistence/postgres/search-repository.js";
+import {
+  createAnalysisService,
+  type AnalysisService,
+} from "../domain/analysis/analysis.js";
+import { createAnalysisRepository } from "../persistence/postgres/analysis-repository.js";
 import { createCompaniesRepository } from "../persistence/postgres/companies-repository.js";
 import { createContactsRepository } from "../persistence/postgres/contacts-repository.js";
 import { createInterviewsRepository } from "../persistence/postgres/interviews-repository.js";
@@ -52,6 +57,7 @@ import { createResumeVersionsRepository } from "../persistence/postgres/resume-v
 import { createRemindersRepository } from "../persistence/postgres/reminders-repository.js";
 
 export interface ApiServices {
+  analysis: AnalysisService;
   analytics: AnalyticsService;
   applications: ApplicationsService;
   companies: CompaniesService;
@@ -73,6 +79,7 @@ export function createApiServices(
   dependencies: ApiServiceDependencies = {},
 ): ApiServices {
   return {
+    analysis: createAnalysisService(createAnalysisRepository(database)),
     analytics: createAnalyticsService(createAnalyticsRepository(database)),
     applications: createApplicationsService(
       createApplicationsRepository(database),

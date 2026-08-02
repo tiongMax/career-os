@@ -64,9 +64,16 @@ The TypeScript API currently exposes:
 - `GET /api/v1/search?q={query}`
 - `GET /api/v1/analytics/{summary,by-status,by-role-track,by-resume-version,source-performance,funnel,upcoming}`
 - `GET /api/v1/exports/{applications,contacts,reminders}.csv`
+- `GET, POST /api/v1/applications/{id}/ai-analysis-jobs`
+- `GET /api/v1/ai-analysis-jobs`
+- `GET /api/v1/ai-analysis-jobs/{id}`
 
 Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
 The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.
 
 PostgreSQL migrations in `migrations/` remain the authoritative database
 schema history. Do not use schema-push workflows during the migration.
+
+The TypeScript worker processes reminders and, when `GEMINI_API_KEY` is set,
+AI analysis jobs. Resume matching uses Gemini embeddings; JD extraction stores
+the generated summary and keywords back on the job description.

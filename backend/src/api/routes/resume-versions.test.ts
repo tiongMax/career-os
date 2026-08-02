@@ -41,6 +41,12 @@ function fakeServices(): ApiServices {
   } satisfies ResumeVersionsService;
 
   return {
+    analysis: {
+      create: vi.fn(),
+      list: vi.fn(),
+      listByApplication: vi.fn(),
+      get: vi.fn(),
+    },
     analytics: {
       summary: vi.fn(),
       byStatus: vi.fn(),
