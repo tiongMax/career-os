@@ -9,23 +9,10 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { stringify } from "yaml";
-
 import { registerErrorHandler } from "./errors.js";
-import { companyRoutes } from "./routes/companies.js";
-import { contactRoutes } from "./routes/contacts.js";
-import { applicationRoutes } from "./routes/applications.js";
-import { healthRoutes, type HealthChecks } from "./routes/health.js";
-import { roleTrackRoutes } from "./routes/role-tracks.js";
-import { interviewRoutes } from "./routes/interviews.js";
-import { jobDescriptionRoutes } from "./routes/job-descriptions.js";
-import { resumeVersionRoutes } from "./routes/resume-versions.js";
-import { reminderRoutes } from "./routes/reminders.js";
+import type { HealthChecks } from "./routes/health.js";
 import type { ApiServices } from "../app/services.js";
-import { analyticsRoutes } from "./routes/analytics.js";
-import { exportRoutes } from "./routes/exports.js";
-import { searchRoutes } from "./routes/search.js";
-import { analysisRoutes } from "./routes/analysis.js";
+import { apiRoutes } from "./routes/index.js";
 
 export interface BuildAppOptions {
   healthChecks: HealthChecks;
@@ -71,55 +58,12 @@ export async function buildApp(options: BuildAppOptions) {
     routePrefix: "/api/v1/docs",
   });
 
-  await app.register(healthRoutes(options.healthChecks), { prefix: "/api/v1" });
-  if (options.services !== undefined) {
-    await app.register(analysisRoutes(options.services.analysis), {
-      prefix: "/api/v1",
-    });
-    await app.register(analyticsRoutes(options.services.analytics), {
-      prefix: "/api/v1",
-    });
-    await app.register(applicationRoutes(options.services.applications), {
-      prefix: "/api/v1",
-    });
-    await app.register(companyRoutes(options.services.companies), {
-      prefix: "/api/v1",
-    });
-    await app.register(contactRoutes(options.services.contacts), {
-      prefix: "/api/v1",
-    });
-    await app.register(interviewRoutes(options.services.interviews), {
-      prefix: "/api/v1",
-    });
-    await app.register(jobDescriptionRoutes(options.services.jobDescriptions), {
-      prefix: "/api/v1",
-    });
-    await app.register(reminderRoutes(options.services.reminders), {
-      prefix: "/api/v1",
-    });
-    await app.register(searchRoutes(options.services.search), {
-      prefix: "/api/v1",
-    });
-    await app.register(exportRoutes(options.services), { prefix: "/api/v1" });
-    await app.register(roleTrackRoutes(options.services.roleTracks), {
-      prefix: "/api/v1",
-    });
-    await app.register(resumeVersionRoutes(options.services.resumeVersions), {
-      prefix: "/api/v1",
-    });
-  }
-
-  app.get(
-    "/api/v1/openapi.yaml",
-    {
-      schema: { hide: true },
-    },
-    async (_request, reply) => {
-      return reply
-        .header("content-type", "application/yaml; charset=utf-8")
-        .header("cache-control", "public, max-age=300")
-        .send(stringify(app.swagger()));
-    },
+  await app.register(
+    apiRoutes({
+      healthChecks: options.healthChecks,
+      ...(options.services ? { services: options.services } : {}),
+    }),
+    { prefix: "/api/v1" },
   );
 
   return app;

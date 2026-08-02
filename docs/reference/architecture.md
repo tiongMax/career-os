@@ -17,7 +17,6 @@ career-os/
       persistence/  Drizzle repositories and schema mapping
       workers/      reminder and AI-analysis processors
     migrations/     database schema migrations
-    queries/        sqlc query source files
   frontend/
     app/            Next.js App Router pages
     components/     shared UI components

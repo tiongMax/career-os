@@ -31,6 +31,10 @@ const app = await buildApp({
   },
 });
 
+app.addHook("onClose", async () => {
+  await Promise.all([redisConnection?.close(), postgres.close()]);
+});
+
 let closing = false;
 
 async function shutdown(signal: string): Promise<void> {
@@ -48,8 +52,6 @@ async function shutdown(signal: string): Promise<void> {
 
   try {
     await app.close();
-    await redisConnection?.close();
-    await postgres.close();
     clearTimeout(shutdownTimeout);
   } catch (error) {
     app.log.error({ err: error }, "api server shutdown failed");

@@ -15,8 +15,8 @@ npm run test:api:ts
 npm run build:api
 ```
 
-`make test` runs the backend Vitest suite. During Go decommissioning,
-`make test-go` remains available as a compatibility regression check.
+`make test` runs the backend Vitest suite. `make test-go` remains available as
+a temporary compatibility check until the legacy source is deleted.
 
 ## Unit Tests
 

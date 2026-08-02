@@ -32,7 +32,7 @@ Implemented today:
   source performance, funnel, upcoming work, and CSV exports.
 - k6 benchmark scripts for search, create application, status update, reminder
   create, and mixed workload.
-- Demo seed command under `backend/cmd/seed`.
+- Transactional, idempotent demo seed command under `backend/src/commands/seed.ts`.
 
 ## Near-Term Priorities
 
