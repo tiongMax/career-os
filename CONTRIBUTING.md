@@ -119,7 +119,8 @@ Frontend:
 
 Database:
 
-- Add schema changes as Goose migrations in `backend/migrations`.
+- Add schema changes as versioned, Goose-compatible SQL migrations in
+  `backend/migrations`.
 - Keep the Drizzle schema mapping aligned with SQL migrations.
 - Prefer backward-compatible migrations when possible.
 

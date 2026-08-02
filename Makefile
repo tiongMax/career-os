@@ -1,4 +1,4 @@
-.PHONY: dev api worker seed migrate-up migrate-down migrate-status test test-go compose-up compose-down bench-search bench-mixed
+.PHONY: dev api worker seed migrate-up migrate-down migrate-status test compose-up compose-down bench-search bench-mixed
 
 dev:
 	npm run dev
@@ -23,9 +23,6 @@ migrate-status:
 
 test:
 	npm run test:api:ts
-
-test-go:
-	go -C backend test ./...
 
 compose-up:
 	docker compose up --build
