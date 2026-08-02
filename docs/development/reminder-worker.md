@@ -83,7 +83,7 @@ Worker unit tests cover:
 Run them with:
 
 ```sh
-go -C backend test ./internal/workers -cover
+npm run test --prefix backend -- reminder-worker.test.ts
 ```
 
 ## Local Verification
@@ -97,5 +97,5 @@ make worker
 Run tests with:
 
 ```sh
-go -C backend test ./...
+npm run test --prefix backend
 ```

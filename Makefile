@@ -10,7 +10,7 @@ worker:
 	npm run dev:worker
 
 seed:
-	go -C backend run ./cmd/seed
+	npm run seed
 
 migrate-up:
 	npm run migrate:up
