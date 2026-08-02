@@ -72,7 +72,8 @@ Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
 The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.
 
 PostgreSQL migrations in `migrations/` remain the authoritative database
-schema history. Do not use schema-push workflows during the migration.
+schema history. Do not use schema-push workflows; add a versioned migration
+instead.
 
 The TypeScript worker processes reminders and, when `GEMINI_API_KEY` is set,
 AI analysis jobs. Resume matching uses Gemini embeddings; JD extraction stores
