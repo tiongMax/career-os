@@ -26,6 +26,7 @@ export interface CreateReminderWorkerOptions {
   deliver?: (reminder: Reminder) => Promise<void>;
   now?: () => Date;
   logger?: ReminderWorkerLogger;
+  onChanged?: () => Promise<void>;
 }
 
 export function createReminderWorker(
@@ -84,6 +85,8 @@ export function createReminderWorker(
       options.logger?.error("reminder delivery failed", error, {
         reminderId: reminder.id,
       });
+    } finally {
+      await options.onChanged?.();
     }
   }
 

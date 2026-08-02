@@ -10,6 +10,7 @@ import { createResumeVersionsRepository } from "../persistence/postgres/resume-v
 import { createGeminiProvider } from "../infrastructure/gemini.js";
 import { createAnalysisProcessor } from "../workers/analysis-worker.js";
 import { createLoggerOptions } from "../infrastructure/logger.js";
+import { createRedisDashboardCache } from "../infrastructure/dashboard-redis.js";
 import {
   createReminderWorker,
   type ReminderWorkerLogger,
@@ -38,12 +39,20 @@ const postgres = createPostgres(config.DATABASE_URL);
 const redis = await createRedisConnection(config.REDIS_URL, (error) => {
   logger.error("redis client error", error);
 });
+const dashboardCache = createRedisDashboardCache(
+  () => redis.client,
+  config.DASHBOARD_CACHE_TTL_SECONDS,
+  (error) => {
+    logger.error("dashboard cache operation failed", error);
+  },
+);
 const controller = new AbortController();
 const worker = createReminderWorker({
   store: createRemindersRepository(postgres.db),
   queue: createRedisReminderQueue(redis.client),
   pollIntervalMs: config.REMINDER_WORKER_POLL_INTERVAL_MS,
   maxRetries: config.REMINDER_MAX_RETRIES,
+  onChanged: () => dashboardCache.invalidate(),
   logger,
 });
 const analysisWorker =

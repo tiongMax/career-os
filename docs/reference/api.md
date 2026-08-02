@@ -28,24 +28,24 @@ Errors use:
 
 Common status codes:
 
-| Code | Meaning |
-| --- | --- |
-| `200` | Request succeeded. |
-| `201` | Resource created. |
-| `204` | Resource deleted or upload completed without a JSON body. |
+| Code  | Meaning                                                                                    |
+| ----- | ------------------------------------------------------------------------------------------ |
+| `200` | Request succeeded.                                                                         |
+| `201` | Resource created.                                                                          |
+| `204` | Resource deleted or upload completed without a JSON body.                                  |
 | `400` | Invalid JSON, invalid UUID, validation error, unknown JSON field, or constraint violation. |
-| `404` | Resource not found. |
-| `409` | Duplicate resource or invalid application status transition. |
-| `500` | Unexpected server error. |
-| `503` | Health check dependency failure. |
+| `404` | Resource not found.                                                                        |
+| `409` | Duplicate resource or invalid application status transition.                               |
+| `500` | Unexpected server error.                                                                   |
+| `503` | Health check dependency failure.                                                           |
 
 ## Health and Docs
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Checks PostgreSQL and Redis connectivity. |
-| `GET` | `/openapi.yaml` | Serves the OpenAPI 3.1 spec. |
-| `GET` | `/docs` | Serves Swagger UI. |
+| Method | Path            | Description                               |
+| ------ | --------------- | ----------------------------------------- |
+| `GET`  | `/health`       | Checks PostgreSQL and Redis connectivity. |
+| `GET`  | `/openapi.yaml` | Serves the OpenAPI 3.1 spec.              |
+| `GET`  | `/docs`         | Serves Swagger UI.                        |
 
 Example:
 
@@ -63,12 +63,12 @@ GET /api/v1/health
 
 ## Companies
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/companies` | List companies. |
-| `POST` | `/companies` | Create a company. |
-| `GET` | `/companies/{id}` | Get one company. |
-| `PATCH` | `/companies/{id}` | Update a company. |
+| Method   | Path              | Description       |
+| -------- | ----------------- | ----------------- |
+| `GET`    | `/companies`      | List companies.   |
+| `POST`   | `/companies`      | Create a company. |
+| `GET`    | `/companies/{id}` | Get one company.  |
+| `PATCH`  | `/companies/{id}` | Update a company. |
 | `DELETE` | `/companies/{id}` | Delete a company. |
 
 Create/update request:
@@ -102,15 +102,15 @@ Required fields: `name`.
 
 ## Resume Versions
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/resume-versions` | List resume versions. |
-| `POST` | `/resume-versions` | Create a resume version. |
-| `GET` | `/resume-versions/{id}` | Get one resume version. |
-| `PATCH` | `/resume-versions/{id}` | Update a resume version. |
-| `DELETE` | `/resume-versions/{id}` | Delete a resume version. |
-| `POST` | `/resume-versions/{id}/pdf` | Upload a PDF using multipart form field `file`. |
-| `GET` | `/resume-versions/{id}/pdf` | Download the attached PDF. |
+| Method   | Path                        | Description                                     |
+| -------- | --------------------------- | ----------------------------------------------- |
+| `GET`    | `/resume-versions`          | List resume versions.                           |
+| `POST`   | `/resume-versions`          | Create a resume version.                        |
+| `GET`    | `/resume-versions/{id}`     | Get one resume version.                         |
+| `PATCH`  | `/resume-versions/{id}`     | Update a resume version.                        |
+| `DELETE` | `/resume-versions/{id}`     | Delete a resume version.                        |
+| `POST`   | `/resume-versions/{id}/pdf` | Upload a PDF using multipart form field `file`. |
+| `GET`    | `/resume-versions/{id}/pdf` | Download the attached PDF.                      |
 
 Create/update request:
 
@@ -142,20 +142,20 @@ Required fields: `name`, `track`.
 
 ## Applications
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/applications` | List applications. |
-| `POST` | `/applications` | Create an application. |
-| `GET` | `/applications/{id}` | Get one application. |
-| `PATCH` | `/applications/{id}` | Update an application. |
-| `DELETE` | `/applications/{id}` | Delete an application. |
-| `PATCH` | `/applications/{id}/status` | Transition application status and write an audit log. |
-| `GET` | `/applications/{id}/audit-logs` | List audit logs for an application. |
-| `GET` | `/applications/{id}/recommended-resume` | Return the best resume match for an application JD. |
-| `GET` | `/applications/{id}/prep-context` | Aggregate interview prep context. |
-| `POST` | `/applications/{id}/generate-prep-brief` | Generate a deterministic prep brief. |
-| `POST` | `/applications/{id}/ai-analysis-jobs` | Queue a Gemini-backed AI analysis job for an application. |
-| `GET` | `/applications/{id}/ai-analysis-jobs` | List AI analysis jobs for an application. |
+| Method   | Path                                     | Description                                               |
+| -------- | ---------------------------------------- | --------------------------------------------------------- |
+| `GET`    | `/applications`                          | List applications.                                        |
+| `POST`   | `/applications`                          | Create an application.                                    |
+| `GET`    | `/applications/{id}`                     | Get one application.                                      |
+| `PATCH`  | `/applications/{id}`                     | Update an application.                                    |
+| `DELETE` | `/applications/{id}`                     | Delete an application.                                    |
+| `PATCH`  | `/applications/{id}/status`              | Transition application status and write an audit log.     |
+| `GET`    | `/applications/{id}/audit-logs`          | List audit logs for an application.                       |
+| `GET`    | `/applications/{id}/recommended-resume`  | Return the best resume match for an application JD.       |
+| `GET`    | `/applications/{id}/prep-context`        | Aggregate interview prep context.                         |
+| `POST`   | `/applications/{id}/generate-prep-brief` | Generate a deterministic prep brief.                      |
+| `POST`   | `/applications/{id}/ai-analysis-jobs`    | Queue a Gemini-backed AI analysis job for an application. |
+| `GET`    | `/applications/{id}/ai-analysis-jobs`    | List AI analysis jobs for an application.                 |
 
 Create/update request:
 
@@ -237,12 +237,12 @@ Invalid transitions return `409`.
 
 ## AI Analysis Jobs
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/applications/{id}/ai-analysis-jobs` | Queue an async AI analysis job. |
-| `GET` | `/applications/{id}/ai-analysis-jobs` | List jobs for one application. |
-| `GET` | `/ai-analysis-jobs` | List the latest 100 analysis jobs. |
-| `GET` | `/ai-analysis-jobs/{id}` | Get one analysis job and its result. |
+| Method | Path                                  | Description                          |
+| ------ | ------------------------------------- | ------------------------------------ |
+| `POST` | `/applications/{id}/ai-analysis-jobs` | Queue an async AI analysis job.      |
+| `GET`  | `/applications/{id}/ai-analysis-jobs` | List jobs for one application.       |
+| `GET`  | `/ai-analysis-jobs`                   | List the latest 100 analysis jobs.   |
+| `GET`  | `/ai-analysis-jobs/{id}`              | Get one analysis job and its result. |
 
 Create request:
 
@@ -274,13 +274,13 @@ The worker processes queued jobs with Gemini when `GEMINI_API_KEY` is set.
 
 ## Job Descriptions
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/applications/{id}/job-description` | Attach a JD to an application. |
-| `GET` | `/applications/{id}/job-description` | Get an application's JD. |
-| `PATCH` | `/job-descriptions/{id}` | Update JD raw text or extracted keywords. |
-| `POST` | `/job-descriptions/{id}/extract-keywords` | Run deterministic keyword extraction. |
-| `POST` | `/job-descriptions/{id}/compare-resume/{resumeVersionId}` | Score a resume against a JD. |
+| Method  | Path                                                      | Description                               |
+| ------- | --------------------------------------------------------- | ----------------------------------------- |
+| `POST`  | `/applications/{id}/job-description`                      | Attach a JD to an application.            |
+| `GET`   | `/applications/{id}/job-description`                      | Get an application's JD.                  |
+| `PATCH` | `/job-descriptions/{id}`                                  | Update JD raw text or extracted keywords. |
+| `POST`  | `/job-descriptions/{id}/extract-keywords`                 | Run deterministic keyword extraction.     |
+| `POST`  | `/job-descriptions/{id}/compare-resume/{resumeVersionId}` | Score a resume against a JD.              |
 
 Create request:
 
@@ -327,12 +327,12 @@ Required fields: `raw_text` when creating.
 
 ## Contacts
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/contacts` | List contacts. |
-| `POST` | `/contacts` | Create a contact. |
-| `GET` | `/contacts/{id}` | Get one contact. |
-| `PATCH` | `/contacts/{id}` | Update a contact. |
+| Method   | Path             | Description       |
+| -------- | ---------------- | ----------------- |
+| `GET`    | `/contacts`      | List contacts.    |
+| `POST`   | `/contacts`      | Create a contact. |
+| `GET`    | `/contacts/{id}` | Get one contact.  |
+| `PATCH`  | `/contacts/{id}` | Update a contact. |
 | `DELETE` | `/contacts/{id}` | Delete a contact. |
 
 Create/update request:
@@ -353,12 +353,12 @@ Required fields: `company_id`, `name`.
 
 ## Interviews
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/applications/{id}/interviews` | List interview rounds for an application. |
-| `POST` | `/applications/{id}/interviews` | Create an interview round. |
-| `PATCH` | `/interviews/{id}` | Update an interview round. |
-| `DELETE` | `/interviews/{id}` | Delete an interview round. |
+| Method   | Path                            | Description                               |
+| -------- | ------------------------------- | ----------------------------------------- |
+| `GET`    | `/applications/{id}/interviews` | List interview rounds for an application. |
+| `POST`   | `/applications/{id}/interviews` | Create an interview round.                |
+| `PATCH`  | `/interviews/{id}`              | Update an interview round.                |
+| `DELETE` | `/interviews/{id}`              | Delete an interview round.                |
 
 Create/update request:
 
@@ -382,17 +382,17 @@ Required fields: `round_type`.
 
 ## Reminders
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/reminders` | List reminders. |
-| `POST` | `/reminders` | Create and schedule a reminder. |
-| `GET` | `/reminders/due` | List due pending reminders. |
-| `GET` | `/reminders/failed` | List failed reminder jobs. |
-| `GET` | `/reminders/{id}` | Get one reminder. |
-| `PATCH` | `/reminders/{id}` | Update and reschedule a reminder. |
-| `DELETE` | `/reminders/{id}` | Delete and unschedule a reminder. |
-| `POST` | `/reminders/{id}/cancel` | Cancel a pending reminder. |
-| `POST` | `/reminders/{id}/retry` | Retry a failed reminder. |
+| Method   | Path                     | Description                       |
+| -------- | ------------------------ | --------------------------------- |
+| `GET`    | `/reminders`             | List reminders.                   |
+| `POST`   | `/reminders`             | Create and schedule a reminder.   |
+| `GET`    | `/reminders/due`         | List due pending reminders.       |
+| `GET`    | `/reminders/failed`      | List failed reminder jobs.        |
+| `GET`    | `/reminders/{id}`        | Get one reminder.                 |
+| `PATCH`  | `/reminders/{id}`        | Update and reschedule a reminder. |
+| `DELETE` | `/reminders/{id}`        | Delete and unschedule a reminder. |
+| `POST`   | `/reminders/{id}/cancel` | Cancel a pending reminder.        |
+| `POST`   | `/reminders/{id}/retry`  | Retry a failed reminder.          |
 
 Create/update request:
 
@@ -436,9 +436,9 @@ Required fields: `application_id`, `title`, `due_at`.
 
 ## Role Tracks
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/tracks` | List role tracks. |
+| Method | Path      | Description          |
+| ------ | --------- | -------------------- |
+| `GET`  | `/tracks` | List role tracks.    |
 | `POST` | `/tracks` | Create a role track. |
 
 Create request:
@@ -463,9 +463,9 @@ Required fields: `name`.
 
 ## Search
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/search?q={query}` | Weighted PostgreSQL full-text search across applications and job descriptions. |
+| Method | Path                | Description                                                                    |
+| ------ | ------------------- | ------------------------------------------------------------------------------ |
+| `GET`  | `/search?q={query}` | Weighted PostgreSQL full-text search across applications and job descriptions. |
 
 Example:
 
@@ -492,15 +492,16 @@ Response:
 
 ## Analytics
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/analytics/summary` | Top-line application and reminder counts. |
-| `GET` | `/analytics/by-status` | Application counts grouped by status. |
-| `GET` | `/analytics/by-role-track` | Application counts grouped by role track. |
-| `GET` | `/analytics/by-resume-version` | Per-resume performance metrics. |
-| `GET` | `/analytics/source-performance` | Response and offer rate by source. |
-| `GET` | `/analytics/funnel` | Funnel counts by stage. |
-| `GET` | `/analytics/upcoming` | Upcoming interviews and reminders. |
+| Method | Path                            | Description                                                                                                                      |
+| ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/analytics/summary`            | Top-line application and reminder counts.                                                                                        |
+| `GET`  | `/analytics/by-status`          | Application counts grouped by status.                                                                                            |
+| `GET`  | `/analytics/by-role-track`      | Application counts grouped by role track.                                                                                        |
+| `GET`  | `/analytics/by-resume-version`  | Per-resume performance metrics.                                                                                                  |
+| `GET`  | `/analytics/source-performance` | Response and offer rate by source.                                                                                               |
+| `GET`  | `/analytics/funnel`             | Funnel counts by stage.                                                                                                          |
+| `GET`  | `/analytics/upcoming`           | Upcoming interviews and reminders.                                                                                               |
+| `GET`  | `/dashboard`                    | Bounded dashboard snapshot with summary, pipeline, focus, recent, and upcoming data. Responses include `X-Cache: HIT` or `MISS`. |
 
 Summary response:
 
@@ -527,10 +528,10 @@ Grouped response example:
 
 ## Exports
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/exports/applications.csv` | Export applications as CSV. |
-| `GET` | `/exports/contacts.csv` | Export contacts as CSV. |
-| `GET` | `/exports/reminders.csv` | Export reminders as CSV. |
+| Method | Path                        | Description                 |
+| ------ | --------------------------- | --------------------------- |
+| `GET`  | `/exports/applications.csv` | Export applications as CSV. |
+| `GET`  | `/exports/contacts.csv`     | Export contacts as CSV.     |
+| `GET`  | `/exports/reminders.csv`    | Export reminders as CSV.    |
 
 Responses are CSV files.

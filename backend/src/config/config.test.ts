@@ -9,6 +9,7 @@ describe("loadConfig", () => {
     expect(config.API_PORT).toBe(8080);
     expect(config.APP_ENV).toBe("development");
     expect(config.REMINDER_MAX_RETRIES).toBe(3);
+    expect(config.DASHBOARD_CACHE_TTL_SECONDS).toBe(60);
     expect(config.LOG_PRETTY).toBe(true);
   });
 

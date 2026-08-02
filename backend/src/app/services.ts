@@ -55,6 +55,12 @@ import { createApplicationsRepository } from "../persistence/postgres/applicatio
 import { createRoleTracksRepository } from "../persistence/postgres/role-tracks-repository.js";
 import { createResumeVersionsRepository } from "../persistence/postgres/resume-versions-repository.js";
 import { createRemindersRepository } from "../persistence/postgres/reminders-repository.js";
+import {
+  createDashboardService,
+  type DashboardCache,
+  type DashboardService,
+} from "../domain/dashboard/dashboard.js";
+import { createDashboardRepository } from "../persistence/postgres/dashboard-repository.js";
 
 export interface ApiServices {
   analysis: AnalysisService;
@@ -62,6 +68,7 @@ export interface ApiServices {
   applications: ApplicationsService;
   companies: CompaniesService;
   contacts: ContactsService;
+  dashboard?: DashboardService;
   interviews: InterviewsService;
   jobDescriptions: JobDescriptionsService;
   reminders: RemindersService;
@@ -71,6 +78,7 @@ export interface ApiServices {
 }
 
 export interface ApiServiceDependencies {
+  dashboardCache?: DashboardCache;
   reminderScheduler?: ReminderScheduler;
 }
 
@@ -78,26 +86,70 @@ export function createApiServices(
   database: Database,
   dependencies: ApiServiceDependencies = {},
 ): ApiServices {
-  return {
-    analysis: createAnalysisService(createAnalysisRepository(database)),
-    analytics: createAnalyticsService(createAnalyticsRepository(database)),
-    applications: createApplicationsService(
-      createApplicationsRepository(database),
-    ),
-    companies: createCompaniesService(createCompaniesRepository(database)),
-    contacts: createContactsService(createContactsRepository(database)),
-    interviews: createInterviewsService(createInterviewsRepository(database)),
-    jobDescriptions: createJobDescriptionsService(
-      createJobDescriptionsRepository(database),
-    ),
-    reminders: createRemindersService(
+  const applications = withInvalidation(
+    createApplicationsService(createApplicationsRepository(database)),
+    dependencies.dashboardCache,
+    ["create", "update", "changeStatus", "delete"],
+  );
+  const companies = withInvalidation(
+    createCompaniesService(createCompaniesRepository(database)),
+    dependencies.dashboardCache,
+    ["create", "update", "delete"],
+  );
+  const interviews = withInvalidation(
+    createInterviewsService(createInterviewsRepository(database)),
+    dependencies.dashboardCache,
+    ["create", "update", "delete"],
+  );
+  const reminders = withInvalidation(
+    createRemindersService(
       createRemindersRepository(database),
       dependencies.reminderScheduler,
     ),
+    dependencies.dashboardCache,
+    ["create", "update", "cancel", "delete", "retry"],
+  );
+
+  return {
+    analysis: createAnalysisService(createAnalysisRepository(database)),
+    analytics: createAnalyticsService(createAnalyticsRepository(database)),
+    applications,
+    companies,
+    contacts: createContactsService(createContactsRepository(database)),
+    dashboard: createDashboardService(
+      createDashboardRepository(database),
+      dependencies.dashboardCache,
+    ),
+    interviews,
+    jobDescriptions: createJobDescriptionsService(
+      createJobDescriptionsRepository(database),
+    ),
+    reminders,
     search: createSearchService(createSearchRepository(database)),
     roleTracks: createRoleTracksService(createRoleTracksRepository(database)),
     resumeVersions: createResumeVersionsService(
       createResumeVersionsRepository(database),
     ),
   };
+}
+
+type AsyncMethod = (...args: never[]) => Promise<unknown>;
+
+export function withInvalidation<T extends object>(
+  service: T,
+  cache: DashboardCache | undefined,
+  methods: readonly (keyof T)[],
+): T {
+  if (cache === undefined) return service;
+  const decorated = { ...service };
+  for (const method of methods) {
+    const original = service[method];
+    if (typeof original !== "function") continue;
+    decorated[method] = (async (...args: never[]) => {
+      const result = await (original as AsyncMethod)(...args);
+      await cache.invalidate();
+      return result;
+    }) as T[keyof T];
+  }
+  return decorated;
 }
