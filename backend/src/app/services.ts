@@ -28,7 +28,6 @@ import {
 } from "../domain/resumes/resume-version.js";
 import {
   createRemindersService,
-  type ReminderScheduler,
   type RemindersService,
 } from "../domain/reminders/reminder.js";
 import type { Database } from "../infrastructure/postgres.js";
@@ -70,14 +69,7 @@ export interface ApiServices {
   resumeVersions: ResumeVersionsService;
 }
 
-export interface ApiServiceDependencies {
-  reminderScheduler?: ReminderScheduler;
-}
-
-export function createApiServices(
-  database: Database,
-  dependencies: ApiServiceDependencies = {},
-): ApiServices {
+export function createApiServices(database: Database): ApiServices {
   return {
     analysis: createAnalysisService(createAnalysisRepository(database)),
     analytics: createAnalyticsService(createAnalyticsRepository(database)),
@@ -90,10 +82,7 @@ export function createApiServices(
     jobDescriptions: createJobDescriptionsService(
       createJobDescriptionsRepository(database),
     ),
-    reminders: createRemindersService(
-      createRemindersRepository(database),
-      dependencies.reminderScheduler,
-    ),
+    reminders: createRemindersService(createRemindersRepository(database)),
     search: createSearchService(createSearchRepository(database)),
     roleTracks: createRoleTracksService(createRoleTracksRepository(database)),
     resumeVersions: createResumeVersionsService(

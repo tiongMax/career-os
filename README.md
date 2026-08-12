@@ -2,16 +2,15 @@
 
 CareerOS is a single-user job application operating system for tracking companies, applications, resume versions, job descriptions, contacts, interviews, reminders, search, and analytics.
 
-The project includes a TypeScript REST API, a Next.js frontend, PostgreSQL persistence, Redis-backed reminder scheduling, database migrations, and k6 benchmark scripts.
+The project includes a TypeScript REST API, a Next.js frontend, PostgreSQL persistence, dashboard attention rules, database migrations, and k6 benchmark scripts.
 
 ## Tech Stack
 
 | Area | Technology |
 | --- | --- |
-| Backend | TypeScript, Fastify, Zod, Drizzle ORM, node-postgres, node-redis |
+| Backend | TypeScript, Fastify, Zod, Drizzle ORM, node-postgres |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, lucide-react |
 | Database | PostgreSQL 16 |
-| Queue/cache | Redis 7 |
 | Tooling | Docker Compose, Make, Vitest, ESLint, Prettier, k6 benchmarks |
 
 ## Prerequisites
@@ -28,11 +27,11 @@ npm install
 npm install --prefix backend
 npm install --prefix frontend
 cp .env.example .env
-docker compose up -d postgres redis
+docker compose up -d postgres
 make migrate-up
 ```
 
-The default `.env.example` connects the API to PostgreSQL on `localhost:5433` and Redis on `localhost:6379`.
+The default `.env.example` connects the API to PostgreSQL on `localhost:5433`.
 
 ## Run Locally
 
@@ -42,10 +41,10 @@ Run the backend and frontend together:
 npm run dev
 ```
 
-This starts PostgreSQL and Redis, applies migrations, loads `.env`, and runs the
-TypeScript API, worker, and Next.js dev server. Press `Ctrl+C` once to stop all
-three development processes; the database containers remain running for the
-next session.
+This starts PostgreSQL, applies migrations, loads `.env`, and runs the
+TypeScript API, optional AI-analysis worker, and Next.js dev server. Press
+`Ctrl+C` once to stop all three development processes; the database container
+remains running for the next session.
 
 Run processes separately:
 

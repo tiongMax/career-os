@@ -1,6 +1,6 @@
 # Architecture
 
-CareerOS is split into a server-rendered Next.js frontend, a TypeScript Fastify API, PostgreSQL, Redis, and a background worker process. The backend uses Zod HTTP contracts, functional domain services, repository interfaces, and Drizzle persistence.
+CareerOS is split into a server-rendered Next.js frontend, a TypeScript Fastify API, PostgreSQL, and an optional AI-analysis worker process. The backend uses Zod HTTP contracts, functional domain services, repository interfaces, and Drizzle persistence.
 
 ## High-Level Structure
 
@@ -13,9 +13,9 @@ career-os/
       commands/     API, worker, and migration entry points
       config/       Zod-validated environment configuration
       domain/       business rules and repository contracts
-      infrastructure/ PostgreSQL, Redis, Gemini, and migrations
+      infrastructure/ PostgreSQL, Gemini, and migrations
       persistence/  Drizzle repositories and schema mapping
-      workers/      reminder and AI-analysis processors
+      workers/      AI-analysis processor
     migrations/     database schema migrations
   frontend/
     app/            Next.js App Router pages
@@ -33,11 +33,10 @@ career-os/
 | Component | Entry point | Responsibility |
 | --- | --- | --- |
 | Frontend | `frontend/app` | Server-rendered operational UI for dashboard, applications, contacts, resume versions, reminders, and analytics. |
-| API | `backend/src/commands/api.ts` | Serves `/api/v1/*`, connects to PostgreSQL and Redis, and exposes Swagger/OpenAPI docs. |
-| Worker | `backend/src/commands/worker.ts` | Polls Redis for reminders and optionally processes Gemini-backed AI analysis jobs. |
+| API | `backend/src/commands/api.ts` | Serves `/api/v1/*`, connects to PostgreSQL, and exposes Swagger/OpenAPI docs. |
+| Worker | `backend/src/commands/worker.ts` | Optionally processes Gemini-backed AI analysis jobs. |
 | Migrator | `backend/src/commands/migrate.ts` | Applies and rolls back the existing Goose-format SQL migrations. |
 | PostgreSQL | `docker-compose.yml` | Stores companies, applications, resume versions, job descriptions, contacts, interviews, reminders, audit logs, and analytics source data. |
-| Redis | `docker-compose.yml` | Stores reminder schedule state used by the API and worker. |
 
 ## Backend Layers
 
@@ -49,13 +48,13 @@ HTTP request
   -> Drizzle repository
   -> PostgreSQL
 
-Reminder API calls
-  -> reminders service
-  -> PostgreSQL mutation
-  -> Redis scheduler update
+Dashboard load
+  -> existing analytics and entity APIs
+  -> PostgreSQL reads
+  -> frontend attention-rule calculation
 ```
 
-Handlers own HTTP concerns: JSON decoding, path params, status codes, and response writing. Services own validation, status transitions, keyword extraction/scoring, analytics aggregation, reminder scheduling, and transaction-oriented behavior. Query packages own SQL and model mapping.
+Handlers own HTTP concerns: JSON decoding, path params, status codes, and response writing. Services own validation, status transitions, keyword extraction/scoring, analytics aggregation, and transaction-oriented behavior. Query packages own SQL and model mapping.
 
 ## Frontend Flow
 
@@ -77,10 +76,10 @@ flowchart LR
   User[User] --> UI[Next.js Frontend]
   UI -->|REST JSON / multipart PDF| API[TypeScript Fastify API]
   API -->|Drizzle / node-postgres| DB[(PostgreSQL)]
-  API -->|schedule/cancel reminders| Redis[(Redis)]
   API -->|queue analysis jobs| DB
-  Worker[Reminder Worker] -->|poll due reminders| Redis
-  Worker -->|state, deliveries, failed jobs| DB
+  UI -->|derive dashboard attention| Attention[Attention Rules]
+  Attention -->|link to application| UI
+  Worker[AI Analysis Worker] -->|poll analysis jobs| DB
   Worker -->|optional Gemini calls| Gemini[Gemini API]
   API -->|OpenAPI YAML / Swagger UI| Docs[API Docs]
   Bench[k6 Benchmarks] --> API
@@ -97,10 +96,10 @@ Core entities:
 - `job_descriptions`: raw JD text, extracted keywords, optional summary.
 - `contacts`: people associated with companies.
 - `interview_rounds`: scheduled rounds and outcomes for an application.
-- `reminders`: follow-ups/deadlines with retry state and idempotency keys.
+- `reminders`: optional manually dated dashboard follow-ups.
 - `audit_logs`: status transition history.
 - `role_tracks`: configurable role track names.
-- `reminder_deliveries` and `failed_reminder_jobs`: worker reliability records.
+- `reminder_deliveries` and `failed_reminder_jobs`: legacy compatibility records from the removed reminder worker.
 - `analysis_jobs`: queued, processing, completed, or failed AI analysis results.
 
 ## External Services and Integrations
@@ -108,12 +107,11 @@ Core entities:
 | Integration | Purpose | Required locally |
 | --- | --- | --- |
 | PostgreSQL | Primary data store and full-text search vectors. | Yes |
-| Redis | Reminder scheduling queue/state. | Yes for API startup and worker |
 | Gemini API | Optional structured JD extraction, resume matching, prep briefs, and embeddings. | Only when `GEMINI_API_KEY` is set for the worker |
 | Swagger UI CDN | Renders `/api/v1/docs`. | Only needed to view Swagger UI in a browser |
 | k6 | Optional benchmark runner. | No |
 
-No third-party authentication, email, notification, or calendar integration is currently wired in code.
+No third-party authentication, email, notification, or calendar integration is currently wired in code. Dashboard attention is calculated only when the app is opened.
 
 ## Request Middleware
 

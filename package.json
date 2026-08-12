@@ -13,7 +13,7 @@
     "dev:api:ts": "npm run dev:api",
     "dev:worker": "dotenv -e .env -- npm run dev:worker --prefix backend",
     "dev:worker:ts": "npm run dev:worker",
-    "infra:up": "docker compose up -d postgres redis",
+    "infra:up": "docker compose up -d postgres",
     "format:check:api:ts": "npm run format:check --prefix backend",
     "lint:api:ts": "npm run lint --prefix backend",
     "migrate:down": "dotenv -e .env -- npm run migrate --prefix backend -- down",

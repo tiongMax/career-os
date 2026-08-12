@@ -43,7 +43,7 @@ Common status codes:
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/health` | Checks PostgreSQL and Redis connectivity. |
+| `GET` | `/health` | Checks PostgreSQL connectivity. |
 | `GET` | `/openapi.yaml` | Serves the OpenAPI 3.1 spec. |
 | `GET` | `/docs` | Serves Swagger UI. |
 
@@ -56,8 +56,7 @@ GET /api/v1/health
 ```json
 {
   "status": "ok",
-  "postgres": "ok",
-  "redis": "ok"
+  "postgres": "ok"
 }
 ```
 

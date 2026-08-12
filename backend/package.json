@@ -33,7 +33,6 @@
     "fastify-type-provider-zod": "7.0.0",
     "pg": "8.22.0",
     "pino": "10.3.1",
-    "redis": "6.1.0",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   },

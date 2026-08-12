@@ -2,6 +2,7 @@ import type { AnalyticsSummary, Application, Company, Reminder, UpcomingData } f
 import { formatDate } from "@/lib/utils";
 
 export const STALE_DAYS = 14;
+export const FOLLOW_UP_DAYS = 7;
 export const DEADLINE_WINDOW_DAYS = 7;
 
 const DAY_MS = 86_400_000;
@@ -45,11 +46,18 @@ const PIPELINE_STAGES = [
 
 export type FocusTone = "red" | "amber" | "blue" | "green" | "neutral";
 export type FocusItemData = {
+  id: string;
   title: string;
   detail: string;
   href: string;
   action: string;
   tone: FocusTone;
+};
+
+type RankedFocusItem = FocusItemData & {
+  applicationId?: string;
+  priority: number;
+  time: number;
 };
 
 export type DashboardData = ReturnType<typeof buildDashboardData>;
@@ -72,6 +80,7 @@ export function buildDashboardData({
   const todayEnd = endOfDay(new Date()).getTime();
   const deadlineCutoff = now + DEADLINE_WINDOW_DAYS * DAY_MS;
   const staleCutoff = now - STALE_DAYS * DAY_MS;
+  const followUpCutoff = now - FOLLOW_UP_DAYS * DAY_MS;
 
   const pendingReminders = reminders.filter((reminder) => reminder.status === "pending");
   const overdueReminders = pendingReminders.filter((reminder) => new Date(reminder.due_at).getTime() < now);
@@ -90,7 +99,6 @@ export function buildDashboardData({
       return deadlineAt >= now && deadlineAt <= deadlineCutoff;
     })
     .sort((a, b) => new Date(a.deadline_at ?? "").getTime() - new Date(b.deadline_at ?? "").getTime());
-  const missingResumeVersion = applications.filter((app) => !app.resume_version_id && !FINAL_STATUSES.has(app.status));
   const recentApps = [...applications]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 5);
@@ -141,59 +149,125 @@ export function buildDashboardData({
     { label: "Offers", value: offers, rate: percentage(offers, totalApps) },
     { label: "Rejected", value: rejected, rate: percentage(rejected, totalApps) },
   ];
-  const nextInterview = upcoming.interviews[0];
-  const nextReminder = upcoming.reminders[0];
-  const focusItems: FocusItemData[] = [
-    overdueReminders.length > 0 && {
-      title: "Clear overdue reminders",
-      detail: `${overdueReminders.length} pending reminder${plural(overdueReminders.length)} past due`,
-      href: "/reminders",
-      action: "Open reminders",
-      tone: "red",
-    },
-    dueTodayReminders.length > 0 && {
-      title: "Handle today's follow-ups",
-      detail: `${dueTodayReminders.length} reminder${plural(dueTodayReminders.length)} due today`,
-      href: "/reminders",
-      action: "Review due items",
-      tone: "amber",
-    },
-    nextInterview && {
-      title: "Prep the next interview",
-      detail: `${nextInterview.company_name} · ${formatDate(nextInterview.scheduled_at)}`,
-      href: "/analytics",
-      action: "Open interview queue",
-      tone: "blue",
-    },
-    upcomingDeadlines.length > 0 && {
-      title: "Protect the nearest deadline",
-      detail: `${upcomingDeadlines[0].title} · ${formatDate(upcomingDeadlines[0].deadline_at)}`,
-      href: `/applications/${upcomingDeadlines[0].id}`,
+  const applicationsById = new Map(applications.map((application) => [application.id, application]));
+  const focusByApplication = new Map<string, RankedFocusItem>();
+
+  function addApplicationFocus(item: RankedFocusItem) {
+    if (!item.applicationId) return;
+    const current = focusByApplication.get(item.applicationId);
+    if (!current || item.priority < current.priority || (item.priority === current.priority && item.time < current.time)) {
+      focusByApplication.set(item.applicationId, item);
+    }
+  }
+
+  for (const reminder of [...overdueReminders, ...dueTodayReminders]) {
+    const application = applicationsById.get(reminder.application_id);
+    if (!application) continue;
+    const dueAt = new Date(reminder.due_at).getTime();
+    addApplicationFocus({
+      id: `reminder-${reminder.id}`,
+      applicationId: application.id,
+      priority: dueAt < now ? 0 : 2,
+      time: dueAt,
+      title: applicationLabel(application, companyMap),
+      detail: `${dueAt < now ? "Overdue reminder" : "Reminder due today"}: ${reminder.title} · ${formatDate(reminder.due_at)}`,
+      href: `/applications/${application.id}`,
       action: "Open application",
-      tone: "blue",
-    },
-    staleApplications.length > 0 && {
-      title: "Follow up on stale applications",
-      detail: `${staleApplications.length} active application${plural(staleApplications.length)} waiting ${STALE_DAYS}+ days`,
-      href: "/applications",
-      action: "Review stale apps",
-      tone: "amber",
-    },
-    missingResumeVersion.length > 0 && {
-      title: "Clean up missing resume links",
-      detail: `${missingResumeVersion.length} active application${plural(missingResumeVersion.length)} without a resume version`,
-      href: "/applications",
-      action: "Review applications",
-      tone: "neutral",
-    },
-    nextReminder && {
-      title: "Check the next reminder",
-      detail: `${nextReminder.title} · ${formatDate(nextReminder.due_at)}`,
-      href: `/reminders/${nextReminder.id}`,
-      action: "Open reminder",
-      tone: "neutral",
-    },
-  ].filter((item): item is FocusItemData => Boolean(item));
+      tone: dueAt < now ? "red" : "amber",
+    });
+  }
+
+  for (const application of applications) {
+    if (FINAL_STATUSES.has(application.status) || application.status === "saved") continue;
+
+    if (application.deadline_at) {
+      const deadlineAt = new Date(application.deadline_at).getTime();
+      if (deadlineAt <= deadlineCutoff) {
+        const overdue = deadlineAt < now;
+        addApplicationFocus({
+          id: `deadline-${application.id}`,
+          applicationId: application.id,
+          priority: overdue ? 0 : 1,
+          time: deadlineAt,
+          title: applicationLabel(application, companyMap),
+          detail: `${overdue ? "Deadline overdue" : "Deadline approaching"} · ${formatDate(application.deadline_at)}`,
+          href: `/applications/${application.id}`,
+          action: "Open application",
+          tone: overdue ? "red" : "blue",
+        });
+      }
+    }
+
+    const appliedAt = new Date(application.applied_at ?? application.created_at).getTime();
+    if (application.status === "applied" && appliedAt <= followUpCutoff) {
+      addApplicationFocus({
+        id: `follow-up-${application.id}`,
+        applicationId: application.id,
+        priority: 3,
+        time: appliedAt,
+        title: applicationLabel(application, companyMap),
+        detail: `Follow up · applied ${daysSince(appliedAt, now)} days ago with no response`,
+        href: `/applications/${application.id}`,
+        action: "Open application",
+        tone: "amber",
+      });
+    }
+
+    const updatedAt = new Date(application.updated_at).getTime();
+    if (updatedAt <= staleCutoff) {
+      addApplicationFocus({
+        id: `stale-${application.id}`,
+        applicationId: application.id,
+        priority: 4,
+        time: updatedAt,
+        title: applicationLabel(application, companyMap),
+        detail: `Stale · no changes for ${daysSince(updatedAt, now)} days`,
+        href: `/applications/${application.id}`,
+        action: "Open application",
+        tone: "amber",
+      });
+    }
+
+    if (!application.resume_version_id) {
+      addApplicationFocus({
+        id: `resume-${application.id}`,
+        applicationId: application.id,
+        priority: 5,
+        time: new Date(application.created_at).getTime(),
+        title: applicationLabel(application, companyMap),
+        detail: "Missing a linked resume version",
+        href: `/applications/${application.id}`,
+        action: "Open application",
+        tone: "neutral",
+      });
+    }
+  }
+
+  const nextInterview = upcoming.interviews[0];
+  const focusItems: FocusItemData[] = [
+    ...(nextInterview
+      ? [{
+          id: `interview-${nextInterview.id}`,
+          priority: 1,
+          time: nextInterview.scheduled_at ? new Date(nextInterview.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER,
+          title: `${nextInterview.company_name} · ${nextInterview.application_title}`,
+          detail: `Prepare for ${nextInterview.round_type.replaceAll("_", " ")} · ${formatDate(nextInterview.scheduled_at)}`,
+          href: "/analytics",
+          action: "Open interview",
+          tone: "blue" as const,
+        }]
+      : []),
+    ...focusByApplication.values(),
+  ]
+    .sort((a, b) => a.priority - b.priority || a.time - b.time)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      detail: item.detail,
+      href: item.href,
+      action: item.action,
+      tone: item.tone,
+    }));
   const nextBestAction =
     focusItems[0] ??
     (totalApps === 0
@@ -240,6 +314,14 @@ function endOfDay(date: Date): Date {
   const copy = new Date(date);
   copy.setHours(23, 59, 59, 999);
   return copy;
+}
+
+function applicationLabel(application: Application, companyMap: Record<string, string>): string {
+  return `${companyMap[application.company_id] ?? "Unknown company"} · ${application.title}`;
+}
+
+function daysSince(timestamp: number, now: number): number {
+  return Math.max(0, Math.floor((now - timestamp) / DAY_MS));
 }
 
 export function plural(value: number): string {

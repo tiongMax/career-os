@@ -9,7 +9,7 @@ npm install
 npm install --prefix backend
 npm install --prefix frontend
 cp .env.example .env
-docker compose up -d postgres redis
+docker compose up -d postgres
 make migrate-up
 ```
 

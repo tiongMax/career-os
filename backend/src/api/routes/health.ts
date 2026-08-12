@@ -3,13 +3,11 @@ import { z } from "zod";
 
 export interface HealthChecks {
   postgres: () => Promise<void>;
-  redis: () => Promise<void>;
 }
 
 const healthResponseSchema = z.object({
   status: z.enum(["ok", "degraded"]),
   postgres: z.enum(["ok", "error"]),
-  redis: z.enum(["ok", "error"]),
 });
 
 const dependencyTimeoutMs = 2_000;
@@ -53,16 +51,12 @@ export function healthRoutes(checks: HealthChecks): FastifyPluginCallbackZod {
         },
       },
       async (_request, reply) => {
-        const [postgres, redis] = await Promise.all([
-          checkWithTimeout(() => checks.postgres()),
-          checkWithTimeout(() => checks.redis()),
-        ]);
-        const healthy = postgres === "ok" && redis === "ok";
+        const postgres = await checkWithTimeout(() => checks.postgres());
+        const healthy = postgres === "ok";
 
         return reply.status(healthy ? 200 : 503).send({
           status: healthy ? "ok" : "degraded",
           postgres,
-          redis,
         });
       },
     );

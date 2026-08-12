@@ -16,10 +16,9 @@ async function createApp(healthChecks: HealthChecks) {
 }
 
 describe("GET /api/v1/health", () => {
-  it("returns ok when PostgreSQL and Redis are healthy", async () => {
+  it("returns ok when PostgreSQL is healthy", async () => {
     const app = await createApp({
       postgres: vi.fn().mockResolvedValue(undefined),
-      redis: vi.fn().mockResolvedValue(undefined),
     });
 
     const response = await app.inject({ method: "GET", url: "/api/v1/health" });
@@ -28,14 +27,12 @@ describe("GET /api/v1/health", () => {
     expect(response.json()).toEqual({
       status: "ok",
       postgres: "ok",
-      redis: "ok",
     });
   });
 
   it("returns degraded and identifies failed dependencies", async () => {
     const app = await createApp({
       postgres: vi.fn().mockRejectedValue(new Error("postgres unavailable")),
-      redis: vi.fn().mockResolvedValue(undefined),
     });
 
     const response = await app.inject({ method: "GET", url: "/api/v1/health" });
@@ -44,7 +41,6 @@ describe("GET /api/v1/health", () => {
     expect(response.json()).toEqual({
       status: "degraded",
       postgres: "error",
-      redis: "ok",
     });
   });
 });
@@ -53,7 +49,6 @@ describe("API documentation", () => {
   it("serves generated OpenAPI and Swagger UI", async () => {
     const app = await createApp({
       postgres: vi.fn().mockResolvedValue(undefined),
-      redis: vi.fn().mockResolvedValue(undefined),
     });
 
     const spec = await app.inject({

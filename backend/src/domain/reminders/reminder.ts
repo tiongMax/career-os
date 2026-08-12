@@ -79,44 +79,6 @@ export interface RemindersRepository {
   resetForRetry: (id: string) => Promise<Reminder>;
 }
 
-export interface ReminderScheduler {
-  schedule: (reminder: Reminder) => Promise<void>;
-  unschedule: (id: string) => Promise<void>;
-}
-
-export interface ReminderDelivery {
-  id: string;
-  reminderId: string;
-  idempotencyKey: string;
-  deliveredAt: Date;
-  createdAt: Date;
-}
-
-export interface ReminderRetryUpdate {
-  id: string;
-  status: "pending" | "failed";
-  retryCount: number;
-  lastError: string;
-}
-
-export interface FailedReminderJobInput {
-  reminderId: string;
-  errorMessage: string;
-  retryCount: number;
-  payload: Record<string, string>;
-}
-
-export interface ReminderWorkerStore {
-  get: (id: string) => Promise<Reminder>;
-  updateStatus: (id: string, status: ReminderStatus) => Promise<Reminder>;
-  createDelivery: (reminder: Reminder) => Promise<ReminderDelivery>;
-  markSent: (id: string) => Promise<Reminder>;
-  markRetry: (input: ReminderRetryUpdate) => Promise<Reminder>;
-  createFailedJob: (
-    input: FailedReminderJobInput,
-  ) => Promise<FailedReminderJob>;
-}
-
 export interface RemindersService {
   create: (input: CreateReminderInput) => Promise<Reminder>;
   list: () => Promise<Reminder[]>;
@@ -131,7 +93,6 @@ export interface RemindersService {
 
 export function createRemindersService(
   repository: RemindersRepository,
-  scheduler?: ReminderScheduler,
   now: () => Date = () => new Date(),
   idempotencyKey: () => string = () => randomBytes(16).toString("hex"),
 ): RemindersService {
@@ -139,9 +100,7 @@ export function createRemindersService(
     async create(input) {
       requireTitle(input.title);
       requireDueAt(input.due_at);
-      const reminder = await repository.create(input, idempotencyKey());
-      await scheduler?.schedule(reminder);
-      return reminder;
+      return repository.create(input, idempotencyKey());
     },
     list: () => repository.list(),
     listDue: () => repository.listDue(now()),
@@ -150,25 +109,12 @@ export function createRemindersService(
       if (input.title != null) requireTitle(input.title);
       if (input.due_at === null)
         throw new DomainValidationError("reminder due_at is required");
-      const reminder = await repository.update(id, input);
-      if (reminder.status === "pending") await scheduler?.schedule(reminder);
-      return reminder;
+      return repository.update(id, input);
     },
-    async cancel(id) {
-      const reminder = await repository.updateStatus(id, "cancelled");
-      await scheduler?.unschedule(id);
-      return reminder;
-    },
-    async delete(id) {
-      await scheduler?.unschedule(id);
-      await repository.delete(id);
-    },
+    cancel: (id) => repository.updateStatus(id, "cancelled"),
+    delete: (id) => repository.delete(id),
     listFailed: () => repository.listFailed(),
-    async retry(id) {
-      const reminder = await repository.resetForRetry(id);
-      await scheduler?.schedule(reminder);
-      return reminder;
-    },
+    retry: (id) => repository.resetForRetry(id),
   };
 }
 

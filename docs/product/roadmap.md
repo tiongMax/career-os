@@ -1,7 +1,7 @@
 # CareerOS Roadmap
 
-This roadmap reflects the current codebase after the core tracker, reminder
-worker, analytics, exports, and AI analysis job flow have landed. Use it as the
+This roadmap reflects the current codebase after the core tracker, dashboard
+attention rules, analytics, exports, and AI analysis job flow have landed. Use it as the
 forward-looking product plan, not as a record of the original one-week build
 plan.
 
@@ -26,8 +26,8 @@ Implemented today:
   prep context, and template prep brief generation.
 - Gemini-backed async AI analysis jobs for resume match, JD extraction, and prep
   brief generation when `GEMINI_API_KEY` is set.
-- Redis sorted-set reminder scheduling, worker retries, idempotent delivery
-  records, and failed job storage.
+- Dashboard attention rules for due reminders, follow-ups, stale applications,
+  deadlines, interviews, and missing resume links.
 - Analytics summary, status counts, role-track counts, resume performance,
   source performance, funnel, upcoming work, and CSV exports.
 - k6 benchmark scripts for search, create application, status update, reminder
@@ -60,7 +60,7 @@ Implemented today:
 ### 3. Testing Depth
 
 - Add integration tests for migrations, application status audit transactions,
-  search, analytics, and reminder scheduling against PostgreSQL/Redis.
+  search, analytics, and dashboard attention rules against PostgreSQL.
 - Add more coverage for `analysis_jobs` retry/failure paths with fake providers.
 - Add frontend smoke tests for the main create/edit/detail flows.
 - Add a benchmark-results document only after measured local runs.
@@ -70,7 +70,7 @@ Implemented today:
 - Add create/edit UI for job descriptions and interview rounds directly on the
   application detail page.
 - Add reminder creation from application and contact context.
-- Add richer stale-application detection and follow-up suggestions.
+- Add snooze and handled actions for dashboard attention items.
 - Add search UI if the API remains useful enough to expose in the frontend.
 - Improve contact-to-application context so recruiter/referral notes surface on
   prep pages.
@@ -78,8 +78,8 @@ Implemented today:
 ## Later Enhancements
 
 - Calendar integration for interviews and reminders.
-- Email, Telegram, or desktop notification delivery instead of simulated
-  reminder delivery.
+- Optional email, Telegram, or desktop notifications if dashboard-only attention
+  stops being sufficient.
 - CSV import for historical job-search data.
 - Browser extension or bookmarklet to capture jobs from career pages.
 - OAuth or single-user passcode if the app is deployed beyond local use.
@@ -97,8 +97,8 @@ Safe current claims:
 
 - Built a Go/PostgreSQL job application tracker with normalized application,
   resume, contact, interview, reminder, analytics, and audit-log workflows.
-- Implemented a Redis-backed reminder worker with retry handling, idempotency
-  keys, failed-job storage, and PostgreSQL as the source of truth.
+- Added a dashboard attention queue derived from application state, dates,
+  interviews, and manual reminders without a separate scheduling service.
 - Added application status transition rules with transactional audit logging.
 - Added deterministic resume/JD matching, prep context generation, analytics,
   CSV exports, and optional Gemini-backed asynchronous analysis jobs.
@@ -107,5 +107,4 @@ Claims that still need measured evidence:
 
 - Specific p95 latency numbers.
 - Large-scale seed volumes.
-- Zero-duplicate delivery guarantees under restart tests.
 - Production-readiness, authentication, encryption, or deployed availability.

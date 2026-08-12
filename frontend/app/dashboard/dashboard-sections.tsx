@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { formatRelative } from "@/lib/utils";
-import { type DashboardData, type FocusItemData, plural, STALE_DAYS } from "./dashboard-data";
+import {
+  type DashboardData,
+  type FocusItemData,
+  FOLLOW_UP_DAYS,
+  plural,
+  STALE_DAYS,
+} from "./dashboard-data";
 
 export function StatCards({ stats }: { stats: DashboardData["stats"] }) {
   return (
@@ -39,13 +45,7 @@ export function ActionSections({
   focusItems: DashboardData["focusItems"];
   nextBestAction: DashboardData["nextBestAction"];
 }) {
-  const focusGridClass =
-    focusItems.length === 1
-      ? "grid grid-cols-1"
-      : focusItems.length === 2
-        ? "grid grid-cols-1 divide-y divide-neutral-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0"
-        : "grid grid-cols-1 divide-y divide-neutral-100 lg:grid-cols-3 lg:divide-x lg:divide-y-0";
-  const visibleFocusItems = focusItems.slice(0, 3);
+  const visibleFocusItems = focusItems.slice(0, 5);
   const hiddenFocusCount = Math.max(0, focusItems.length - visibleFocusItems.length);
 
   return (
@@ -80,16 +80,13 @@ export function ActionSections({
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <div className="flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-green-500" />
-            <h2 className="text-sm font-semibold text-neutral-700">Today&rsquo;s Focus</h2>
+            <h2 className="text-sm font-semibold text-neutral-700">Needs Attention</h2>
             <InfoTooltip
-              title="Priority order"
-              ordered
+              title="Why applications appear here"
               items={[
-                "Overdue reminders",
-                "Reminders due today",
-                "Next interview",
-                "Nearest deadline",
-                "Stale apps or cleanup work",
+                `Applied with no response for ${FOLLOW_UP_DAYS}+ days`,
+                `No changes for ${STALE_DAYS}+ days`,
+                "A deadline, interview, or manual reminder is due soon",
               ]}
             />
           </div>
@@ -100,9 +97,9 @@ export function ActionSections({
         {focusItems.length === 0 ? (
           <div className="px-5 py-5 text-sm text-neutral-400">No urgent focus items. Good moment to add pipeline activity.</div>
         ) : (
-          <div className={`p-3 ${focusGridClass}`}>
+          <div className="divide-y divide-neutral-100 p-2">
             {visibleFocusItems.map((item) => (
-              <FocusItem key={`${item.title}-${item.detail}`} {...item} />
+              <FocusItem key={item.id} {...item} />
             ))}
           </div>
         )}
@@ -327,7 +324,7 @@ function FocusItem({
   };
 
   return (
-    <Link href={href} className="flex min-h-24 items-center justify-between gap-4 rounded-md px-4 py-3 transition-colors hover:bg-neutral-50">
+    <Link href={href} className="flex min-h-20 items-center justify-between gap-4 rounded-md px-4 py-3 transition-colors hover:bg-neutral-50">
       <div className="flex min-w-0 items-start gap-3">
         <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${tones[tone]}`} />
         <div className="min-w-0">
