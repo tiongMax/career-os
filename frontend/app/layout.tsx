@@ -29,7 +29,7 @@ export default function RootLayout({
           id="main-content"
           className="min-w-0 flex-1 px-4 pb-8 pt-20 sm:px-6 md:p-8"
         >
-          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1440px]">{children}</div>
         </main>
       </body>
     </html>

@@ -88,10 +88,10 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto px-4 py-8">
       <button
         type="button"
-        className="absolute inset-0 cursor-default bg-slate-950/45 backdrop-blur-[1px]"
+        className="absolute inset-0 cursor-default bg-slate-950/55 backdrop-blur-sm"
         aria-label="Close dialog"
         onClick={onClose}
       />
@@ -103,7 +103,7 @@ export function Dialog({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          "relative z-10 w-full max-w-md animate-fade-in rounded-card border border-border bg-surface p-5 shadow-elevated focus:outline-none sm:p-6",
+          "relative z-10 w-full max-w-md animate-fade-in rounded-card border border-slate-200 bg-white p-5 text-slate-950 shadow-2xl ring-1 ring-slate-950/5 focus:outline-none sm:p-6",
           className,
         )}
       >

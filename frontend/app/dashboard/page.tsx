@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   const dashboard = buildDashboardData(snapshot);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Dashboard"
         description="Your pipeline, priorities, and next steps at a glance."

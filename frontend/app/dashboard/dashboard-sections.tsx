@@ -21,7 +21,7 @@ import {
 
 export function StatCards({ stats }: { stats: DashboardData["stats"] }) {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <StatCard label="Total" value={stats.total} icon={Briefcase} />
       <StatCard
         label="Active"
@@ -60,7 +60,7 @@ export function ActionSections({
   );
 
   return (
-    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+    <section className="overflow-hidden rounded-card border border-border bg-white shadow-card">
       <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex items-center gap-2">
           <ListChecks className="h-4 w-4 text-amber-500" />
@@ -114,7 +114,7 @@ export function ActionSections({
           </Link>
         </div>
       ) : (
-        <div className="divide-y divide-neutral-100 px-2 py-2 sm:px-3">
+        <div className="divide-y divide-neutral-100 px-2 py-1 sm:px-3">
           {visibleFocusItems.map((item, index) => (
             <FocusItem key={item.id} featured={index === 0} {...item} />
           ))}
@@ -418,7 +418,7 @@ function FocusItem({
   return (
     <Link
       href={href}
-      className={`flex min-h-20 items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-inset sm:px-4 ${featured ? "bg-amber-50/60 hover:bg-amber-50" : "hover:bg-neutral-50"}`}
+      className={`flex min-h-16 items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-inset sm:px-4 ${featured ? "bg-amber-50/60 hover:bg-amber-50" : "hover:bg-neutral-50"}`}
     >
       <div className="flex min-w-0 items-start gap-3">
         <span
