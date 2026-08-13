@@ -113,11 +113,19 @@ export function ActionSections({
               ]}
             />
           </div>
-          <span className="text-xs text-neutral-400">
-            {focusItems.length === 0
-              ? "0 items"
-              : `${visibleFocusItems.length} of ${focusItems.length} items`}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-neutral-400">
+              {focusItems.length === 0
+                ? "0 items"
+                : `${visibleFocusItems.length} of ${focusItems.length} items`}
+            </span>
+            <Link
+              href="/applications"
+              className="flex items-center gap-1 text-xs text-neutral-400 transition-colors hover:text-neutral-700"
+            >
+              View all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
         {focusItems.length === 0 ? (
           <div className="px-5 py-5 text-sm text-neutral-400">
