@@ -85,7 +85,7 @@ export default async function AnalyticsPage() {
           accent="green"
         />
         <StatCard
-          label="Reminders"
+          label="Follow-ups"
           value={summary.pending_reminders}
           icon={Bell}
           accent="orange"
@@ -284,10 +284,10 @@ export default async function AnalyticsPage() {
 
         <section>
           <h2 className="mb-3 text-sm font-semibold text-neutral-700">
-            Upcoming Reminders
+            Upcoming Follow-ups
           </h2>
           {upcoming.reminders.length === 0 ? (
-            <p className="text-sm text-neutral-400">No upcoming reminders.</p>
+            <p className="text-sm text-neutral-400">No upcoming follow-ups.</p>
           ) : (
             <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
               {upcoming.reminders.map((rem) => (

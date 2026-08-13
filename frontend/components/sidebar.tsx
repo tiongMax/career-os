@@ -8,7 +8,7 @@ import {
   LayoutDashboard,
   FileText,
   Briefcase,
-  Bell,
+  ListChecks,
   BarChart2,
   Users,
   Menu,
@@ -29,7 +29,7 @@ const NAV_GROUPS = [
   {
     label: "Plan & improve",
     items: [
-      { href: "/reminders", label: "Reminders", icon: Bell },
+      { href: "/reminders", label: "Follow-ups", icon: ListChecks },
       { href: "/analytics", label: "Analytics", icon: BarChart2 },
     ],
   },

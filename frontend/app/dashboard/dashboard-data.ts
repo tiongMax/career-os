@@ -85,7 +85,7 @@ export function buildDashboardData(snapshot: DashboardSnapshot) {
     })),
     ...snapshot.upcoming.reminders.map((reminder) => ({
       id: `reminder-${reminder.id}`,
-      label: "Reminder",
+      label: "Follow-up",
       title: reminder.title,
       meta: `${reminder.application_title} · ${formatDate(reminder.due_at)}`,
       href: `/reminders/${reminder.id}`,
@@ -178,9 +178,9 @@ function attentionTitle(
 ): string {
   switch (type) {
     case "overdue_reminder":
-      return title ?? "Overdue reminder";
+      return title ?? "Overdue follow-up";
     case "due_reminder":
-      return title ?? "Reminder due today";
+      return title ?? "Follow-up due today";
     case "deadline":
       return "Application deadline";
     case "interview":

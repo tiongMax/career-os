@@ -71,9 +71,9 @@ export function ActionSections({
             title="Priority order"
             ordered
             items={[
-              "Overdue reminders and deadlines",
+              "Overdue follow-ups and deadlines",
               "Upcoming deadlines and interviews",
-              "Reminders due today",
+              "Follow-ups due today",
               "Applications ready for follow-up",
               "Stale applications and missing resume links",
             ]}

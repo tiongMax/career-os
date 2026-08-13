@@ -15,6 +15,7 @@ import { APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Toast } from "@/components/ui/toast";
+import { FollowUpDialog } from "../../reminders/follow-up-dialog";
 
 type ActionKind = "status" | "job-description" | "interview";
 
@@ -81,6 +82,11 @@ export function ApplicationQuickActions({
           <CalendarPlus aria-hidden="true" />
           Schedule interview
         </Button>
+        <FollowUpDialog
+          applicationId={applicationId}
+          triggerLabel="Add follow-up"
+          triggerVariant="outline"
+        />
       </div>
 
       <Dialog
