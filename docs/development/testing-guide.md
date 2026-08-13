@@ -24,7 +24,7 @@ Unit tests live beside their modules and use plain object fakes. They cover:
 - Zod configuration and request validation.
 - Domain validation and application status transitions.
 - Route status codes and JSON contracts through Fastify injection.
-- Reminder retry, idempotency, and dead-letter behavior.
+- Reminder validation and cancellation behavior.
 - AI-analysis retry, embedding ranking, and JD extraction persistence.
 - Goose-format migration parsing.
 
@@ -59,7 +59,7 @@ Never test `down` against a database containing user data.
 After a production build, start the compiled API or the Compose `full` profile
 and verify at least:
 
-- `/api/v1/health` reports PostgreSQL and Redis as healthy.
+- `/api/v1/health` reports PostgreSQL as healthy.
 - A representative create/get/delete workflow reaches PostgreSQL.
 - The worker starts and shuts down without leaving jobs processing.
 - The API container applies pending migrations before listening.

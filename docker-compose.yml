@@ -54,11 +54,8 @@ services:
       - .env.example
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/careeros?sslmode=disable
-      REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
 volumes:

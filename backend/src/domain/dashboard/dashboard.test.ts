@@ -18,6 +18,7 @@ const snapshot: DashboardSnapshot = {
     dueTodayReminders: 0,
     staleApplications: 0,
     missingResumeVersion: 1,
+    items: [],
   },
   pipeline: { applied: 1 },
   recentApplications: [],

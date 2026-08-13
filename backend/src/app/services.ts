@@ -28,7 +28,6 @@ import {
 } from "../domain/resumes/resume-version.js";
 import {
   createRemindersService,
-  type ReminderScheduler,
   type RemindersService,
 } from "../domain/reminders/reminder.js";
 import type { Database } from "../infrastructure/postgres.js";
@@ -79,7 +78,6 @@ export interface ApiServices {
 
 export interface ApiServiceDependencies {
   dashboardCache?: DashboardCache;
-  reminderScheduler?: ReminderScheduler;
 }
 
 export function createApiServices(
@@ -102,10 +100,7 @@ export function createApiServices(
     ["create", "update", "delete"],
   );
   const reminders = withInvalidation(
-    createRemindersService(
-      createRemindersRepository(database),
-      dependencies.reminderScheduler,
-    ),
+    createRemindersService(createRemindersRepository(database)),
     dependencies.dashboardCache,
     ["create", "update", "cancel", "delete", "retry"],
   );

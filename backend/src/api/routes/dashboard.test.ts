@@ -35,6 +35,17 @@ describe("GET /dashboard", () => {
             dueTodayReminders: 0,
             staleApplications: 0,
             missingResumeVersion: 1,
+            items: [
+              {
+                id: "missing-resume-11111111-1111-4111-8111-111111111111",
+                applicationId: "11111111-1111-4111-8111-111111111111",
+                applicationTitle: "Engineer",
+                companyName: "Example",
+                type: "missing_resume",
+                title: null,
+                actionAt: "2026-08-01T10:00:00.000Z",
+              },
+            ],
           },
           pipeline: { applied: 1 },
           recentApplications: [],

@@ -1,14 +1,11 @@
 import { and, asc, desc, eq, lte } from "drizzle-orm";
 
-import type {
-  RemindersRepository,
-  ReminderWorkerStore,
-} from "../../domain/reminders/reminder.js";
+import type { RemindersRepository } from "../../domain/reminders/reminder.js";
 import type { Database } from "../../infrastructure/postgres.js";
 import { EntityNotFoundError } from "./errors.js";
-import { failedReminderJobs, reminderDeliveries, reminders } from "./schema.js";
+import { failedReminderJobs, reminders } from "./schema.js";
 
-export type RemindersPersistence = RemindersRepository & ReminderWorkerStore;
+export type RemindersPersistence = RemindersRepository;
 
 export function createRemindersRepository(
   database: Database,
@@ -103,59 +100,6 @@ export function createRemindersRepository(
         .returning();
       if (reminder === undefined) throw new EntityNotFoundError("reminder");
       return reminder;
-    },
-    async createDelivery(reminder) {
-      const [delivery] = await database
-        .insert(reminderDeliveries)
-        .values({
-          reminderId: reminder.id,
-          idempotencyKey: reminder.idempotencyKey,
-        })
-        .onConflictDoUpdate({
-          target: reminderDeliveries.idempotencyKey,
-          set: { idempotencyKey: reminder.idempotencyKey },
-        })
-        .returning();
-      if (delivery === undefined)
-        throw new Error("reminder delivery insert returned no row");
-      return delivery;
-    },
-    async markSent(id) {
-      const [reminder] = await database
-        .update(reminders)
-        .set({
-          status: "sent",
-          deliveredAt: new Date(),
-          lastError: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(reminders.id, id))
-        .returning();
-      if (reminder === undefined) throw new EntityNotFoundError("reminder");
-      return reminder;
-    },
-    async markRetry(input) {
-      const [reminder] = await database
-        .update(reminders)
-        .set({
-          status: input.status,
-          retryCount: input.retryCount,
-          lastError: input.lastError,
-          updatedAt: new Date(),
-        })
-        .where(eq(reminders.id, input.id))
-        .returning();
-      if (reminder === undefined) throw new EntityNotFoundError("reminder");
-      return reminder;
-    },
-    async createFailedJob(input) {
-      const [job] = await database
-        .insert(failedReminderJobs)
-        .values(input)
-        .returning();
-      if (job === undefined)
-        throw new Error("failed reminder job insert returned no row");
-      return job;
     },
   };
 }

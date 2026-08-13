@@ -54,13 +54,7 @@ export function ActionSections({
   focusItems: DashboardData["focusItems"];
   nextBestAction: DashboardData["nextBestAction"];
 }) {
-  const focusGridClass =
-    focusItems.length === 1
-      ? "grid grid-cols-1"
-      : focusItems.length === 2
-        ? "grid grid-cols-1 divide-y divide-neutral-100 lg:grid-cols-2 lg:divide-x lg:divide-y-0"
-        : "grid grid-cols-1 divide-y divide-neutral-100 lg:grid-cols-3 lg:divide-x lg:divide-y-0";
-  const visibleFocusItems = focusItems.slice(0, 3);
+  const visibleFocusItems = focusItems.slice(0, 5);
   const hiddenFocusCount = Math.max(
     0,
     focusItems.length - visibleFocusItems.length,
@@ -105,17 +99,17 @@ export function ActionSections({
           <div className="flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-green-500" />
             <h2 className="text-sm font-semibold text-neutral-700">
-              Today&rsquo;s Focus
+              Needs Attention
             </h2>
             <InfoTooltip
               title="Priority order"
               ordered
               items={[
-                "Overdue reminders",
+                "Overdue reminders and deadlines",
+                "Upcoming deadlines and interviews",
                 "Reminders due today",
-                "Next interview",
-                "Nearest deadline",
-                "Stale apps or cleanup work",
+                "Applications ready for follow-up",
+                "Stale applications and missing resume links",
               ]}
             />
           </div>
@@ -127,18 +121,18 @@ export function ActionSections({
         </div>
         {focusItems.length === 0 ? (
           <div className="px-5 py-5 text-sm text-neutral-400">
-            No urgent focus items. Good moment to add pipeline activity.
+            No applications need attention right now.
           </div>
         ) : (
-          <div className={`p-3 ${focusGridClass}`}>
+          <div className="divide-y divide-neutral-100 p-3">
             {visibleFocusItems.map((item) => (
-              <FocusItem key={`${item.title}-${item.detail}`} {...item} />
+              <FocusItem key={item.id} {...item} />
             ))}
           </div>
         )}
         {hiddenFocusCount > 0 && (
           <div className="border-t border-neutral-100 px-5 py-3 text-xs text-neutral-400">
-            +{hiddenFocusCount} more focus item{plural(hiddenFocusCount)}
+            +{hiddenFocusCount} more application{plural(hiddenFocusCount)}
           </div>
         )}
       </section>

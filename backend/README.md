@@ -1,7 +1,7 @@
 # CareerOS TypeScript Backend
 
 The CareerOS API, worker, and migration runner are implemented in TypeScript
-with Fastify, Zod, Drizzle, PostgreSQL, and Redis.
+with Fastify, Zod, Drizzle, and PostgreSQL.
 
 ## TypeScript backend commands
 
@@ -34,6 +34,7 @@ The TypeScript API currently exposes:
 - `GET /api/v1/health`
 - `GET /api/v1/openapi.yaml`
 - `GET /api/v1/docs`
+- `GET /api/v1/dashboard`
 - `GET, POST /api/v1/tracks`
 - `GET, POST /api/v1/companies`
 - `GET, PATCH, DELETE /api/v1/companies/{id}`
@@ -75,6 +76,7 @@ PostgreSQL migrations in `migrations/` remain the authoritative database
 schema history. Do not use schema-push workflows; add a versioned migration
 instead.
 
-The TypeScript worker processes reminders and, when `GEMINI_API_KEY` is set,
-AI analysis jobs. Resume matching uses Gemini embeddings; JD extraction stores
-the generated summary and keywords back on the job description.
+The TypeScript worker processes AI analysis jobs when `GEMINI_API_KEY` is set.
+Resume matching uses Gemini embeddings; JD extraction stores the generated
+summary and keywords back on the job description. Dashboard reminders remain
+pending PostgreSQL records until the user handles or cancels them.

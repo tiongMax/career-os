@@ -22,6 +22,7 @@ const snapshot = {
     dueTodayReminders: 0,
     staleApplications: 0,
     missingResumeVersion: 0,
+    items: [],
   },
   pipeline: {},
   recentApplications: [],

@@ -19,6 +19,25 @@ const dashboardResponseSchema = z.object({
     due_today_reminders: count,
     stale_applications: count,
     missing_resume_version: count,
+    items: z.array(
+      z.object({
+        id: z.string(),
+        application_id: z.uuid(),
+        application_title: z.string(),
+        company_name: z.string(),
+        type: z.enum([
+          "overdue_reminder",
+          "due_reminder",
+          "deadline",
+          "interview",
+          "follow_up",
+          "stale",
+          "missing_resume",
+        ]),
+        title: z.string().nullable(),
+        action_at: z.iso.datetime(),
+      }),
+    ),
   }),
   pipeline: z.record(z.string(), count),
   recent_applications: z.array(
@@ -82,6 +101,15 @@ export function dashboardRoutes(
             due_today_reminders: snapshot.attention.dueTodayReminders,
             stale_applications: snapshot.attention.staleApplications,
             missing_resume_version: snapshot.attention.missingResumeVersion,
+            items: snapshot.attention.items.map((item) => ({
+              id: item.id,
+              application_id: item.applicationId,
+              application_title: item.applicationTitle,
+              company_name: item.companyName,
+              type: item.type,
+              title: item.title,
+              action_at: item.actionAt,
+            })),
           },
           pipeline: snapshot.pipeline,
           recent_applications: snapshot.recentApplications.map(

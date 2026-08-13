@@ -53,6 +53,7 @@ function isDashboardSnapshot(value: unknown): value is DashboardSnapshot {
     candidate.summary !== null &&
     typeof candidate.attention === "object" &&
     candidate.attention !== null &&
+    Array.isArray((candidate.attention as Record<string, unknown>).items) &&
     typeof candidate.pipeline === "object" &&
     candidate.pipeline !== null &&
     Array.isArray(candidate.recentApplications) &&

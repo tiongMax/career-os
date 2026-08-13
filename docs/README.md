@@ -20,8 +20,8 @@ This folder keeps the reference, development, and product docs.
   migrations, and worker process.
 - [Application Workflow](development/application-workflow.md) - application statuses,
   transition rules, and audit logging.
-- [Reminder Worker](development/reminder-worker.md) - Redis scheduling, delivery,
-  retries, and dead-lettering.
+- [Dashboard Attention](development/dashboard-attention.md) - follow-up, stale,
+  deadline, interview, and manual-reminder rules.
 - [Testing Guide](development/testing-guide.md) - unit, HTTP, integration, worker, and
   manual testing notes.
 

@@ -12,6 +12,26 @@ export interface DashboardAttention {
   dueTodayReminders: number;
   staleApplications: number;
   missingResumeVersion: number;
+  items: DashboardAttentionItem[];
+}
+
+export type DashboardAttentionType =
+  | "overdue_reminder"
+  | "due_reminder"
+  | "deadline"
+  | "interview"
+  | "follow_up"
+  | "stale"
+  | "missing_resume";
+
+export interface DashboardAttentionItem {
+  id: string;
+  applicationId: string;
+  applicationTitle: string;
+  companyName: string;
+  type: DashboardAttentionType;
+  title: string | null;
+  actionAt: string;
 }
 
 export interface DashboardRecentApplication {

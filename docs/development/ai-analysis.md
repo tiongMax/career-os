@@ -54,7 +54,7 @@ npm run build:api
 npm run dev
 ```
 
-This starts PostgreSQL, Redis, migrations, the API, the worker, and the frontend.
+This starts PostgreSQL, migrations, the API, the worker, and the frontend.
 
 Open:
 

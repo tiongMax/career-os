@@ -1,8 +1,8 @@
 # Backend Guide
 
 The backend is a TypeScript service built with Fastify, Zod, Drizzle ORM,
-PostgreSQL, Redis, and functional dependency injection. It contains an HTTP API,
-a reminder and AI-analysis worker, and a Goose-compatible migration runner.
+PostgreSQL and functional dependency injection. It contains an HTTP API, an
+AI-analysis worker, and a Goose-compatible migration runner.
 
 ## Directory Map
 
@@ -14,9 +14,9 @@ backend/
     commands/        API, worker, and migration entry points
     config/          Zod-validated environment configuration
     domain/          schemas, interfaces, and business rules
-    infrastructure/  PostgreSQL, Redis, Gemini, and migrations
+    infrastructure/  PostgreSQL, Gemini, and migrations
     persistence/     Drizzle repositories and schema mapping
-    workers/         reminder and AI-analysis processors
+    workers/         AI-analysis processor
   migrations/        authoritative SQL migration history
 ```
 
@@ -45,7 +45,7 @@ npm run build:api
 
 Entry point: `backend/src/commands/api.ts`.
 
-Startup loads and validates configuration, opens PostgreSQL and Redis, composes
+Startup loads and validates configuration, opens PostgreSQL, composes
 repositories and domain services, builds the Fastify server, and installs
 graceful shutdown handlers. `API_HOST` and `API_PORT` control the listener.
 
@@ -69,7 +69,7 @@ HTTP request
 - Domain factories own validation and business rules.
 - Repository interfaces keep domain code independent from persistence.
 - Drizzle repositories own queries, transactions, and row mapping.
-- Infrastructure adapters own PostgreSQL, Redis, and Gemini clients.
+- Infrastructure adapters own PostgreSQL and Gemini clients.
 
 Prefer factory functions and plain objects for services and repositories.
 Classes are reserved for errors or behavior that genuinely needs instance
@@ -104,11 +104,11 @@ the persistent schema changes, then update the Drizzle schema mapping.
 
 Entry point: `backend/src/commands/worker.ts`.
 
-The worker runs the reminder processor and, when `GEMINI_API_KEY` is configured,
-the AI-analysis processor. Reminder delivery uses Redis scheduling plus
-PostgreSQL state, retries failures, and records exhausted jobs. AI analysis
-supports structured Gemini output, resume embedding ranking, JD extraction
-persistence, retry handling, and graceful shutdown.
+When `GEMINI_API_KEY` is configured, the worker runs the AI-analysis processor.
+AI analysis supports structured Gemini output, resume embedding ranking, JD
+extraction persistence, retry handling, and graceful shutdown. Reminder and
+follow-up attention is derived when the dashboard loads and does not use a
+background worker.
 
 Processor logic is kept independent from long-running loops so it can be tested
 with plain fakes. Unit tests live beside worker modules; real repository coverage

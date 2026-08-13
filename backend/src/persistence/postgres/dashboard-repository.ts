@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 
 import type {
+  DashboardAttentionItem,
   DashboardRecentApplication,
   DashboardRepository,
   DashboardUpcomingDeadline,
@@ -43,6 +44,9 @@ type ReminderRow = Omit<DashboardUpcomingReminder, "dueAt"> & {
 type DeadlineRow = Omit<DashboardUpcomingDeadline, "deadlineAt"> & {
   deadlineAt: DatabaseTimestamp;
 };
+type AttentionRow = Omit<DashboardAttentionItem, "actionAt"> & {
+  actionAt: DatabaseTimestamp;
+};
 
 export function createDashboardRepository(
   database: Database,
@@ -50,6 +54,7 @@ export function createDashboardRepository(
   return {
     async load(now) {
       const staleCutoff = new Date(now.getTime() - 14 * 86_400_000);
+      const followUpCutoff = new Date(now.getTime() - 7 * 86_400_000);
       const deadlineCutoff = new Date(now.getTime() + 7 * 86_400_000);
       const todayEnd = new Date(now);
       todayEnd.setHours(23, 59, 59, 999);
@@ -60,6 +65,7 @@ export function createDashboardRepository(
         interviewResult,
         reminderResult,
         deadlineResult,
+        attentionResult,
       ] = await Promise.all([
         database.execute<Row<MetricsRow>>(sql`
             SELECT
@@ -77,6 +83,7 @@ export function createDashboardRepository(
               COUNT(*) FILTER (
                 WHERE resume_version_id IS NULL
                   AND status NOT IN (${sql.raw(finalStatuses)})
+                  AND status <> 'saved'
               )::int AS "missingResumeVersion",
               (SELECT COUNT(*)::int FROM reminders WHERE status = 'pending' AND due_at < ${now}) AS "overdueReminders",
               (SELECT COUNT(*)::int FROM reminders WHERE status = 'pending' AND due_at >= ${now} AND due_at <= ${todayEnd}) AS "dueTodayReminders",
@@ -141,6 +148,91 @@ export function createDashboardRepository(
             ORDER BY a.deadline_at
             LIMIT 5
           `),
+        database.execute<Row<AttentionRow>>(sql`
+            WITH candidates AS (
+              SELECT
+                ('reminder-' || r.id::text) AS id,
+                a.id::text AS "applicationId",
+                a.title AS "applicationTitle",
+                c.name AS "companyName",
+                CASE WHEN r.due_at < ${now}
+                  THEN 'overdue_reminder'
+                  ELSE 'due_reminder'
+                END AS type,
+                r.title,
+                r.due_at AS "actionAt",
+                CASE WHEN r.due_at < ${now} THEN 0 ELSE 2 END AS priority
+              FROM reminders r
+              JOIN applications a ON a.id = r.application_id
+              JOIN companies c ON c.id = a.company_id
+              WHERE r.status = 'pending' AND r.due_at <= ${todayEnd}
+
+              UNION ALL
+
+              SELECT
+                ('deadline-' || a.id::text), a.id::text, a.title, c.name,
+                'deadline', NULL::text, a.deadline_at,
+                CASE WHEN a.deadline_at < ${now} THEN 0 ELSE 1 END
+              FROM applications a
+              JOIN companies c ON c.id = a.company_id
+              WHERE a.deadline_at <= ${deadlineCutoff}
+                AND a.status NOT IN (${sql.raw(finalStatuses)})
+
+              UNION ALL
+
+              SELECT
+                ('interview-' || ir.id::text), a.id::text, a.title, c.name,
+                'interview', ir.round_type, ir.scheduled_at, 1
+              FROM interview_rounds ir
+              JOIN applications a ON a.id = ir.application_id
+              JOIN companies c ON c.id = a.company_id
+              WHERE ir.scheduled_at > ${now}
+
+              UNION ALL
+
+              SELECT
+                ('follow-up-' || a.id::text), a.id::text, a.title, c.name,
+                'follow_up', NULL::text, COALESCE(a.applied_at, a.created_at), 3
+              FROM applications a
+              JOIN companies c ON c.id = a.company_id
+              WHERE a.status = 'applied'
+                AND COALESCE(a.applied_at, a.created_at) <= ${followUpCutoff}
+
+              UNION ALL
+
+              SELECT
+                ('stale-' || a.id::text), a.id::text, a.title, c.name,
+                'stale', NULL::text, a.updated_at, 4
+              FROM applications a
+              JOIN companies c ON c.id = a.company_id
+              WHERE a.status NOT IN (${sql.raw(finalStatuses)})
+                AND a.status <> 'saved'
+                AND a.updated_at <= ${staleCutoff}
+
+              UNION ALL
+
+              SELECT
+                ('missing-resume-' || a.id::text), a.id::text, a.title, c.name,
+                'missing_resume', NULL::text, a.created_at, 5
+              FROM applications a
+              JOIN companies c ON c.id = a.company_id
+              WHERE a.resume_version_id IS NULL
+                AND a.status NOT IN (${sql.raw(finalStatuses)})
+                AND a.status <> 'saved'
+            ), ranked AS (
+              SELECT *, ROW_NUMBER() OVER (
+                PARTITION BY "applicationId"
+                ORDER BY priority, "actionAt"
+              ) AS rank
+              FROM candidates
+            )
+            SELECT id, "applicationId", "applicationTitle", "companyName",
+              type, title, "actionAt"
+            FROM ranked
+            WHERE rank = 1
+            ORDER BY priority, "actionAt"
+            LIMIT 20
+          `),
       ]);
 
       const metrics = metricsResult.rows[0];
@@ -162,6 +254,10 @@ export function createDashboardRepository(
           dueTodayReminders: metrics.dueTodayReminders,
           staleApplications: metrics.staleApplications,
           missingResumeVersion: metrics.missingResumeVersion,
+          items: attentionResult.rows.map((item) => ({
+            ...item,
+            actionAt: isoTimestamp(item.actionAt),
+          })),
         },
         pipeline: metrics.statusCounts,
         recentApplications: recentResult.rows.map((application) => ({

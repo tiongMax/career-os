@@ -9,7 +9,6 @@ import { createApplicationsService } from "../../domain/applications/application
 import { createRoleTracksService } from "../../domain/role-tracks/role-track.js";
 import { createResumeVersionsService } from "../../domain/resumes/resume-version.js";
 import { createRemindersService } from "../../domain/reminders/reminder.js";
-import { createReminderWorker } from "../../workers/reminder-worker.js";
 import { createSearchService } from "../../domain/search/search.js";
 import { createAnalyticsService } from "../../domain/analytics/analytics.js";
 import {
@@ -27,7 +26,6 @@ import {
   auditLogs,
   companies,
   contacts,
-  failedReminderJobs,
   interviewRounds,
   jobDescriptions,
   reminders,
@@ -381,7 +379,7 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     }
   });
 
-  it("persists reminder delivery, failure, and manual retry state", async () => {
+  it("persists dashboard reminders until they are cancelled", async () => {
     const database = requirePostgres().db;
     const companyService = createCompaniesService(
       createCompaniesRepository(database),
@@ -389,66 +387,30 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     const applicationService = createApplicationsService(
       createApplicationsRepository(database),
     );
-    const persistence = createRemindersRepository(database);
-    const service = createRemindersService(persistence);
+    const service = createRemindersService(createRemindersRepository(database));
     const company = await companyService.create({ name: reminderCompanyName });
     const application = await applicationService.create({
       company_id: company.id,
       title: "Reminder Integration Engineer",
       role_track: "backend",
     });
-    const successful = await service.create({
+    const reminder = await service.create({
       application_id: application.id,
-      title: "Successful follow-up",
-      due_at: new Date(Date.now() - 60_000),
-    });
-    const failing = await service.create({
-      application_id: application.id,
-      title: "Failed follow-up",
+      title: "Follow up",
       due_at: new Date(Date.now() - 60_000),
     });
 
     try {
-      expect((await service.listDue()).map((item) => item.id)).toEqual(
-        expect.arrayContaining([successful.id, failing.id]),
+      expect((await service.listDue()).map((item) => item.id)).toContain(
+        reminder.id,
       );
-      await createReminderWorker({
-        store: persistence,
-        queue: oneItemQueue(successful.id),
-        pollIntervalMs: 1_000,
-        maxRetries: 3,
-      }).processDue();
-      const delivered = await service.get(successful.id);
-      expect(delivered.status).toBe("sent");
-      expect(delivered.deliveredAt).toBeInstanceOf(Date);
-
-      await createReminderWorker({
-        store: persistence,
-        queue: oneItemQueue(failing.id),
-        deliver: () => Promise.reject(new Error("integration provider error")),
-        pollIntervalMs: 1_000,
-        maxRetries: 1,
-      }).processDue();
-      expect(await service.get(failing.id)).toMatchObject({
-        status: "failed",
-        retryCount: 1,
-        lastError: "integration provider error",
+      expect(await service.cancel(reminder.id)).toMatchObject({
+        status: "cancelled",
       });
-      expect(await service.listFailed()).toEqual([
-        expect.objectContaining({
-          reminderId: failing.id,
-          errorMessage: "integration provider error",
-        }),
-      ]);
-      expect(await service.retry(failing.id)).toMatchObject({
-        status: "pending",
-        retryCount: 0,
-        lastError: null,
-      });
+      expect((await service.listDue()).map((item) => item.id)).not.toContain(
+        reminder.id,
+      );
     } finally {
-      await database
-        .delete(failedReminderJobs)
-        .where(eq(failedReminderJobs.reminderId, failing.id));
       await database
         .delete(reminders)
         .where(eq(reminders.applicationId, application.id));
@@ -459,14 +421,6 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     }
   });
 });
-
-function oneItemQueue(id: string) {
-  return {
-    dueIds: () => Promise.resolve([id]),
-    claim: () => Promise.resolve(true),
-    schedule: () => Promise.resolve(),
-  };
-}
 
 function requireDatabaseUrl(): string {
   if (databaseUrl === undefined) {

@@ -30,6 +30,7 @@ const PIPELINE_STAGES = [
 
 export type FocusTone = "red" | "amber" | "blue" | "green" | "neutral";
 export type FocusItemData = {
+  id: string;
   title: string;
   detail: string;
   href: string;
@@ -55,6 +56,7 @@ export function emptyDashboardSnapshot(): DashboardSnapshot {
       due_today_reminders: 0,
       stale_applications: 0,
       missing_resume_version: 0,
+      items: [],
     },
     pipeline: {},
     recent_applications: [],
@@ -123,64 +125,19 @@ export function buildDashboardData(snapshot: DashboardSnapshot) {
       rate: percentage(snapshot.summary.rejected, totalApps),
     },
   ];
-  const nextInterview = snapshot.upcoming.interviews[0];
-  const nextReminder = snapshot.upcoming.reminders[0];
-  const nextDeadline = snapshot.upcoming.deadlines[0];
-  const focusItems: FocusItemData[] = [
-    snapshot.attention.overdue_reminders > 0 && {
-      title: "Clear overdue reminders",
-      detail: `${snapshot.attention.overdue_reminders} pending reminder${plural(snapshot.attention.overdue_reminders)} past due`,
-      href: "/reminders",
-      action: "Open reminders",
-      tone: "red",
-    },
-    snapshot.attention.due_today_reminders > 0 && {
-      title: "Handle today's follow-ups",
-      detail: `${snapshot.attention.due_today_reminders} reminder${plural(snapshot.attention.due_today_reminders)} due today`,
-      href: "/reminders",
-      action: "Review due items",
-      tone: "amber",
-    },
-    nextInterview && {
-      title: "Prep the next interview",
-      detail: `${nextInterview.company_name} · ${formatDate(nextInterview.scheduled_at)}`,
-      href: "/analytics",
-      action: "Open interview queue",
-      tone: "blue",
-    },
-    nextDeadline && {
-      title: "Protect the nearest deadline",
-      detail: `${nextDeadline.title} · ${formatDate(nextDeadline.deadline_at)}`,
-      href: `/applications/${nextDeadline.id}`,
-      action: "Open application",
-      tone: "blue",
-    },
-    snapshot.attention.stale_applications > 0 && {
-      title: "Follow up on stale applications",
-      detail: `${snapshot.attention.stale_applications} active application${plural(snapshot.attention.stale_applications)} waiting ${STALE_DAYS}+ days`,
-      href: "/applications",
-      action: "Review stale apps",
-      tone: "amber",
-    },
-    snapshot.attention.missing_resume_version > 0 && {
-      title: "Clean up missing resume links",
-      detail: `${snapshot.attention.missing_resume_version} active application${plural(snapshot.attention.missing_resume_version)} without a resume version`,
-      href: "/applications",
-      action: "Review applications",
-      tone: "neutral",
-    },
-    nextReminder && {
-      title: "Check the next reminder",
-      detail: `${nextReminder.title} · ${formatDate(nextReminder.due_at)}`,
-      href: `/reminders/${nextReminder.id}`,
-      action: "Open reminder",
-      tone: "neutral",
-    },
-  ].filter((item): item is FocusItemData => Boolean(item));
+  const focusItems: FocusItemData[] = snapshot.attention.items.map((item) => ({
+    id: item.id,
+    title: attentionTitle(item.type, item.title),
+    detail: `${item.application_title} at ${item.company_name} · ${attentionDetail(item.type, item.action_at)}`,
+    href: `/applications/${item.application_id}`,
+    action: "Open application",
+    tone: attentionTone(item.type),
+  }));
   const nextBestAction =
     focusItems[0] ??
     (totalApps === 0
       ? {
+          id: "create-application",
           title: "Create your first application",
           detail: "Start tracking a role so the dashboard can guide the rest.",
           href: "/applications/new",
@@ -188,6 +145,7 @@ export function buildDashboardData(snapshot: DashboardSnapshot) {
           tone: "green" as const,
         }
       : {
+          id: "pipeline-activity",
           title: "Keep the pipeline moving",
           detail:
             "No urgent items right now. Add a new role or review recent changes.",
@@ -212,6 +170,55 @@ export function buildDashboardData(snapshot: DashboardSnapshot) {
     totalApps,
     upcomingItems,
   };
+}
+
+function attentionTitle(
+  type: DashboardSnapshot["attention"]["items"][number]["type"],
+  title: string | null,
+): string {
+  switch (type) {
+    case "overdue_reminder":
+      return title ?? "Overdue reminder";
+    case "due_reminder":
+      return title ?? "Reminder due today";
+    case "deadline":
+      return "Application deadline";
+    case "interview":
+      return title ? `Prepare for ${title}` : "Prepare for interview";
+    case "follow_up":
+      return "Follow up on application";
+    case "stale":
+      return "Application has gone stale";
+    case "missing_resume":
+      return "Attach the submitted resume";
+  }
+}
+
+function attentionDetail(
+  type: DashboardSnapshot["attention"]["items"][number]["type"],
+  actionAt: string,
+): string {
+  if (type === "follow_up") return `Applied ${formatRelativeDate(actionAt)}`;
+  if (type === "stale") return `Last updated ${formatRelativeDate(actionAt)}`;
+  if (type === "missing_resume") return "No resume version linked";
+  return formatDate(actionAt);
+}
+
+function formatRelativeDate(value: string): string {
+  const days = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000),
+  );
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
+function attentionTone(
+  type: DashboardSnapshot["attention"]["items"][number]["type"],
+): FocusTone {
+  if (type === "overdue_reminder") return "red";
+  if (type === "deadline" || type === "interview") return "blue";
+  if (type === "missing_resume") return "neutral";
+  return "amber";
 }
 
 function percentage(value: number, total: number): number {

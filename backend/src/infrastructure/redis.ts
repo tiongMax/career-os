@@ -20,9 +20,7 @@ export async function createRedisConnection(
       await client.ping();
     },
     async close() {
-      if (client.isOpen) {
-        await client.close();
-      }
+      if (client.isOpen) await client.close();
     },
   };
 }

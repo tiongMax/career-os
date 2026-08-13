@@ -25,6 +25,7 @@ describe.skipIf(databaseUrl === undefined)("dashboard repository", () => {
     expect(snapshot.upcoming.interviews.length).toBeLessThanOrEqual(10);
     expect(snapshot.upcoming.reminders.length).toBeLessThanOrEqual(10);
     expect(snapshot.upcoming.deadlines.length).toBeLessThanOrEqual(5);
+    expect(snapshot.attention.items.length).toBeLessThanOrEqual(20);
     expect(() => JSON.stringify(snapshot)).not.toThrow();
     for (const application of snapshot.recentApplications) {
       expect(new Date(application.updatedAt).toISOString()).toBe(

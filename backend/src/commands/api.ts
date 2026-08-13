@@ -7,7 +7,6 @@ import {
   createRedisConnection,
   type RedisConnection,
 } from "../infrastructure/redis.js";
-import { createRedisReminderScheduler } from "../infrastructure/reminders-redis.js";
 import { createRedisDashboardCache } from "../infrastructure/dashboard-redis.js";
 
 const config = loadConfig();
@@ -31,7 +30,6 @@ const app = await buildApp({
   logger: createLoggerOptions(config.LOG_LEVEL, config.LOG_PRETTY),
   services: createApiServices(postgres.db, {
     dashboardCache,
-    reminderScheduler: createRedisReminderScheduler(getRedisClient),
   }),
   healthChecks: {
     postgres: () => postgres.ping(),

@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createRemindersService,
   type Reminder,
-  type ReminderScheduler,
   type RemindersRepository,
 } from "./reminder.js";
 
@@ -41,20 +40,11 @@ function repository(): RemindersRepository {
   };
 }
 
-function scheduler(): ReminderScheduler {
-  return {
-    schedule: vi.fn().mockResolvedValue(undefined),
-    unschedule: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
 describe("reminders service", () => {
-  it("validates required fields and schedules new reminders", async () => {
+  it("validates required fields and stores new reminders", async () => {
     const repo = repository();
-    const queue = scheduler();
     const service = createRemindersService(
       repo,
-      queue,
       () => now,
       () => "key",
     );
@@ -78,16 +68,14 @@ describe("reminders service", () => {
       expect.objectContaining({ title: "Follow up" }),
       "key",
     );
-    expect(queue.schedule).toHaveBeenCalledWith(reminder);
   });
 
-  it("keeps Redis in sync when cancelling and retrying", async () => {
+  it("persists cancellation and manual retry state", async () => {
     const repo = repository();
-    const queue = scheduler();
-    const service = createRemindersService(repo, queue);
+    const service = createRemindersService(repo);
     await service.cancel(reminder.id);
     await service.retry(reminder.id);
-    expect(queue.unschedule).toHaveBeenCalledWith(reminder.id);
-    expect(queue.schedule).toHaveBeenCalledWith(reminder);
+    expect(repo.updateStatus).toHaveBeenCalledWith(reminder.id, "cancelled");
+    expect(repo.resetForRetry).toHaveBeenCalledWith(reminder.id);
   });
 });

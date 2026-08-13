@@ -573,6 +573,22 @@ export interface DashboardSnapshot {
     due_today_reminders: number;
     stale_applications: number;
     missing_resume_version: number;
+    items: Array<{
+      id: string;
+      application_id: string;
+      application_title: string;
+      company_name: string;
+      type:
+        | "overdue_reminder"
+        | "due_reminder"
+        | "deadline"
+        | "interview"
+        | "follow_up"
+        | "stale"
+        | "missing_resume";
+      title: string | null;
+      action_at: string;
+    }>;
   };
   pipeline: Record<string, number>;
   recent_applications: Array<{

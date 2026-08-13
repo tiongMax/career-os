@@ -12,12 +12,6 @@ const rawEnvironmentSchema = z.object({
     ),
   REDIS_URL: z.string().min(1).default("redis://localhost:6379"),
   DASHBOARD_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
-  REMINDER_WORKER_POLL_INTERVAL_MS: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(1_000),
-  REMINDER_MAX_RETRIES: z.coerce.number().int().nonnegative().default(3),
   AI_ANALYSIS_WORKER_POLL_INTERVAL_MS: z.coerce
     .number()
     .int()
