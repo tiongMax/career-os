@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Mail, ExternalLink } from "lucide-react";
 import { getContact, getCompany } from "@/lib/api";
 import { RELATIONSHIP_BADGE_CLASSES } from "@/lib/domain/contacts";
-import { notFound } from "next/navigation";
+import { requireEntity } from "@/lib/server-data";
 
 const AVATAR_COLORS = [
   "bg-blue-100 text-blue-700",
@@ -13,23 +13,32 @@ const AVATAR_COLORS = [
   "bg-cyan-100 text-cyan-700",
 ];
 
-export default async function ContactDetailPage(props: PageProps<"/contacts/[id]">) {
+export default async function ContactDetailPage(
+  props: PageProps<"/contacts/[id]">,
+) {
   const { id } = await props.params;
 
-  const contact = await getContact(id).catch(() => null);
-  if (!contact) notFound();
+  const contact = await requireEntity(getContact(id));
+  const company = await requireEntity(getCompany(contact.company_id));
 
-  const company = await getCompany(contact.company_id).catch(() => null);
-
-  const initials = contact.name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
-  const colorClass = AVATAR_COLORS[contact.name.charCodeAt(0) % AVATAR_COLORS.length];
+  const initials = contact.name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+  const colorClass =
+    AVATAR_COLORS[contact.name.charCodeAt(0) % AVATAR_COLORS.length];
 
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Breadcrumb + header */}
       <div>
         <div className="flex items-center gap-1.5 text-sm text-neutral-400 mb-4">
-          <Link href="/contacts" className="hover:text-neutral-600 transition-colors">
+          <Link
+            href="/contacts"
+            className="hover:text-neutral-600 transition-colors"
+          >
             Contacts
           </Link>
           <span>/</span>
@@ -37,18 +46,24 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
         </div>
 
         <div className="flex items-center gap-4 mb-1">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-semibold shrink-0 ${colorClass}`}>
+          <div
+            className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-semibold shrink-0 ${colorClass}`}
+          >
             {initials}
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">{contact.name}</h1>
+            <h1 className="text-2xl font-semibold text-neutral-900">
+              {contact.name}
+            </h1>
             <p className="mt-0.5 text-sm text-neutral-500">
               {[contact.role, company?.name].filter(Boolean).join(" · ") || "—"}
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             {contact.relationship && (
-              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${RELATIONSHIP_BADGE_CLASSES[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${RELATIONSHIP_BADGE_CLASSES[contact.relationship] ?? "bg-neutral-100 text-neutral-600"}`}
+              >
                 {contact.relationship.replace(/_/g, " ")}
               </span>
             )}
@@ -67,7 +82,10 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
           <Detail label="Company" value={company?.name} />
           <Detail label="Role" value={contact.role} />
-          <Detail label="Relationship" value={contact.relationship?.replace(/_/g, " ")} />
+          <Detail
+            label="Relationship"
+            value={contact.relationship?.replace(/_/g, " ")}
+          />
         </dl>
 
         {(contact.email || contact.linkedin_url) && (
@@ -98,17 +116,27 @@ export default async function ContactDetailPage(props: PageProps<"/contacts/[id]
 
       {contact.notes && (
         <Card title="Notes">
-          <p className="text-sm text-neutral-700 whitespace-pre-wrap">{contact.notes}</p>
+          <p className="text-sm text-neutral-700 whitespace-pre-wrap">
+            {contact.notes}
+          </p>
         </Card>
       )}
     </div>
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-neutral-200 bg-white">
-      <h2 className="px-5 py-3.5 text-sm font-medium text-neutral-700 border-b border-neutral-100">{title}</h2>
+      <h2 className="px-5 py-3.5 text-sm font-medium text-neutral-700 border-b border-neutral-100">
+        {title}
+      </h2>
       <div className="px-5 py-4">{children}</div>
     </div>
   );
@@ -118,7 +146,9 @@ function Detail({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
       <dt className="text-xs text-neutral-400">{label}</dt>
-      <dd className="mt-0.5 text-sm text-neutral-700 capitalize">{value ?? "—"}</dd>
+      <dd className="mt-0.5 text-sm text-neutral-700 capitalize">
+        {value ?? "—"}
+      </dd>
     </div>
   );
 }

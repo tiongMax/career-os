@@ -1,5 +1,5 @@
 import { getDashboard } from "@/lib/api";
-import { buildDashboardData, emptyDashboardSnapshot } from "./dashboard-data";
+import { buildDashboardData } from "./dashboard-data";
 import {
   ActionSections,
   ActivitySections,
@@ -9,7 +9,7 @@ import {
 } from "./dashboard-sections";
 
 export default async function DashboardPage() {
-  const snapshot = await getDashboard().catch(() => emptyDashboardSnapshot());
+  const snapshot = await getDashboard();
   const dashboard = buildDashboardData(snapshot);
 
   return (

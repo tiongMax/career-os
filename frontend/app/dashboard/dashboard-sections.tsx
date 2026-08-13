@@ -9,7 +9,6 @@ import {
   FileText,
   Info,
   ListChecks,
-  Target,
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { formatRelative } from "@/lib/utils";
@@ -61,90 +60,72 @@ export function ActionSections({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <section className="rounded-lg border border-blue-100 bg-white">
-        <div className="flex items-center gap-2 border-b border-blue-100 px-5 py-4">
-          <Target className="h-4 w-4 text-blue-500" />
-          <h2 className="text-sm font-semibold text-neutral-700">
-            Next Best Action
+    <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-3 border-b border-neutral-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex items-center gap-2">
+          <ListChecks className="h-4 w-4 text-amber-500" />
+          <h2 className="text-sm font-semibold text-neutral-800">
+            Needs Attention
           </h2>
           <InfoTooltip
-            title="How this is chosen"
+            title="Priority order"
+            ordered
             items={[
-              "Uses priority #1 from Today’s Focus",
-              "If the focus list is empty, suggests pipeline activity",
+              "Overdue reminders and deadlines",
+              "Upcoming deadlines and interviews",
+              "Reminders due today",
+              "Applications ready for follow-up",
+              "Stale applications and missing resume links",
             ]}
           />
         </div>
-        <div className="flex min-h-36 flex-col justify-between gap-4 px-5 py-4">
-          <div>
-            <p className="text-base font-semibold text-neutral-900">
-              {nextBestAction.title}
-            </p>
-            <p className="mt-1 text-sm text-neutral-500">
-              {nextBestAction.detail}
-            </p>
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <span className="text-xs text-neutral-400">
+            {focusItems.length === 0
+              ? "0 items"
+              : `${visibleFocusItems.length} of ${focusItems.length}`}
+          </span>
+          <Link
+            href="/applications"
+            className="flex items-center gap-1 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
+          >
+            View applications <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
+      {focusItems.length === 0 ? (
+        <div className="flex flex-col gap-4 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">
+                {nextBestAction.title}
+              </p>
+              <p className="mt-1 text-sm text-neutral-500">
+                {nextBestAction.detail}
+              </p>
+            </div>
           </div>
           <Link
             href={nextBestAction.href}
-            className="inline-flex w-fit items-center justify-center gap-1 rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700"
+            className="inline-flex shrink-0 items-center justify-center gap-1 rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
           >
             {nextBestAction.action} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-      </section>
-
-      <section className="rounded-lg border border-neutral-200 bg-white">
-        <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <ListChecks className="h-4 w-4 text-green-500" />
-            <h2 className="text-sm font-semibold text-neutral-700">
-              Needs Attention
-            </h2>
-            <InfoTooltip
-              title="Priority order"
-              ordered
-              items={[
-                "Overdue reminders and deadlines",
-                "Upcoming deadlines and interviews",
-                "Reminders due today",
-                "Applications ready for follow-up",
-                "Stale applications and missing resume links",
-              ]}
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-neutral-400">
-              {focusItems.length === 0
-                ? "0 items"
-                : `${visibleFocusItems.length} of ${focusItems.length} items`}
-            </span>
-            <Link
-              href="/applications"
-              className="flex items-center gap-1 text-xs text-neutral-400 transition-colors hover:text-neutral-700"
-            >
-              View all <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
+      ) : (
+        <div className="divide-y divide-neutral-100 px-2 py-2 sm:px-3">
+          {visibleFocusItems.map((item, index) => (
+            <FocusItem key={item.id} featured={index === 0} {...item} />
+          ))}
         </div>
-        {focusItems.length === 0 ? (
-          <div className="px-5 py-5 text-sm text-neutral-400">
-            No applications need attention right now.
-          </div>
-        ) : (
-          <div className="divide-y divide-neutral-100 p-3">
-            {visibleFocusItems.map((item) => (
-              <FocusItem key={item.id} {...item} />
-            ))}
-          </div>
-        )}
-        {hiddenFocusCount > 0 && (
-          <div className="border-t border-neutral-100 px-5 py-3 text-xs text-neutral-400">
-            +{hiddenFocusCount} more application{plural(hiddenFocusCount)}
-          </div>
-        )}
-      </section>
-    </div>
+      )}
+      {hiddenFocusCount > 0 && (
+        <div className="border-t border-neutral-100 px-5 py-3 text-xs text-neutral-400">
+          +{hiddenFocusCount} more application{plural(hiddenFocusCount)}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -396,8 +377,17 @@ function InfoTooltip({
   const List = ordered ? "ol" : "ul";
   return (
     <div className="group relative">
-      <Info className="h-4 w-4 cursor-help text-neutral-300 transition-colors group-hover:text-neutral-500" />
-      <div className="pointer-events-none absolute left-1/2 top-6 z-10 w-72 -translate-x-1/2 rounded-md border border-neutral-200 bg-white p-3 text-xs text-neutral-600 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+      <button
+        type="button"
+        aria-label={title}
+        className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-neutral-100 hover:text-neutral-600 focus-visible:bg-neutral-100 focus-visible:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
+      >
+        <Info className="h-4 w-4" />
+      </button>
+      <div
+        role="tooltip"
+        className="pointer-events-none absolute left-0 top-8 z-20 w-64 rounded-md border border-neutral-200 bg-white p-3 text-xs text-neutral-600 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 sm:left-1/2 sm:w-72 sm:-translate-x-1/2"
+      >
         <p className="mb-2 font-semibold text-neutral-700">{title}</p>
         <List className={`space-y-1 ${ordered ? "list-decimal pl-4" : ""}`}>
           {items.map((item) => (
@@ -409,7 +399,14 @@ function InfoTooltip({
   );
 }
 
-function FocusItem({ title, detail, href, action, tone }: FocusItemData) {
+function FocusItem({
+  title,
+  detail,
+  href,
+  action,
+  tone,
+  featured = false,
+}: FocusItemData & { featured?: boolean }) {
   const tones = {
     red: "bg-red-500",
     amber: "bg-amber-500",
@@ -421,7 +418,7 @@ function FocusItem({ title, detail, href, action, tone }: FocusItemData) {
   return (
     <Link
       href={href}
-      className="flex min-h-24 items-center justify-between gap-4 rounded-md px-4 py-3 transition-colors hover:bg-neutral-50"
+      className={`flex min-h-20 items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-inset sm:px-4 ${featured ? "bg-amber-50/60 hover:bg-amber-50" : "hover:bg-neutral-50"}`}
     >
       <div className="flex min-w-0 items-start gap-3">
         <span

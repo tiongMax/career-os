@@ -5,8 +5,8 @@ import { ContactsTable } from "./contacts-table";
 
 export default async function ContactsPage() {
   const [contacts, companies] = await Promise.all([
-    getContacts().catch(() => []),
-    getCompanies().catch(() => []),
+    getContacts(),
+    getCompanies(),
   ]);
 
   const companyMap = new Map(companies.map((c) => [c.id, c.name]));
@@ -14,9 +14,11 @@ export default async function ContactsPage() {
   if (contacts.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">Contacts</h1>
+            <h1 className="text-2xl font-semibold text-neutral-900">
+              Contacts
+            </h1>
             <p className="mt-1 text-sm text-neutral-500">0 total</p>
           </div>
           <Link
@@ -28,8 +30,12 @@ export default async function ContactsPage() {
         </div>
         <div className="rounded-lg border border-dashed border-neutral-200 bg-white py-20 text-center">
           <Users className="w-10 h-10 text-neutral-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-neutral-500">No contacts yet</p>
-          <p className="text-xs text-neutral-400 mt-1">Contacts from your applications will appear here</p>
+          <p className="text-sm font-medium text-neutral-500">
+            No contacts yet
+          </p>
+          <p className="text-xs text-neutral-400 mt-1">
+            Contacts from your applications will appear here
+          </p>
         </div>
       </div>
     );

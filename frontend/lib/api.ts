@@ -1,6 +1,20 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 const DEFAULT_TIMEOUT_MS = 5_000;
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function isApiNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
 export function apiUrl(path: string): string {
   return `${BASE}${path}`;
 }
@@ -19,7 +33,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
     if (!res.ok) {
       const text = await res.text().catch(() => res.statusText);
-      throw new Error(`API ${res.status}: ${text}`);
+      throw new ApiError(`API ${res.status}: ${text}`, res.status);
     }
     if (res.status === 204) {
       return undefined as T;
