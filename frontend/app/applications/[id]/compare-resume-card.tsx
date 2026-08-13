@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { compareResume, type ResumeVersion, type ResumeMatchResult } from "@/lib/api";
 import { formatTrackLabel } from "@/lib/domain/applications";
 
@@ -23,8 +26,9 @@ export function CompareResumeCard({ jdId, resumeVersions }: Props) {
     try {
       const data = await compareResume(jdId, selectedId);
       setResult(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Comparison failed");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setError(message.replace(/^API \d+:\s*/, "") || "Could not compare this resume.");
     } finally {
       setLoading(false);
     }
@@ -32,11 +36,13 @@ export function CompareResumeCard({ jdId, resumeVersions }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <label className="flex-1 text-xs font-medium text-muted-foreground">
+          Resume version
         <select
           value={selectedId}
           onChange={(e) => { setSelectedId(e.target.value); setResult(null); }}
-          className="flex-1 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1.5 min-h-10 w-full rounded-control border border-border-strong bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="">Select a resume version…</option>
           {resumeVersions.map((rv) => (
@@ -45,32 +51,38 @@ export function CompareResumeCard({ jdId, resumeVersions }: Props) {
             </option>
           ))}
         </select>
-        <button
+        </label>
+        <Button
           onClick={handleCompare}
           disabled={!selectedId || loading}
-          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors shrink-0"
+          size="sm"
         >
+          {loading && <Loader2 aria-hidden="true" className="animate-spin" />}
           {loading ? "Comparing…" : "Compare"}
-        </button>
+        </Button>
       </div>
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
 
       {result && (
         <div className="space-y-2 pt-1">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-neutral-500">Match score</p>
-            <span className={`text-sm font-semibold ${result.score >= 0.7 ? "text-green-600" : result.score >= 0.4 ? "text-yellow-600" : "text-red-500"}`}>
+            <p className="text-xs font-medium text-muted-foreground">Keyword fit</p>
+            <span className="text-sm font-semibold text-primary">
               {Math.round(result.score * 100)}%
             </span>
           </div>
 
           {result.matched.length > 0 && (
             <div>
-              <p className="text-xs text-neutral-400 mb-1">Matched</p>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Strong matches</p>
               <div className="flex flex-wrap gap-1.5">
                 {result.matched.map((kw) => (
-                  <span key={kw} className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                  <span key={kw} className="rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-medium text-success">
                     {kw}
                   </span>
                 ))}
@@ -80,16 +92,19 @@ export function CompareResumeCard({ jdId, resumeVersions }: Props) {
 
           {result.missing.length > 0 && (
             <div>
-              <p className="text-xs text-neutral-400 mb-1">Missing</p>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Gaps to review</p>
               <div className="flex flex-wrap gap-1.5">
                 {result.missing.map((kw) => (
-                  <span key={kw} className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600">
+                  <span key={kw} className="rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-medium text-danger">
                     {kw}
                   </span>
                 ))}
               </div>
             </div>
           )}
+          <p className="text-xs leading-5 text-muted-foreground">
+            This is a keyword-based guide, not a hiring prediction.
+          </p>
         </div>
       )}
     </div>
