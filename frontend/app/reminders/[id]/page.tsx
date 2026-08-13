@@ -1,149 +1,191 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarClock } from "lucide-react";
+import {
+  ArrowLeft,
+  BriefcaseBusiness,
+  CalendarClock,
+  CheckCircle2,
+  FileText,
+  UserRound,
+} from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getApplication, getCompany, getContact, getReminder } from "@/lib/api";
 import { requireEntity } from "@/lib/server-data";
-import { REMINDER_STATUS_BADGE_CLASSES } from "@/lib/domain/reminders";
-import { formatDate, formatRelative } from "@/lib/utils";
+import { formatRelative } from "@/lib/utils";
+import { FollowUpActions } from "../follow-up-actions";
+import { FollowUpDialog } from "../follow-up-dialog";
+import { followUpGroup, formatFollowUpDate } from "../follow-up-utils";
 
 export default async function ReminderDetailPage(
   props: PageProps<"/reminders/[id]">,
 ) {
   const { id } = await props.params;
-
   const reminder = await requireEntity(getReminder(id));
-
-  const [application, contact] = await Promise.all([
-    requireEntity(getApplication(reminder.application_id)),
-    reminder.contact_id
-      ? requireEntity(getContact(reminder.contact_id))
-      : Promise.resolve(null),
+  const application = await requireEntity(getApplication(reminder.application_id));
+  const [company, contact] = await Promise.all([
+    safe(getCompany(application.company_id), null),
+    reminder.contact_id ? safe(getContact(reminder.contact_id), null) : null,
   ]);
-  const company = await requireEntity(getCompany(application.company_id));
+  const group = followUpGroup(reminder);
+  const completed = group === "completed";
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <Link
-          href="/reminders"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-400 transition-colors hover:text-neutral-700"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Reminders
-        </Link>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">
-              {reminder.title}
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              Due {formatDate(reminder.due_at)} ·{" "}
-              {formatRelative(reminder.due_at)}
-            </p>
-          </div>
-          <span
-            className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize ${REMINDER_STATUS_BADGE_CLASSES[reminder.status] ?? "bg-neutral-100 text-neutral-600"}`}
-          >
-            {reminder.status}
-          </span>
-        </div>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <Link
+        href="/reminders"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        Follow-ups
+      </Link>
 
-      <Card title="Reminder">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-          <Detail label="Due" value={formatDate(reminder.due_at)} />
-          <Detail label="Created" value={formatDate(reminder.created_at)} />
-          <Detail label="Updated" value={formatDate(reminder.updated_at)} />
-          <Detail label="Retries" value={String(reminder.retry_count)} />
-          {reminder.delivered_at && (
-            <Detail
-              label="Delivered"
-              value={formatDate(reminder.delivered_at)}
-            />
-          )}
-          {reminder.last_error && (
-            <Detail label="Last error" value={reminder.last_error} />
-          )}
-        </dl>
-        {reminder.description && (
-          <div className="mt-5 border-t border-neutral-100 pt-4">
-            <p className="text-xs text-neutral-400">Description</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-700">
-              {reminder.description}
-            </p>
+      <section className="overflow-hidden rounded-card border border-border bg-surface shadow-card">
+        <div className="border-b border-border bg-[linear-gradient(135deg,var(--surface)_0%,var(--accent)_100%)] px-5 py-6 sm:px-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <StatusPill group={group} />
+              <h1 className="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                {reminder.title}
+              </h1>
+              <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                <CalendarClock aria-hidden="true" className="size-4" />
+                {formatFollowUpDate(reminder.due_at)} · {formatRelative(reminder.due_at)}
+              </p>
+            </div>
+            {!completed && (
+              <FollowUpDialog
+                applicationId={application.id}
+                reminder={reminder}
+                triggerLabel="Edit"
+                triggerVariant="outline"
+              />
+            )}
+          </div>
+        </div>
+        {!completed && (
+          <div className="px-5 py-4 sm:px-7">
+            <FollowUpActions reminderId={reminder.id} redirectAfterDelete />
           </div>
         )}
-      </Card>
+      </section>
 
-      <Card title="Related">
-        <div className="space-y-4">
-          {application ? (
-            <Link
-              href={`/applications/${application.id}`}
-              className="block rounded-md border border-neutral-100 px-4 py-3 transition-colors hover:bg-neutral-50"
-            >
-              <p className="text-sm font-medium text-neutral-900">
-                {application.title}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <main className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>What to do</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {reminder.description ? (
+                <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                  {reminder.description}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No additional notes were added.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Related application</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href={`/applications/${application.id}`}
+                className="group flex items-start gap-3 rounded-control border border-border p-4 hover:border-border-strong hover:bg-surface-subtle"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  <BriefcaseBusiness aria-hidden="true" className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground group-hover:text-primary">
+                    {application.title}
+                  </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {company?.name ?? "Company unavailable"}
+                  </p>
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+        </main>
+
+        <aside className="space-y-5">
+          <Card>
+            <CardHeader>
+              <CardTitle>Schedule</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Detail label="Due" value={formatFollowUpDate(reminder.due_at)} />
+              <Detail label="Created" value={formatFollowUpDate(reminder.created_at)} />
+              <p className="text-xs leading-5 text-muted-foreground">
+                This appears on your dashboard when due. CareerOS does not send
+                a notification.
               </p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                {company?.name ?? "Unknown company"}
-              </p>
-            </Link>
-          ) : (
-            <p className="text-sm text-neutral-400">Application unavailable</p>
-          )}
+            </CardContent>
+          </Card>
+
           {contact && (
-            <Link
-              href={`/contacts/${contact.id}`}
-              className="block rounded-md border border-neutral-100 px-4 py-3 transition-colors hover:bg-neutral-50"
-            >
-              <p className="text-sm font-medium text-neutral-900">
-                {contact.name}
-              </p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                {contact.role ?? "Contact"}
-              </p>
-            </Link>
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  href={`/contacts/${contact.id}`}
+                  className="group flex items-start gap-3"
+                >
+                  <UserRound aria-hidden="true" className="mt-0.5 size-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground group-hover:text-primary">
+                      {contact.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {contact.role ?? "Contact"}
+                    </p>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
           )}
-        </div>
-      </Card>
-
-      <Card title="Delivery">
-        <div className="flex items-start gap-3">
-          <CalendarClock className="mt-0.5 h-4 w-4 text-neutral-400" />
-          <div>
-            <p className="text-sm text-neutral-700">Idempotency key</p>
-            <p className="mt-1 break-all text-xs text-neutral-400">
-              {reminder.idempotency_key}
-            </p>
-          </div>
-        </div>
-      </Card>
+        </aside>
+      </div>
     </div>
   );
 }
 
-function Card({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function StatusPill({ group }: { group: ReturnType<typeof followUpGroup> }) {
+  const config = {
+    overdue: { icon: CalendarClock, label: "Overdue", style: "bg-danger-soft text-danger" },
+    today: { icon: CalendarClock, label: "Due today", style: "bg-accent text-accent-foreground" },
+    upcoming: { icon: FileText, label: "Upcoming", style: "bg-surface-muted text-muted-foreground" },
+    completed: { icon: CheckCircle2, label: "Completed", style: "bg-success-soft text-success" },
+  }[group];
+  const Icon = config.icon;
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white">
-      <h2 className="border-b border-neutral-100 px-5 py-3.5 text-sm font-medium text-neutral-700">
-        {title}
-      </h2>
-      <div className="px-5 py-4">{children}</div>
-    </section>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${config.style}`}>
+      <Icon aria-hidden="true" className="size-3.5" />
+      {config.label}
+    </span>
   );
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-neutral-400">{label}</dt>
-      <dd className="mt-0.5 text-sm text-neutral-700">{value}</dd>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
     </div>
   );
+}
+
+async function safe<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch {
+    return fallback;
+  }
 }

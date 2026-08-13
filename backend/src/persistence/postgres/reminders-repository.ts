@@ -54,9 +54,10 @@ export function createRemindersRepository(
       };
       if (input.application_id != null)
         values.applicationId = input.application_id;
-      if (input.contact_id != null) values.contactId = input.contact_id;
+      if ("contact_id" in input) values.contactId = input.contact_id ?? null;
       if (input.title != null) values.title = input.title;
-      if (input.description != null) values.description = input.description;
+      if ("description" in input)
+        values.description = input.description ?? null;
       if (input.due_at != null) values.dueAt = input.due_at;
       const [reminder] = await database
         .update(reminders)

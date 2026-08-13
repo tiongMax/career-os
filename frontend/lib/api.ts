@@ -147,15 +147,6 @@ export interface Reminder {
   updated_at: string;
 }
 
-export interface FailedReminderJob {
-  id: string;
-  reminder_id?: string;
-  error_message: string;
-  retry_count: number;
-  payload: unknown;
-  failed_at: string;
-}
-
 export interface AuditLog {
   id: string;
   entity_type: string;
@@ -514,10 +505,36 @@ export const updateContact = (id: string, payload: UpdateContactPayload) =>
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
 export const getReminder = (id: string) =>
   apiFetch<Reminder>(`/reminders/${id}`);
-export const getFailedReminders = () =>
-  apiFetch<FailedReminderJob[]>("/reminders/failed");
-export const retryReminder = (id: string) =>
-  apiFetch<Reminder>(`/reminders/${id}/retry`, { method: "POST" });
+export interface CreateReminderPayload {
+  application_id: string;
+  contact_id?: string;
+  title: string;
+  description?: string | null;
+  due_at: string;
+}
+
+export interface UpdateReminderPayload {
+  application_id?: string;
+  contact_id?: string;
+  title?: string;
+  description?: string | null;
+  due_at?: string;
+}
+
+export const createReminder = (payload: CreateReminderPayload) =>
+  apiFetch<Reminder>("/reminders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateReminder = (id: string, payload: UpdateReminderPayload) =>
+  apiFetch<Reminder>(`/reminders/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const completeReminder = (id: string) =>
+  apiFetch<Reminder>(`/reminders/${id}/cancel`, { method: "POST" });
+export const deleteReminder = (id: string) =>
+  apiFetch<void>(`/reminders/${id}`, { method: "DELETE" });
 
 // ─── Search ──────────────────────────────────────────────────────────────────
 
