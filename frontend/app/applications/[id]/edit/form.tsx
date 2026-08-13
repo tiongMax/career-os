@@ -236,7 +236,7 @@ export function EditApplicationForm({
       </FormSection>
 
       <FormSection title="Classification">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Track" required>
             <MultiOptionCombobox
               name="role_tracks"
@@ -263,7 +263,7 @@ export function EditApplicationForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Employment Type">
             <OptionCombobox
               name="employment_type"
@@ -286,7 +286,7 @@ export function EditApplicationForm({
         </div>
 
         {(showReceivedDate || showCompletionDate) && (
-          <div key={status} className="grid grid-cols-2 gap-4">
+          <div key={status} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {showReceivedDate && (
               <Field label="Received Date">
                 <input
@@ -324,7 +324,7 @@ export function EditApplicationForm({
       </FormSection>
 
       <FormSection title="Details">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Source">
             <OptionCombobox
               name="source"
@@ -349,7 +349,7 @@ export function EditApplicationForm({
         <Field label="Job URL">
           <input name="job_url" type="url" defaultValue={application.job_url ?? ""} placeholder="https://..." className={inputClass} />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Portal Account">
             <input
               name="portal_account"

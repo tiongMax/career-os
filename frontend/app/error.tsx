@@ -25,8 +25,8 @@ export default function AppError({
           We couldn&rsquo;t load this page
         </h1>
         <p className="mt-2 text-sm leading-6 text-neutral-500">
-          Your data has not been changed. Check that the CareerOS API is
-          running, then try again.
+          Your data has not been changed. This may be temporary, so try again
+          now or return to your dashboard.
         </p>
         {error.digest && (
           <p className="mt-3 font-mono text-xs text-neutral-400">

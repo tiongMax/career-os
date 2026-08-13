@@ -71,8 +71,10 @@ function CheckRow({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50"
+      aria-pressed={checked}
+      className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-900"
     >
       <span
         className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center ${checked ? "bg-neutral-900 border-neutral-900" : "border-neutral-300"}`}
@@ -101,16 +103,24 @@ function CheckRow({
 function FilterButton({
   label,
   active,
+  expanded,
+  controls,
   onClick,
 }: {
   label: string;
   active: boolean;
+  expanded: boolean;
+  controls: string;
   onClick: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
+      aria-expanded={expanded}
+      aria-controls={controls}
+      aria-haspopup="dialog"
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 ${
         active
           ? "border-neutral-900 bg-neutral-900 text-white"
           : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
@@ -122,8 +132,39 @@ function FilterButton({
   );
 }
 
-function Backdrop({ onClose }: { onClose: () => void }) {
-  return <div className="fixed inset-0 z-10" onClick={onClose} />;
+function Backdrop({
+  onClose,
+  triggerControls,
+}: {
+  onClose: () => void;
+  triggerControls: string;
+}) {
+  function closeAndRestoreFocus() {
+    onClose();
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLButtonElement>(`[aria-controls="${triggerControls}"]`)
+        ?.focus();
+    });
+  }
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") closeAndRestoreFocus();
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  });
+
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      className="fixed inset-0 z-10 cursor-default"
+      aria-label="Close filter"
+      onClick={closeAndRestoreFocus}
+    />
+  );
 }
 
 function CompanyFilter({
@@ -154,23 +195,32 @@ function CompanyFilter({
       <FilterButton
         label={label}
         active={selected.length > 0}
+        expanded={open}
+        controls="contact-company-filter"
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <>
           <Backdrop
+            triggerControls="contact-company-filter"
             onClose={() => {
               setOpen(false);
               setQuery("");
             }}
           />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg w-52">
+          <div
+            id="contact-company-filter"
+            role="dialog"
+            aria-label="Filter contacts by company"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg w-52"
+          >
             <div className="p-2 border-b border-neutral-100">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-neutral-400 pointer-events-none" />
                 <input
                   autoFocus
                   type="text"
+                  aria-label="Search companies"
                   placeholder="Search companies..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -230,12 +280,19 @@ function RelationshipFilter({
       <FilterButton
         label={label}
         active={selected.length > 0}
+        expanded={open}
+        controls="contact-relationship-filter"
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-42.5">
+          <Backdrop triggerControls="contact-relationship-filter" onClose={() => setOpen(false)} />
+          <div
+            id="contact-relationship-filter"
+            role="dialog"
+            aria-label="Filter contacts by relationship"
+            className="absolute right-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-42.5"
+          >
             {selected.length > 0 && (
               <button
                 onClick={() => {
@@ -363,7 +420,10 @@ export function ContactsTable({ contacts, companyMap }: Props) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900">Contacts</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p
+            className="mt-1 text-sm text-neutral-500"
+            aria-live="polite"
+          >
             {filtered.length !== contacts.length
               ? `${filtered.length} of ${contacts.length} total`
               : `${contacts.length} total`}
@@ -383,6 +443,7 @@ export function ContactsTable({ contacts, companyMap }: Props) {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
           <input
             type="text"
+            aria-label="Search contacts by name"
             placeholder="Search contacts..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -390,8 +451,10 @@ export function ContactsTable({ contacts, companyMap }: Props) {
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              aria-label="Clear contact search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -435,9 +498,11 @@ export function ContactsTable({ contacts, companyMap }: Props) {
         </div>
       ) : (
         <div
+          aria-busy={isPending}
           className={`overflow-x-auto rounded-lg border border-neutral-200 bg-white transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}
         >
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[640px] text-sm lg:min-w-[720px]">
+            <caption className="sr-only">Professional contacts</caption>
             <thead>
               <tr className="border-b border-neutral-100 bg-neutral-50">
                 {(
@@ -447,23 +512,51 @@ export function ContactsTable({ contacts, companyMap }: Props) {
                     { col: "company" as SortCol, label: "Company" },
                   ] as const
                 ).map(({ col, label }) => (
-                  <th key={col} className="px-5 py-3 text-left">
+                  <th
+                    key={col}
+                    scope="col"
+                    aria-sort={
+                      sortCol === col
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : undefined
+                    }
+                    className="px-5 py-3 text-left"
+                  >
                     <button
+                      type="button"
                       onClick={() => handleSort(col)}
-                      className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+                      aria-label={`Sort contacts by ${label}`}
+                      className="flex items-center rounded-sm text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
                     >
                       {label}
                       <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
                     </button>
                   </th>
                 ))}
-                <th className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                <th
+                  scope="col"
+                  className="px-5 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wide"
+                >
                   Email
                 </th>
-                <th className="px-5 py-3 text-left">
+                <th
+                  scope="col"
+                  aria-sort={
+                    sortCol === "relationship"
+                      ? sortDir === "asc"
+                        ? "ascending"
+                        : "descending"
+                      : undefined
+                  }
+                  className="px-5 py-3 text-left"
+                >
                   <button
+                    type="button"
                     onClick={() => handleSort("relationship")}
-                    className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+                    aria-label="Sort contacts by relationship"
+                    className="flex items-center rounded-sm text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
                   >
                     Relationship
                     <SortIcon
@@ -490,14 +583,15 @@ export function ContactsTable({ contacts, companyMap }: Props) {
                 return (
                   <tr
                     key={contact.id}
-                    className="hover:bg-neutral-50 transition-colors cursor-pointer"
-                    onClick={() =>
-                      (window.location.href = `/contacts/${contact.id}`)
-                    }
+                    className="hover:bg-neutral-50 transition-colors"
                   >
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
+                      <Link
+                        href={`/contacts/${contact.id}`}
+                        className="flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
+                      >
                         <div
+                          aria-hidden="true"
                           className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${colorClass}`}
                         >
                           {initials}
@@ -505,7 +599,7 @@ export function ContactsTable({ contacts, companyMap }: Props) {
                         <span className="font-medium text-neutral-800 hover:text-blue-600 transition-colors">
                           {contact.name}
                         </span>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-5 py-3.5 text-neutral-600">
                       {contact.role ?? "—"}

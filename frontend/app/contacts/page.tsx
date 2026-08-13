@@ -2,6 +2,9 @@ import { getContacts, getCompanies } from "@/lib/api";
 import { Users } from "lucide-react";
 import Link from "next/link";
 import { ContactsTable } from "./contacts-table";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function ContactsPage() {
   const [contacts, companies] = await Promise.all([
@@ -14,29 +17,25 @@ export default async function ContactsPage() {
   if (contacts.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">
-              Contacts
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">0 total</p>
-          </div>
-          <Link
-            href="/contacts/new"
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors whitespace-nowrap"
-          >
-            + New Contact
-          </Link>
-        </div>
-        <div className="rounded-lg border border-dashed border-neutral-200 bg-white py-20 text-center">
-          <Users className="w-10 h-10 text-neutral-200 mx-auto mb-3" />
-          <p className="text-sm font-medium text-neutral-500">
-            No contacts yet
-          </p>
-          <p className="text-xs text-neutral-400 mt-1">
-            Contacts from your applications will appear here
-          </p>
-        </div>
+        <PageHeader
+          title="Contacts"
+          description="People who can help move your applications forward."
+          actions={
+            <Button asChild>
+              <Link href="/contacts/new">New contact</Link>
+            </Button>
+          }
+        />
+        <EmptyState
+          icon={Users}
+          title="Build your job-search network"
+          description="Add recruiters, hiring managers, and referrals so every relationship has useful context."
+          actions={
+            <Button asChild>
+              <Link href="/contacts/new">Add your first contact</Link>
+            </Button>
+          }
+        />
       </div>
     );
   }

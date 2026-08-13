@@ -254,7 +254,10 @@ export function ApplicationsTable({
           <h1 className="text-2xl font-semibold text-neutral-900">
             Applications
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p
+            className="mt-1 text-sm text-neutral-500"
+            aria-live="polite"
+          >
             {hasFilters
               ? `${filtered.length} filtered on this page`
               : `Showing ${firstItem}-${lastItem} of ${total}`}
@@ -275,6 +278,7 @@ export function ApplicationsTable({
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
           <input
             type="text"
+            aria-label="Search applications by role"
             placeholder="Search roles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -282,8 +286,10 @@ export function ApplicationsTable({
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              aria-label="Clear application search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -341,9 +347,11 @@ export function ApplicationsTable({
       ) : (
         <>
           <div
+            aria-busy={isPending}
             className={`overflow-x-auto rounded-lg border border-neutral-200 bg-white transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}
           >
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[680px] text-sm lg:min-w-[760px]">
+              <caption className="sr-only">Job applications</caption>
               <thead>
                 <tr className="border-b border-neutral-100 bg-neutral-50">
                   {(
@@ -356,10 +364,23 @@ export function ApplicationsTable({
                       { col: "applied" as SortCol, label: "Applied" },
                     ] as const
                   ).map(({ col, label }) => (
-                    <th key={col} className="px-5 py-3 text-left">
+                    <th
+                      key={col}
+                      scope="col"
+                      aria-sort={
+                        sortCol === col
+                          ? sortDir === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : undefined
+                      }
+                      className="px-5 py-3 text-left"
+                    >
                       <button
+                        type="button"
                         onClick={() => handleSort(col)}
-                        className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+                        aria-label={`Sort applications by ${label}`}
+                        className="flex items-center rounded-sm text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
                       >
                         {label}
                         <SortIcon
@@ -459,7 +480,7 @@ function Pagination({
   total: number;
 }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-xs text-neutral-400">
         Showing {firstItem}-{lastItem} of {total}
       </p>
@@ -489,16 +510,20 @@ function PageLink({
 }) {
   const className = `rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
     disabled
-      ? "pointer-events-none border-neutral-200 text-neutral-300"
-      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+      ? "border-neutral-200 text-neutral-300"
+      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
   }`;
 
+  if (disabled) {
+    return (
+      <span aria-disabled="true" className={className}>
+        {children}
+      </span>
+    );
+  }
+
   return (
-    <Link
-      href={`/applications?page=${page}`}
-      aria-disabled={disabled}
-      className={className}
-    >
+    <Link href={`/applications?page=${page}`} className={className}>
       {children}
     </Link>
   );
@@ -517,8 +542,10 @@ function CheckRow({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50"
+      aria-pressed={checked}
+      className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-900"
     >
       <span
         className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center ${checked ? "bg-neutral-900 border-neutral-900" : "border-neutral-300"}`}
@@ -547,16 +574,24 @@ function CheckRow({
 function FilterButton({
   label,
   active,
+  expanded,
+  controls,
   onClick,
 }: {
   label: string;
   active: boolean;
+  expanded: boolean;
+  controls: string;
   onClick: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
+      aria-expanded={expanded}
+      aria-controls={controls}
+      aria-haspopup="dialog"
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 ${
         active
           ? "border-neutral-900 bg-neutral-900 text-white"
           : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
@@ -568,8 +603,39 @@ function FilterButton({
   );
 }
 
-function Backdrop({ onClose }: { onClose: () => void }) {
-  return <div className="fixed inset-0 z-10" onClick={onClose} />;
+function Backdrop({
+  onClose,
+  triggerControls,
+}: {
+  onClose: () => void;
+  triggerControls: string;
+}) {
+  function closeAndRestoreFocus() {
+    onClose();
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLButtonElement>(`[aria-controls="${triggerControls}"]`)
+        ?.focus();
+    });
+  }
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") closeAndRestoreFocus();
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  });
+
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      className="fixed inset-0 z-10 cursor-default"
+      aria-label="Close filter"
+      onClick={closeAndRestoreFocus}
+    />
+  );
 }
 
 // ── Company filter ────────────────────────────────────────────────────────────
@@ -602,23 +668,32 @@ function CompanyFilter({
       <FilterButton
         label={label}
         active={selected.length > 0}
+        expanded={open}
+        controls="application-company-filter"
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <>
           <Backdrop
+            triggerControls="application-company-filter"
             onClose={() => {
               setOpen(false);
               setQuery("");
             }}
           />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg w-52">
+          <div
+            id="application-company-filter"
+            role="dialog"
+            aria-label="Filter applications by company"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg w-52"
+          >
             <div className="p-2 border-b border-neutral-100">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-neutral-400 pointer-events-none" />
                 <input
                   autoFocus
                   type="text"
+                  aria-label="Search companies"
                   placeholder="Search companies..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -679,12 +754,19 @@ function TrackFilter({
       <FilterButton
         label={label}
         active={selected.length > 0}
+        expanded={open}
+        controls="application-track-filter"
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-35">
+          <Backdrop triggerControls="application-track-filter" onClose={() => setOpen(false)} />
+          <div
+            id="application-track-filter"
+            role="dialog"
+            aria-label="Filter applications by track"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-35"
+          >
             {selected.length > 0 && (
               <button
                 onClick={() => {
@@ -731,12 +813,19 @@ function StatusFilter({
       <FilterButton
         label={label}
         active={selected.length > 0}
+        expanded={open}
+        controls="application-status-filter"
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-40">
+          <Backdrop triggerControls="application-status-filter" onClose={() => setOpen(false)} />
+          <div
+            id="application-status-filter"
+            role="dialog"
+            aria-label="Filter applications by status"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-40"
+          >
             {selected.length > 0 && (
               <button
                 onClick={() => {
@@ -801,12 +890,19 @@ function DateFilter({
       <FilterButton
         label={label}
         active={!!selected}
+        expanded={open}
+        controls="application-date-filter"
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 w-72 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
+          <Backdrop triggerControls="application-date-filter" onClose={() => setOpen(false)} />
+          <div
+            id="application-date-filter"
+            role="dialog"
+            aria-label="Filter applications by applied date"
+            className="absolute right-0 top-full mt-1 z-20 w-72 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg"
+          >
             <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
@@ -854,6 +950,8 @@ function DateFilter({
                   <button
                     key={key}
                     type="button"
+                    aria-pressed={isSelected}
+                    aria-label={`${formatDate(`${key}T00:00:00`)}${count === 0 ? ", no applications" : `, ${count} application${count === 1 ? "" : "s"}`}`}
                     onClick={() => {
                       onChange(key);
                       setOpen(false);

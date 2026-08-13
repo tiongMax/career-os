@@ -3,6 +3,9 @@ import { Plus, FileText, FileX } from "lucide-react";
 import { getResumeVersions, getResumePDFUrl } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import { formatTrackLabel } from "@/lib/domain/applications";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 
 const TRACK_STYLE: Record<
   string,
@@ -41,41 +44,33 @@ export default async function ResumeVersionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">
-            Resume Versions
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            {resumes.length} version{resumes.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <Link
-          href="/resume-versions/new"
-          className="flex items-center gap-1.5 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          New Resume
-        </Link>
-      </div>
+      <PageHeader
+        title="Resume Versions"
+        description={`${resumes.length} version${resumes.length !== 1 ? "s" : ""} ready to match with the right role.`}
+        actions={
+          <Button asChild>
+            <Link href="/resume-versions/new">
+              <Plus aria-hidden="true" />
+              New resume
+            </Link>
+          </Button>
+        }
+      />
 
       {resumes.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-white py-20 text-center">
-          <FileX className="mx-auto h-10 w-10 text-neutral-200 mb-3" />
-          <p className="text-sm font-medium text-neutral-500">
-            No resume versions yet
-          </p>
-          <p className="mt-1 text-xs text-neutral-400">
-            Upload your resumes to start tracking which version lands interviews
-          </p>
-          <Link
-            href="/resume-versions/new"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add your first resume
-          </Link>
-        </div>
+        <EmptyState
+          icon={FileX}
+          title="Add your first resume"
+          description="Keep tailored versions together and learn which one gets the strongest response."
+          actions={
+            <Button asChild>
+              <Link href="/resume-versions/new">
+                <Plus aria-hidden="true" />
+                Add resume
+              </Link>
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-8">
           {groupByTrack(resumes).map(({ track, items }) => {
