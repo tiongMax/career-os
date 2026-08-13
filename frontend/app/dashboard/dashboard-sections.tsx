@@ -16,7 +16,6 @@ import { formatRelative } from "@/lib/utils";
 import {
   type DashboardData,
   type FocusItemData,
-  FOLLOW_UP_DAYS,
   plural,
   STALE_DAYS,
 } from "./dashboard-data";
@@ -25,8 +24,18 @@ export function StatCards({ stats }: { stats: DashboardData["stats"] }) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <StatCard label="Total" value={stats.total} icon={Briefcase} />
-      <StatCard label="Active" value={stats.active} icon={Activity} accent="blue" />
-      <StatCard label="Offers" value={stats.offers} icon={Award} accent="green" />
+      <StatCard
+        label="Active"
+        value={stats.active}
+        icon={Activity}
+        accent="blue"
+      />
+      <StatCard
+        label="Offers"
+        value={stats.offers}
+        icon={Award}
+        accent="green"
+      />
       <StatCard
         label="Stale"
         value={stats.stale}
@@ -46,14 +55,19 @@ export function ActionSections({
   nextBestAction: DashboardData["nextBestAction"];
 }) {
   const visibleFocusItems = focusItems.slice(0, 5);
-  const hiddenFocusCount = Math.max(0, focusItems.length - visibleFocusItems.length);
+  const hiddenFocusCount = Math.max(
+    0,
+    focusItems.length - visibleFocusItems.length,
+  );
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <section className="rounded-lg border border-blue-100 bg-white">
         <div className="flex items-center gap-2 border-b border-blue-100 px-5 py-4">
           <Target className="h-4 w-4 text-blue-500" />
-          <h2 className="text-sm font-semibold text-neutral-700">Next Best Action</h2>
+          <h2 className="text-sm font-semibold text-neutral-700">
+            Next Best Action
+          </h2>
           <InfoTooltip
             title="How this is chosen"
             items={[
@@ -64,8 +78,12 @@ export function ActionSections({
         </div>
         <div className="flex min-h-36 flex-col justify-between gap-4 px-5 py-4">
           <div>
-            <p className="text-base font-semibold text-neutral-900">{nextBestAction.title}</p>
-            <p className="mt-1 text-sm text-neutral-500">{nextBestAction.detail}</p>
+            <p className="text-base font-semibold text-neutral-900">
+              {nextBestAction.title}
+            </p>
+            <p className="mt-1 text-sm text-neutral-500">
+              {nextBestAction.detail}
+            </p>
           </div>
           <Link
             href={nextBestAction.href}
@@ -80,24 +98,33 @@ export function ActionSections({
         <div className="flex items-center justify-between border-b border-neutral-100 px-5 py-4">
           <div className="flex items-center gap-2">
             <ListChecks className="h-4 w-4 text-green-500" />
-            <h2 className="text-sm font-semibold text-neutral-700">Needs Attention</h2>
+            <h2 className="text-sm font-semibold text-neutral-700">
+              Needs Attention
+            </h2>
             <InfoTooltip
-              title="Why applications appear here"
+              title="Priority order"
+              ordered
               items={[
-                `Applied with no response for ${FOLLOW_UP_DAYS}+ days`,
-                `No changes for ${STALE_DAYS}+ days`,
-                "A deadline, interview, or manual reminder is due soon",
+                "Overdue reminders and deadlines",
+                "Upcoming deadlines and interviews",
+                "Reminders due today",
+                "Applications ready for follow-up",
+                "Stale applications and missing resume links",
               ]}
             />
           </div>
           <span className="text-xs text-neutral-400">
-            {focusItems.length === 0 ? "0 items" : `${visibleFocusItems.length} of ${focusItems.length} items`}
+            {focusItems.length === 0
+              ? "0 items"
+              : `${visibleFocusItems.length} of ${focusItems.length} items`}
           </span>
         </div>
         {focusItems.length === 0 ? (
-          <div className="px-5 py-5 text-sm text-neutral-400">No urgent focus items. Good moment to add pipeline activity.</div>
+          <div className="px-5 py-5 text-sm text-neutral-400">
+            No applications need attention right now.
+          </div>
         ) : (
-          <div className="divide-y divide-neutral-100 p-2">
+          <div className="divide-y divide-neutral-100 p-3">
             {visibleFocusItems.map((item) => (
               <FocusItem key={item.id} {...item} />
             ))}
@@ -105,7 +132,7 @@ export function ActionSections({
         )}
         {hiddenFocusCount > 0 && (
           <div className="border-t border-neutral-100 px-5 py-3 text-xs text-neutral-400">
-            +{hiddenFocusCount} more focus item{plural(hiddenFocusCount)}
+            +{hiddenFocusCount} more application{plural(hiddenFocusCount)}
           </div>
         )}
       </section>
@@ -129,13 +156,22 @@ export function PipelineSection({
         {pipeline.map((stage) => (
           <div key={stage.label} className="min-w-0">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="truncate text-xs font-medium text-neutral-500">{stage.label}</span>
-              <span className="text-xs font-semibold text-neutral-700">{stage.count}</span>
+              <span className="truncate text-xs font-medium text-neutral-500">
+                {stage.label}
+              </span>
+              <span className="text-xs font-semibold text-neutral-700">
+                {stage.count}
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
               <div
                 className={`h-full rounded-full ${stage.color}`}
-                style={{ width: stage.count === 0 ? "0%" : `${Math.max(8, Math.round((stage.count / maxPipelineCount) * 100))}%` }}
+                style={{
+                  width:
+                    stage.count === 0
+                      ? "0%"
+                      : `${Math.max(8, Math.round((stage.count / maxPipelineCount) * 100))}%`,
+                }}
               />
             </div>
           </div>
@@ -146,11 +182,9 @@ export function PipelineSection({
 }
 
 export function ActivitySections({
-  companyMap,
   recentApps,
   upcomingItems,
 }: {
-  companyMap: DashboardData["companyMap"];
   recentApps: DashboardData["recentApps"];
   upcomingItems: DashboardData["upcomingItems"];
 }) {
@@ -158,8 +192,13 @@ export function ActivitySections({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <section className="rounded-lg border border-neutral-200 bg-white overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
-          <h2 className="text-sm font-semibold text-neutral-700">Recently Changed</h2>
-          <Link href="/applications" className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-700 transition-colors">
+          <h2 className="text-sm font-semibold text-neutral-700">
+            Recently Changed
+          </h2>
+          <Link
+            href="/applications"
+            className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+          >
             View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -167,7 +206,10 @@ export function ActivitySections({
           <div className="px-5 py-12 text-center">
             <Briefcase className="w-8 h-8 text-neutral-200 mx-auto mb-3" />
             <p className="text-sm text-neutral-400">No applications yet</p>
-            <Link href="/applications/new" className="mt-2 inline-block text-xs text-blue-600 hover:underline">
+            <Link
+              href="/applications/new"
+              className="mt-2 inline-block text-xs text-blue-600 hover:underline"
+            >
               Create your first one →
             </Link>
           </div>
@@ -180,9 +222,12 @@ export function ActivitySections({
                   className="flex items-center justify-between px-5 py-3.5 hover:bg-neutral-50 transition-colors"
                 >
                   <div className="min-w-0 mr-3">
-                    <p className="text-sm font-medium text-neutral-800 truncate">{app.title}</p>
+                    <p className="text-sm font-medium text-neutral-800 truncate">
+                      {app.title}
+                    </p>
                     <p className="text-xs text-neutral-400 mt-0.5">
-                      {companyMap[app.company_id] ?? "—"} · Updated {formatRelative(app.updated_at)}
+                      {app.company_name} · Updated{" "}
+                      {formatRelative(app.updated_at)}
                     </p>
                   </div>
                   <StatusBadge status={app.status} />
@@ -199,7 +244,10 @@ export function ActivitySections({
             <CalendarClock className="h-4 w-4 text-blue-500" />
             <h2 className="text-sm font-semibold text-neutral-700">Upcoming</h2>
           </div>
-          <Link href="/analytics" className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-700 transition-colors">
+          <Link
+            href="/analytics"
+            className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+          >
             View calendar <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -212,11 +260,20 @@ export function ActivitySections({
           <ul className="divide-y divide-neutral-100">
             {upcomingItems.map((item) => (
               <li key={item.id}>
-                <Link href={item.href} className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-neutral-50">
+                <Link
+                  href={item.href}
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-neutral-50"
+                >
                   <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{item.label}</p>
-                    <p className="truncate text-sm font-medium text-neutral-800">{item.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-neutral-400">{item.meta}</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                      {item.label}
+                    </p>
+                    <p className="truncate text-sm font-medium text-neutral-800">
+                      {item.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-neutral-400">
+                      {item.meta}
+                    </p>
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-neutral-300" />
                 </Link>
@@ -240,16 +297,22 @@ export function ConversionSection({
     <section className="rounded-lg border border-neutral-200 bg-white">
       <div className="flex items-center gap-2 border-b border-neutral-100 px-5 py-4">
         <FileText className="h-4 w-4 text-neutral-400" />
-        <h2 className="text-sm font-semibold text-neutral-700">Conversion Snapshot</h2>
+        <h2 className="text-sm font-semibold text-neutral-700">
+          Conversion Snapshot
+        </h2>
       </div>
       <div className="grid grid-cols-1 divide-y divide-neutral-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
         {conversionMetrics.map((metric) => (
           <div key={metric.label} className="px-5 py-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{metric.label}</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+              {metric.label}
+            </p>
             <p className="mt-1 text-2xl font-bold text-neutral-900">
               {metric.value}/{totalApps}
             </p>
-            <p className="mt-1 text-xs text-neutral-500">{metric.rate}% of total apps</p>
+            <p className="mt-1 text-xs text-neutral-500">
+              {metric.rate}% of total apps
+            </p>
           </div>
         ))}
       </div>
@@ -271,18 +334,40 @@ function StatCard({
   accent?: "neutral" | "blue" | "green" | "purple" | "amber";
 }) {
   const styles = {
-    neutral: { border: "border-neutral-200", icon: "text-neutral-400",  value: "text-neutral-900" },
-    blue:    { border: "border-blue-100",    icon: "text-blue-500",     value: "text-blue-600"    },
-    green:   { border: "border-green-100",   icon: "text-green-500",    value: "text-green-600"   },
-    purple:  { border: "border-purple-100",  icon: "text-purple-500",   value: "text-purple-600"  },
-    amber:   { border: "border-amber-100",   icon: "text-amber-500",    value: "text-amber-600"   },
+    neutral: {
+      border: "border-neutral-200",
+      icon: "text-neutral-400",
+      value: "text-neutral-900",
+    },
+    blue: {
+      border: "border-blue-100",
+      icon: "text-blue-500",
+      value: "text-blue-600",
+    },
+    green: {
+      border: "border-green-100",
+      icon: "text-green-500",
+      value: "text-green-600",
+    },
+    purple: {
+      border: "border-purple-100",
+      icon: "text-purple-500",
+      value: "text-purple-600",
+    },
+    amber: {
+      border: "border-amber-100",
+      icon: "text-amber-500",
+      value: "text-amber-600",
+    },
   };
   const s = styles[accent];
 
   return (
     <div className={`rounded-lg border ${s.border} bg-white p-5`}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">{label}</p>
+        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+          {label}
+        </p>
         <Icon className={`w-4 h-4 ${s.icon}`} />
       </div>
       <p className={`text-3xl font-bold ${s.value}`}>{value}</p>
@@ -291,7 +376,15 @@ function StatCard({
   );
 }
 
-function InfoTooltip({ title, items, ordered = false }: { title: string; items: string[]; ordered?: boolean }) {
+function InfoTooltip({
+  title,
+  items,
+  ordered = false,
+}: {
+  title: string;
+  items: string[];
+  ordered?: boolean;
+}) {
   const List = ordered ? "ol" : "ul";
   return (
     <div className="group relative">
@@ -308,13 +401,7 @@ function InfoTooltip({ title, items, ordered = false }: { title: string; items: 
   );
 }
 
-function FocusItem({
-  title,
-  detail,
-  href,
-  action,
-  tone,
-}: FocusItemData) {
+function FocusItem({ title, detail, href, action, tone }: FocusItemData) {
   const tones = {
     red: "bg-red-500",
     amber: "bg-amber-500",
@@ -324,9 +411,14 @@ function FocusItem({
   };
 
   return (
-    <Link href={href} className="flex min-h-20 items-center justify-between gap-4 rounded-md px-4 py-3 transition-colors hover:bg-neutral-50">
+    <Link
+      href={href}
+      className="flex min-h-24 items-center justify-between gap-4 rounded-md px-4 py-3 transition-colors hover:bg-neutral-50"
+    >
       <div className="flex min-w-0 items-start gap-3">
-        <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${tones[tone]}`} />
+        <span
+          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${tones[tone]}`}
+        />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-neutral-900">{title}</p>
           <p className="mt-1 text-xs leading-5 text-neutral-500">{detail}</p>

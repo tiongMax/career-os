@@ -139,6 +139,7 @@ async function app(apiServices = services()) {
     services: apiServices,
     healthChecks: {
       postgres: vi.fn().mockResolvedValue(undefined),
+      redis: vi.fn().mockResolvedValue(undefined),
     },
   });
   apps.push(instance);

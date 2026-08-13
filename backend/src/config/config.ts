@@ -10,6 +10,8 @@ const rawEnvironmentSchema = z.object({
     .default(
       "postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable",
     ),
+  REDIS_URL: z.string().min(1).default("redis://localhost:6379"),
+  DASHBOARD_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   AI_ANALYSIS_WORKER_POLL_INTERVAL_MS: z.coerce
     .number()
     .int()

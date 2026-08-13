@@ -2,8 +2,8 @@
 
 CareerOS surfaces work when the dashboard loads. It does not need a scheduling
 queue or notification worker for this workflow: the frontend fetches the
-existing application, reminder, interview, company, and analytics APIs, then
-derives the current attention list.
+consolidated dashboard API, which derives the current attention list from
+PostgreSQL and caches the bounded snapshot briefly in Redis.
 
 ## Rules
 
@@ -31,5 +31,6 @@ them.
 
 ## Runtime
 
-The dashboard behavior requires only PostgreSQL, the API, and the frontend. The
-background worker is reserved for optional Gemini-backed AI analysis jobs.
+The dashboard runtime uses PostgreSQL plus Redis for its short-lived read cache.
+Redis is not a reminder queue; the background worker is reserved for optional
+Gemini-backed AI analysis jobs.

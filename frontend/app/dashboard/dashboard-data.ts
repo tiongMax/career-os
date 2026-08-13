@@ -1,41 +1,25 @@
-import type { AnalyticsSummary, Application, Company, Reminder, UpcomingData } from "@/lib/api";
+import type { DashboardSnapshot } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 export const STALE_DAYS = 14;
-export const FOLLOW_UP_DAYS = 7;
-export const DEADLINE_WINDOW_DAYS = 7;
-
-const DAY_MS = 86_400_000;
-const FINAL_STATUSES = new Set(["offer", "rejected", "withdrawn", "kiv"]);
-const RESPONDED_STATUSES = new Set([
-  "online_assessment",
-  "recruiter_screen",
-  "technical_screen",
-  "technical_screen_2",
-  "technical_screen_3",
-  "technical_screen_4",
-  "onsite",
-  "offer",
-  "rejected",
-]);
-const INTERVIEW_STATUSES = new Set([
-  "recruiter_screen",
-  "technical_screen",
-  "technical_screen_2",
-  "technical_screen_3",
-  "technical_screen_4",
-  "onsite",
-  "offer",
-]);
 
 const PIPELINE_STAGES = [
   { label: "Saved", statuses: ["saved"], color: "bg-slate-400" },
   { label: "Applied", statuses: ["applied"], color: "bg-blue-500" },
   { label: "OA", statuses: ["online_assessment"], color: "bg-cyan-500" },
-  { label: "Recruiter", statuses: ["recruiter_screen"], color: "bg-purple-500" },
+  {
+    label: "Recruiter",
+    statuses: ["recruiter_screen"],
+    color: "bg-purple-500",
+  },
   {
     label: "Technical",
-    statuses: ["technical_screen", "technical_screen_2", "technical_screen_3", "technical_screen_4"],
+    statuses: [
+      "technical_screen",
+      "technical_screen_2",
+      "technical_screen_3",
+      "technical_screen_4",
+    ],
     color: "bg-indigo-500",
   },
   { label: "Onsite", statuses: ["onsite"], color: "bg-orange-500" },
@@ -54,76 +38,52 @@ export type FocusItemData = {
   tone: FocusTone;
 };
 
-type RankedFocusItem = FocusItemData & {
-  applicationId?: string;
-  priority: number;
-  time: number;
-};
-
 export type DashboardData = ReturnType<typeof buildDashboardData>;
 
-export function buildDashboardData({
-  summary,
-  applications,
-  companies,
-  reminders,
-  upcoming,
-}: {
-  summary: AnalyticsSummary | null;
-  applications: Application[];
-  companies: Company[];
-  reminders: Reminder[];
-  upcoming: UpcomingData;
-}) {
-  const companyMap = Object.fromEntries(companies.map((company) => [company.id, company.name]));
-  const now = Date.now();
-  const todayEnd = endOfDay(new Date()).getTime();
-  const deadlineCutoff = now + DEADLINE_WINDOW_DAYS * DAY_MS;
-  const staleCutoff = now - STALE_DAYS * DAY_MS;
-  const followUpCutoff = now - FOLLOW_UP_DAYS * DAY_MS;
+export function emptyDashboardSnapshot(): DashboardSnapshot {
+  return {
+    generated_at: new Date().toISOString(),
+    summary: {
+      total: 0,
+      active: 0,
+      responded: 0,
+      interviewed: 0,
+      offers: 0,
+      rejected: 0,
+    },
+    attention: {
+      overdue_reminders: 0,
+      due_today_reminders: 0,
+      stale_applications: 0,
+      missing_resume_version: 0,
+      items: [],
+    },
+    pipeline: {},
+    recent_applications: [],
+    upcoming: { interviews: [], reminders: [], deadlines: [] },
+  };
+}
 
-  const pendingReminders = reminders.filter((reminder) => reminder.status === "pending");
-  const overdueReminders = pendingReminders.filter((reminder) => new Date(reminder.due_at).getTime() < now);
-  const dueTodayReminders = pendingReminders.filter((reminder) => {
-    const dueAt = new Date(reminder.due_at).getTime();
-    return dueAt >= now && dueAt <= todayEnd;
-  });
-  const staleApplications = applications.filter((app) => {
-    if (FINAL_STATUSES.has(app.status) || app.status === "saved") return false;
-    return new Date(app.updated_at).getTime() <= staleCutoff;
-  });
-  const upcomingDeadlines = applications
-    .filter((app) => {
-      if (!app.deadline_at || FINAL_STATUSES.has(app.status)) return false;
-      const deadlineAt = new Date(app.deadline_at).getTime();
-      return deadlineAt >= now && deadlineAt <= deadlineCutoff;
-    })
-    .sort((a, b) => new Date(a.deadline_at ?? "").getTime() - new Date(b.deadline_at ?? "").getTime());
-  const recentApps = [...applications]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 5);
-
-  const totalApps = summary?.total ?? applications.length;
-  const responded = summary?.responded ?? applications.filter((app) => RESPONDED_STATUSES.has(app.status)).length;
-  const interviewed = applications.filter((app) => INTERVIEW_STATUSES.has(app.status)).length;
-  const offers = summary?.offers ?? applications.filter((app) => app.status === "offer").length;
-  const rejected = applications.filter((app) => app.status === "rejected").length;
-  const active = summary?.active ?? applications.filter((app) => !FINAL_STATUSES.has(app.status) && app.status !== "saved").length;
+export function buildDashboardData(snapshot: DashboardSnapshot) {
+  const totalApps = snapshot.summary.total;
   const pipeline = PIPELINE_STAGES.map((stage) => ({
     ...stage,
-    count: applications.filter((app) => stage.statuses.includes(app.status)).length,
+    count: stage.statuses.reduce(
+      (total, status) => total + (snapshot.pipeline[status] ?? 0),
+      0,
+    ),
   }));
   const maxPipelineCount = Math.max(...pipeline.map((stage) => stage.count), 1);
   const upcomingItems = [
-    ...upcoming.interviews.map((interview) => ({
+    ...snapshot.upcoming.interviews.map((interview) => ({
       id: `interview-${interview.id}`,
       label: "Interview",
       title: interview.company_name,
       meta: `${interview.application_title} · ${formatDate(interview.scheduled_at)}`,
       href: "/analytics",
-      time: interview.scheduled_at ? new Date(interview.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER,
+      time: new Date(interview.scheduled_at).getTime(),
     })),
-    ...upcoming.reminders.map((reminder) => ({
+    ...snapshot.upcoming.reminders.map((reminder) => ({
       id: `reminder-${reminder.id}`,
       label: "Reminder",
       title: reminder.title,
@@ -131,147 +91,53 @@ export function buildDashboardData({
       href: `/reminders/${reminder.id}`,
       time: new Date(reminder.due_at).getTime(),
     })),
-    ...upcomingDeadlines.slice(0, 5).map((app) => ({
-      id: `deadline-${app.id}`,
+    ...snapshot.upcoming.deadlines.map((deadline) => ({
+      id: `deadline-${deadline.id}`,
       label: "Deadline",
-      title: app.title,
-      meta: `${companyMap[app.company_id] ?? "Unknown company"} · ${formatDate(app.deadline_at)}`,
-      href: `/applications/${app.id}`,
-      time: new Date(app.deadline_at ?? "").getTime(),
+      title: deadline.title,
+      meta: `${deadline.company_name} · ${formatDate(deadline.deadline_at)}`,
+      href: `/applications/${deadline.id}`,
+      time: new Date(deadline.deadline_at).getTime(),
     })),
   ]
     .sort((a, b) => a.time - b.time)
     .slice(0, 5);
 
   const conversionMetrics = [
-    { label: "Heard back", value: responded, rate: percentage(responded, totalApps) },
-    { label: "Interview stage", value: interviewed, rate: percentage(interviewed, totalApps) },
-    { label: "Offers", value: offers, rate: percentage(offers, totalApps) },
-    { label: "Rejected", value: rejected, rate: percentage(rejected, totalApps) },
+    {
+      label: "Heard back",
+      value: snapshot.summary.responded,
+      rate: percentage(snapshot.summary.responded, totalApps),
+    },
+    {
+      label: "Interview stage",
+      value: snapshot.summary.interviewed,
+      rate: percentage(snapshot.summary.interviewed, totalApps),
+    },
+    {
+      label: "Offers",
+      value: snapshot.summary.offers,
+      rate: percentage(snapshot.summary.offers, totalApps),
+    },
+    {
+      label: "Rejected",
+      value: snapshot.summary.rejected,
+      rate: percentage(snapshot.summary.rejected, totalApps),
+    },
   ];
-  const applicationsById = new Map(applications.map((application) => [application.id, application]));
-  const focusByApplication = new Map<string, RankedFocusItem>();
-
-  function addApplicationFocus(item: RankedFocusItem) {
-    if (!item.applicationId) return;
-    const current = focusByApplication.get(item.applicationId);
-    if (!current || item.priority < current.priority || (item.priority === current.priority && item.time < current.time)) {
-      focusByApplication.set(item.applicationId, item);
-    }
-  }
-
-  for (const reminder of [...overdueReminders, ...dueTodayReminders]) {
-    const application = applicationsById.get(reminder.application_id);
-    if (!application) continue;
-    const dueAt = new Date(reminder.due_at).getTime();
-    addApplicationFocus({
-      id: `reminder-${reminder.id}`,
-      applicationId: application.id,
-      priority: dueAt < now ? 0 : 2,
-      time: dueAt,
-      title: applicationLabel(application, companyMap),
-      detail: `${dueAt < now ? "Overdue reminder" : "Reminder due today"}: ${reminder.title} · ${formatDate(reminder.due_at)}`,
-      href: `/applications/${application.id}`,
-      action: "Open application",
-      tone: dueAt < now ? "red" : "amber",
-    });
-  }
-
-  for (const application of applications) {
-    if (FINAL_STATUSES.has(application.status) || application.status === "saved") continue;
-
-    if (application.deadline_at) {
-      const deadlineAt = new Date(application.deadline_at).getTime();
-      if (deadlineAt <= deadlineCutoff) {
-        const overdue = deadlineAt < now;
-        addApplicationFocus({
-          id: `deadline-${application.id}`,
-          applicationId: application.id,
-          priority: overdue ? 0 : 1,
-          time: deadlineAt,
-          title: applicationLabel(application, companyMap),
-          detail: `${overdue ? "Deadline overdue" : "Deadline approaching"} · ${formatDate(application.deadline_at)}`,
-          href: `/applications/${application.id}`,
-          action: "Open application",
-          tone: overdue ? "red" : "blue",
-        });
-      }
-    }
-
-    const appliedAt = new Date(application.applied_at ?? application.created_at).getTime();
-    if (application.status === "applied" && appliedAt <= followUpCutoff) {
-      addApplicationFocus({
-        id: `follow-up-${application.id}`,
-        applicationId: application.id,
-        priority: 3,
-        time: appliedAt,
-        title: applicationLabel(application, companyMap),
-        detail: `Follow up · applied ${daysSince(appliedAt, now)} days ago with no response`,
-        href: `/applications/${application.id}`,
-        action: "Open application",
-        tone: "amber",
-      });
-    }
-
-    const updatedAt = new Date(application.updated_at).getTime();
-    if (updatedAt <= staleCutoff) {
-      addApplicationFocus({
-        id: `stale-${application.id}`,
-        applicationId: application.id,
-        priority: 4,
-        time: updatedAt,
-        title: applicationLabel(application, companyMap),
-        detail: `Stale · no changes for ${daysSince(updatedAt, now)} days`,
-        href: `/applications/${application.id}`,
-        action: "Open application",
-        tone: "amber",
-      });
-    }
-
-    if (!application.resume_version_id) {
-      addApplicationFocus({
-        id: `resume-${application.id}`,
-        applicationId: application.id,
-        priority: 5,
-        time: new Date(application.created_at).getTime(),
-        title: applicationLabel(application, companyMap),
-        detail: "Missing a linked resume version",
-        href: `/applications/${application.id}`,
-        action: "Open application",
-        tone: "neutral",
-      });
-    }
-  }
-
-  const nextInterview = upcoming.interviews[0];
-  const focusItems: FocusItemData[] = [
-    ...(nextInterview
-      ? [{
-          id: `interview-${nextInterview.id}`,
-          priority: 1,
-          time: nextInterview.scheduled_at ? new Date(nextInterview.scheduled_at).getTime() : Number.MAX_SAFE_INTEGER,
-          title: `${nextInterview.company_name} · ${nextInterview.application_title}`,
-          detail: `Prepare for ${nextInterview.round_type.replaceAll("_", " ")} · ${formatDate(nextInterview.scheduled_at)}`,
-          href: "/analytics",
-          action: "Open interview",
-          tone: "blue" as const,
-        }]
-      : []),
-    ...focusByApplication.values(),
-  ]
-    .sort((a, b) => a.priority - b.priority || a.time - b.time)
-    .map((item) => ({
-      id: item.id,
-      title: item.title,
-      detail: item.detail,
-      href: item.href,
-      action: item.action,
-      tone: item.tone,
-    }));
+  const focusItems: FocusItemData[] = snapshot.attention.items.map((item) => ({
+    id: item.id,
+    title: attentionTitle(item.type, item.title),
+    detail: `${item.application_title} at ${item.company_name} · ${attentionDetail(item.type, item.action_at)}`,
+    href: `/applications/${item.application_id}`,
+    action: "Open application",
+    tone: attentionTone(item.type),
+  }));
   const nextBestAction =
     focusItems[0] ??
     (totalApps === 0
       ? {
+          id: "create-application",
           title: "Create your first application",
           detail: "Start tracking a role so the dashboard can guide the rest.",
           href: "/applications/new",
@@ -279,49 +145,85 @@ export function buildDashboardData({
           tone: "green" as const,
         }
       : {
+          id: "pipeline-activity",
           title: "Keep the pipeline moving",
-          detail: "No urgent items right now. Add a new role or review recent changes.",
+          detail:
+            "No urgent items right now. Add a new role or review recent changes.",
           href: "/applications",
           action: "Open applications",
           tone: "green" as const,
         });
 
   return {
-    companyMap,
     conversionMetrics,
     focusItems,
     maxPipelineCount,
     nextBestAction,
     pipeline,
-    recentApps,
+    recentApps: snapshot.recent_applications,
     stats: {
       total: totalApps,
-      active,
-      offers,
-      stale: staleApplications.length,
+      active: snapshot.summary.active,
+      offers: snapshot.summary.offers,
+      stale: snapshot.attention.stale_applications,
     },
     totalApps,
     upcomingItems,
   };
 }
 
+function attentionTitle(
+  type: DashboardSnapshot["attention"]["items"][number]["type"],
+  title: string | null,
+): string {
+  switch (type) {
+    case "overdue_reminder":
+      return title ?? "Overdue reminder";
+    case "due_reminder":
+      return title ?? "Reminder due today";
+    case "deadline":
+      return "Application deadline";
+    case "interview":
+      return title ? `Prepare for ${title}` : "Prepare for interview";
+    case "follow_up":
+      return "Follow up on application";
+    case "stale":
+      return "Application has gone stale";
+    case "missing_resume":
+      return "Attach the submitted resume";
+  }
+}
+
+function attentionDetail(
+  type: DashboardSnapshot["attention"]["items"][number]["type"],
+  actionAt: string,
+): string {
+  if (type === "follow_up") return `Applied ${formatRelativeDate(actionAt)}`;
+  if (type === "stale") return `Last updated ${formatRelativeDate(actionAt)}`;
+  if (type === "missing_resume") return "No resume version linked";
+  return formatDate(actionAt);
+}
+
+function formatRelativeDate(value: string): string {
+  const days = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000),
+  );
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
+function attentionTone(
+  type: DashboardSnapshot["attention"]["items"][number]["type"],
+): FocusTone {
+  if (type === "overdue_reminder") return "red";
+  if (type === "deadline" || type === "interview") return "blue";
+  if (type === "missing_resume") return "neutral";
+  return "amber";
+}
+
 function percentage(value: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((value / total) * 100);
-}
-
-function endOfDay(date: Date): Date {
-  const copy = new Date(date);
-  copy.setHours(23, 59, 59, 999);
-  return copy;
-}
-
-function applicationLabel(application: Application, companyMap: Record<string, string>): string {
-  return `${companyMap[application.company_id] ?? "Unknown company"} · ${application.title}`;
-}
-
-function daysSince(timestamp: number, now: number): number {
-  return Math.max(0, Math.floor((now - timestamp) / DAY_MS));
 }
 
 export function plural(value: number): string {

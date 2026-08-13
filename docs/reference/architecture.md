@@ -76,9 +76,10 @@ flowchart LR
   User[User] --> UI[Next.js Frontend]
   UI -->|REST JSON / multipart PDF| API[TypeScript Fastify API]
   API -->|Drizzle / node-postgres| DB[(PostgreSQL)]
+  API -->|cache dashboard snapshot| Redis[(Redis)]
   API -->|queue analysis jobs| DB
-  UI -->|derive dashboard attention| Attention[Attention Rules]
-  Attention -->|link to application| UI
+  API -->|derive dashboard attention| Attention[Attention Rules]
+  Attention -->|application-level items| UI
   Worker[AI Analysis Worker] -->|poll analysis jobs| DB
   Worker -->|optional Gemini calls| Gemini[Gemini API]
   API -->|OpenAPI YAML / Swagger UI| Docs[API Docs]
@@ -107,6 +108,7 @@ Core entities:
 | Integration | Purpose | Required locally |
 | --- | --- | --- |
 | PostgreSQL | Primary data store and full-text search vectors. | Yes |
+| Redis | Short-lived dashboard read cache; not a reminder queue. | Yes |
 | Gemini API | Optional structured JD extraction, resume matching, prep briefs, and embeddings. | Only when `GEMINI_API_KEY` is set for the worker |
 | Swagger UI CDN | Renders `/api/v1/docs`. | Only needed to view Swagger UI in a browser |
 | k6 | Optional benchmark runner. | No |

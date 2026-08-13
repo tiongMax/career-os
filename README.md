@@ -74,7 +74,6 @@ make migrate-up       # Apply database migrations
 make migrate-down     # Roll back one migration
 make seed             # Run seed command
 make test             # Run TypeScript backend tests
-make test-go          # Run the legacy Go regression suite before decommissioning
 npm run lint --prefix frontend
 npm run build --prefix frontend
 make bench-search     # Run k6 search benchmark

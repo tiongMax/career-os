@@ -8,6 +8,7 @@ describe("loadConfig", () => {
 
     expect(config.API_PORT).toBe(8080);
     expect(config.APP_ENV).toBe("development");
+    expect(config.DASHBOARD_CACHE_TTL_SECONDS).toBe(60);
     expect(config.LOG_PRETTY).toBe(true);
   });
 
@@ -27,6 +28,6 @@ describe("loadConfig", () => {
 
   it("rejects malformed configuration", () => {
     expect(() => loadConfig({ API_PORT: "not-a-port" })).toThrow();
-    expect(() => loadConfig({ GEMINI_TIMEOUT_MS: "0" })).toThrow();
+    expect(() => loadConfig({ DASHBOARD_CACHE_TTL_SECONDS: "0" })).toThrow();
   });
 });
