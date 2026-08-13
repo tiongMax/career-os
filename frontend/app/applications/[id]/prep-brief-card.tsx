@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { generatePrepBrief, type PrepBrief } from "@/lib/api";
 
 export function PrepBriefCard({ applicationId }: { applicationId: string }) {
@@ -14,8 +17,12 @@ export function PrepBriefCard({ applicationId }: { applicationId: string }) {
     try {
       const result = await generatePrepBrief(applicationId);
       setBrief(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to generate brief");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      setError(
+        message.replace(/^API \d+:\s*/, "") ||
+          "Could not build the preparation brief.",
+      );
     } finally {
       setLoading(false);
     }
@@ -23,15 +30,31 @@ export function PrepBriefCard({ applicationId }: { applicationId: string }) {
 
   if (!brief) {
     return (
-      <div>
-        <button
+      <div className="rounded-control border border-dashed border-border px-4 py-5">
+        <p className="mb-4 max-w-xl text-sm leading-6 text-muted-foreground">
+          Build a focused brief from the role, attached resume, contacts, and
+          interview details saved here.
+        </p>
+        <Button
           onClick={handleGenerate}
           disabled={loading}
-          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          size="sm"
         >
-          {loading ? "Generating…" : "Generate Prep Brief"}
-        </button>
-        {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
+          {loading ? (
+            <Loader2 aria-hidden="true" className="animate-spin" />
+          ) : (
+            <Sparkles aria-hidden="true" />
+          )}
+          {loading ? "Building brief…" : "Build interview prep"}
+        </Button>
+        {error && (
+          <p
+            role="alert"
+            className="mt-3 rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
+          >
+            {error}
+          </p>
+        )}
       </div>
     );
   }
@@ -39,17 +62,17 @@ export function PrepBriefCard({ applicationId }: { applicationId: string }) {
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs text-neutral-400 mb-1">Role Summary</p>
-        <p className="text-sm text-neutral-700">{brief.role_summary}</p>
+        <p className="mb-1 text-xs font-medium text-muted-foreground">Role summary</p>
+        <p className="text-sm leading-6 text-foreground">{brief.role_summary}</p>
       </div>
 
       {brief.focus_areas.length > 0 && (
         <div>
-          <p className="text-xs text-neutral-400 mb-1.5">Focus Areas</p>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">Focus areas</p>
           <ul className="space-y-1">
             {brief.focus_areas.map((area) => (
-              <li key={area} className="flex items-start gap-1.5 text-sm text-neutral-700">
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+              <li key={area} className="flex items-start gap-2 text-sm text-foreground">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
                 {area}
               </li>
             ))}
@@ -59,10 +82,10 @@ export function PrepBriefCard({ applicationId }: { applicationId: string }) {
 
       {brief.key_gaps.length > 0 && (
         <div>
-          <p className="text-xs text-neutral-400 mb-1.5">Skill Gaps to Address</p>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">Gaps to prepare for</p>
           <div className="flex flex-wrap gap-1.5">
             {brief.key_gaps.map((gap) => (
-              <span key={gap} className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600">
+              <span key={gap} className="rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-medium text-danger">
                 {gap}
               </span>
             ))}
@@ -72,11 +95,11 @@ export function PrepBriefCard({ applicationId }: { applicationId: string }) {
 
       {brief.talking_points.length > 0 && (
         <div>
-          <p className="text-xs text-neutral-400 mb-1.5">Talking Points</p>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">Talking points</p>
           <ul className="space-y-1">
             {brief.talking_points.map((point) => (
-              <li key={point} className="flex items-start gap-1.5 text-sm text-neutral-700">
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
+              <li key={point} className="flex items-start gap-2 text-sm text-foreground">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-success" />
                 {point}
               </li>
             ))}
@@ -84,13 +107,24 @@ export function PrepBriefCard({ applicationId }: { applicationId: string }) {
         </div>
       )}
 
-      <button
+      <Button
         onClick={handleGenerate}
         disabled={loading}
-        className="text-xs text-neutral-400 hover:text-neutral-600 disabled:opacity-50 transition-colors"
+        variant="ghost"
+        size="sm"
       >
-        {loading ? "Regenerating…" : "Regenerate"}
-      </button>
+        {loading && <Loader2 aria-hidden="true" className="animate-spin" />}
+        {loading ? "Refreshing…" : "Refresh prep brief"}
+      </Button>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Generated guidance may miss context. Use it as a starting point and
+        tailor it to your own experience.
+      </p>
+      {error && (
+        <p role="alert" className="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

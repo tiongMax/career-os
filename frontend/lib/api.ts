@@ -376,8 +376,37 @@ export const getApplicationAuditLogs = (id: string) =>
   apiFetch<AuditLog[]>(`/applications/${id}/audit-logs`);
 export const getApplicationJobDescription = (id: string) =>
   apiFetch<JobDescription>(`/applications/${id}/job-description`);
+export const createApplicationJobDescription = (
+  applicationId: string,
+  payload: { raw_text: string },
+) =>
+  apiFetch<JobDescription>(`/applications/${applicationId}/job-description`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateJobDescription = (
+  id: string,
+  payload: { raw_text?: string; extracted_keywords?: string[] },
+) =>
+  apiFetch<JobDescription>(`/job-descriptions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 export const getApplicationInterviews = (id: string) =>
   apiFetch<InterviewRound[]>(`/applications/${id}/interviews`);
+export const createInterview = (
+  applicationId: string,
+  payload: {
+    round_type: string;
+    scheduled_at?: string;
+    interviewer?: string;
+    notes?: string;
+  },
+) =>
+  apiFetch<InterviewRound>(`/applications/${applicationId}/interviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 export const getRecommendedResume = (applicationId: string) =>
   apiFetch<RecommendedResumeResult>(
     `/applications/${applicationId}/recommended-resume`,
