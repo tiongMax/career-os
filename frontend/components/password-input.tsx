@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type AriaAttributes } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { inputClass } from "@/components/forms/form-section";
 
@@ -8,10 +8,16 @@ export function PasswordInput({
   name,
   defaultValue = "",
   placeholder,
+  id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: {
   name: string;
   defaultValue?: string;
   placeholder?: string;
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -19,10 +25,13 @@ export function PasswordInput({
     <div className="relative">
       <input
         name={name}
+        id={id}
         type={visible ? "text" : "password"}
         defaultValue={defaultValue}
         placeholder={placeholder}
         autoComplete="current-password"
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         className={`${inputClass} pr-10`}
       />
       <button

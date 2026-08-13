@@ -14,6 +14,7 @@ import {
   getPrepContext,
   getApplicationAnalysisJobs,
 } from "@/lib/api";
+import { optionalEntity, requireEntity } from "@/lib/server-data";
 import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import { ExtractKeywordsButton } from "./extract-keywords-button";
@@ -21,44 +22,60 @@ import { PrepBriefCard } from "./prep-brief-card";
 import { CompareResumeCard } from "./compare-resume-card";
 import { AnalysisJobsCard } from "./analysis-jobs-card";
 import { PortalPassword } from "./portal-password";
-import { APPLICATION_STATUS_LABELS, TRACK_BADGE_CLASSES, formatTrackLabel } from "@/lib/domain/applications";
+import {
+  APPLICATION_STATUS_LABELS,
+  TRACK_BADGE_CLASSES,
+  formatTrackLabel,
+} from "@/lib/domain/applications";
 
-export default async function ApplicationDetailPage(props: PageProps<"/applications/[id]">) {
+export default async function ApplicationDetailPage(
+  props: PageProps<"/applications/[id]">,
+) {
   const { id } = await props.params;
 
   const [app, auditLogs, interviews, analysisJobs] = await Promise.all([
-    getApplication(id),
-    getApplicationAuditLogs(id).catch(() => []),
-    getApplicationInterviews(id).catch(() => []),
-    getApplicationAnalysisJobs(id).catch(() => []),
+    requireEntity(getApplication(id)),
+    getApplicationAuditLogs(id),
+    getApplicationInterviews(id),
+    getApplicationAnalysisJobs(id),
   ]);
 
-  const [company, resume, jobDescription, prepContext, allResumeVersions] = await Promise.all([
-    getCompany(app.company_id).catch(() => null),
-    app.resume_version_id ? getResumeVersion(app.resume_version_id).catch(() => null) : Promise.resolve(null),
-    getApplicationJobDescription(id).catch(() => null),
-    getPrepContext(id).catch(() => null),
-    getResumeVersions().catch(() => []),
-  ]);
+  const [company, resume, jobDescription, prepContext, allResumeVersions] =
+    await Promise.all([
+      requireEntity(getCompany(app.company_id)),
+      app.resume_version_id
+        ? requireEntity(getResumeVersion(app.resume_version_id))
+        : Promise.resolve(null),
+      optionalEntity(getApplicationJobDescription(id)),
+      getPrepContext(id),
+      getResumeVersions(),
+    ]);
 
   const contacts = prepContext?.contacts ?? [];
 
-  const recommendedResume = jobDescription && jobDescription.extracted_keywords.length > 0
-    ? await getRecommendedResume(id).catch(() => null)
-    : null;
+  const recommendedResume =
+    jobDescription && jobDescription.extracted_keywords.length > 0
+      ? await optionalEntity(getRecommendedResume(id))
+      : null;
   const timelineEvents = statusTimelineEvents(app, auditLogs);
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-neutral-400 mb-1">
-            <Link href="/applications" className="hover:text-neutral-600">Applications</Link>
+            <Link href="/applications" className="hover:text-neutral-600">
+              Applications
+            </Link>
             <span>/</span>
             <span className="text-neutral-600">{app.title}</span>
           </div>
-          <h1 className="text-2xl font-semibold text-neutral-900">{app.title}</h1>
-          <p className="mt-1 text-sm text-neutral-500">{company?.name ?? "Unknown company"}</p>
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            {app.title}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            {company?.name ?? "Unknown company"}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -76,7 +93,18 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
         <section className="lg:col-span-2 space-y-5">
           <Card title="Details">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <Detail label="Track" value={<TrackBadges tracks={app.role_tracks?.length ? app.role_tracks : [app.role_track]} />} />
+              <Detail
+                label="Track"
+                value={
+                  <TrackBadges
+                    tracks={
+                      app.role_tracks?.length
+                        ? app.role_tracks
+                        : [app.role_track]
+                    }
+                  />
+                }
+              />
               <Detail label="Source" value={app.source} />
               <Detail label="Location" value={app.location} />
               <Detail label="Employment" value={app.employment_type} />
@@ -85,7 +113,12 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                 <div className="col-span-2">
                   <dt className="text-xs text-neutral-400">Job URL</dt>
                   <dd className="mt-0.5">
-                    <a href={app.job_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate block">
+                    <a
+                      href={app.job_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline truncate block"
+                    >
                       {app.job_url}
                     </a>
                   </dd>
@@ -94,7 +127,9 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               {app.notes && (
                 <div className="col-span-2">
                   <dt className="text-xs text-neutral-400">Notes</dt>
-                  <dd className="mt-0.5 text-sm text-neutral-700 whitespace-pre-wrap">{app.notes}</dd>
+                  <dd className="mt-0.5 text-sm text-neutral-700 whitespace-pre-wrap">
+                    {app.notes}
+                  </dd>
                 </div>
               )}
             </dl>
@@ -107,7 +142,9 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                 <Detail
                   label="Password"
                   value={
-                    app.portal_password ? <PortalPassword value={app.portal_password} /> : null
+                    app.portal_password ? (
+                      <PortalPassword value={app.portal_password} />
+                    ) : null
                   }
                 />
               </dl>
@@ -119,7 +156,10 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               {jobDescription.extracted_keywords.length > 0 ? (
                 <div className="mb-3 flex flex-wrap gap-1.5">
                   {jobDescription.extracted_keywords.map((kw) => (
-                    <span key={kw} className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                    <span
+                      key={kw}
+                      className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700"
+                    >
                       {kw}
                     </span>
                   ))}
@@ -137,10 +177,16 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
             <Card title="Resume Match">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-sm font-medium text-neutral-800">{recommendedResume.resume_version.name}</p>
-                  <p className="text-xs text-neutral-400 mt-0.5">{formatTrackLabel(recommendedResume.resume_version.track)}</p>
+                  <p className="text-sm font-medium text-neutral-800">
+                    {recommendedResume.resume_version.name}
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {formatTrackLabel(recommendedResume.resume_version.track)}
+                  </p>
                 </div>
-                <span className={`text-lg font-semibold ${recommendedResume.score >= 0.7 ? "text-green-600" : recommendedResume.score >= 0.4 ? "text-yellow-600" : "text-red-500"}`}>
+                <span
+                  className={`text-lg font-semibold ${recommendedResume.score >= 0.7 ? "text-green-600" : recommendedResume.score >= 0.4 ? "text-yellow-600" : "text-red-500"}`}
+                >
                   {Math.round(recommendedResume.score * 100)}%
                 </span>
               </div>
@@ -149,7 +195,10 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                   <p className="text-xs text-neutral-400 mb-1">Matched</p>
                   <div className="flex flex-wrap gap-1.5">
                     {recommendedResume.matched.map((kw) => (
-                      <span key={kw} className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                      <span
+                        key={kw}
+                        className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700"
+                      >
                         {kw}
                       </span>
                     ))}
@@ -161,7 +210,10 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                   <p className="text-xs text-neutral-400 mb-1">Missing</p>
                   <div className="flex flex-wrap gap-1.5">
                     {recommendedResume.missing.map((kw) => (
-                      <span key={kw} className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600">
+                      <span
+                        key={kw}
+                        className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600"
+                      >
                         {kw}
                       </span>
                     ))}
@@ -171,11 +223,16 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
             </Card>
           )}
 
-          {jobDescription && jobDescription.extracted_keywords.length > 0 && allResumeVersions.length > 0 && (
-            <Card title="Compare Resume">
-              <CompareResumeCard jdId={jobDescription.id} resumeVersions={allResumeVersions} />
-            </Card>
-          )}
+          {jobDescription &&
+            jobDescription.extracted_keywords.length > 0 &&
+            allResumeVersions.length > 0 && (
+              <Card title="Compare Resume">
+                <CompareResumeCard
+                  jdId={jobDescription.id}
+                  resumeVersions={allResumeVersions}
+                />
+              </Card>
+            )}
 
           {interviews.length > 0 && (
             <Card title={`Interviews (${interviews.length})`}>
@@ -183,13 +240,27 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                 {interviews.map((iv) => (
                   <li key={iv.id} className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-medium text-neutral-700 capitalize">{iv.round_type.replace("_", " ")}</p>
-                      {iv.interviewer && <p className="text-xs text-neutral-400">{iv.interviewer}</p>}
-                      {iv.notes && <p className="text-xs text-neutral-500 mt-0.5">{iv.notes}</p>}
+                      <p className="text-sm font-medium text-neutral-700 capitalize">
+                        {iv.round_type.replace("_", " ")}
+                      </p>
+                      {iv.interviewer && (
+                        <p className="text-xs text-neutral-400">
+                          {iv.interviewer}
+                        </p>
+                      )}
+                      {iv.notes && (
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          {iv.notes}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right text-xs text-neutral-400 shrink-0 ml-4">
                       <p>{formatDate(iv.scheduled_at)}</p>
-                      {iv.outcome && <p className="capitalize mt-0.5 text-neutral-600">{iv.outcome}</p>}
+                      {iv.outcome && (
+                        <p className="capitalize mt-0.5 text-neutral-600">
+                          {iv.outcome}
+                        </p>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -213,12 +284,21 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
                 href={`/resume-versions/${resume.id}/edit`}
                 className="group inline-block max-w-full rounded-sm transition-colors"
               >
-                <p className="text-sm font-medium text-neutral-800 group-hover:text-blue-600 group-hover:underline">{resume.name}</p>
-                <p className="text-xs text-neutral-400 mt-0.5 group-hover:text-neutral-500">{formatTrackLabel(resume.track)}</p>
+                <p className="text-sm font-medium text-neutral-800 group-hover:text-blue-600 group-hover:underline">
+                  {resume.name}
+                </p>
+                <p className="text-xs text-neutral-400 mt-0.5 group-hover:text-neutral-500">
+                  {formatTrackLabel(resume.track)}
+                </p>
                 {resume.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {resume.tags.map((t) => (
-                      <span key={t} className="text-xs bg-neutral-100 text-neutral-600 rounded px-1.5 py-0.5">{t}</span>
+                      <span
+                        key={t}
+                        className="text-xs bg-neutral-100 text-neutral-600 rounded px-1.5 py-0.5"
+                      >
+                        {t}
+                      </span>
                     ))}
                   </div>
                 )}
@@ -233,16 +313,28 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
               <ul className="space-y-3">
                 {contacts.map((contact) => (
                   <li key={contact.id}>
-                    <p className="text-sm font-medium text-neutral-800">{contact.name}</p>
-                    {contact.role && <p className="text-xs text-neutral-400">{contact.role}</p>}
+                    <p className="text-sm font-medium text-neutral-800">
+                      {contact.name}
+                    </p>
+                    {contact.role && (
+                      <p className="text-xs text-neutral-400">{contact.role}</p>
+                    )}
                     <div className="flex gap-2 mt-0.5">
                       {contact.email && (
-                        <a href={`mailto:${contact.email}`} className="text-xs text-blue-600 hover:underline">
+                        <a
+                          href={`mailto:${contact.email}`}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
                           {contact.email}
                         </a>
                       )}
                       {contact.linkedin_url && (
-                        <a href={contact.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                        <a
+                          href={contact.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                        >
                           LinkedIn
                         </a>
                       )}
@@ -259,26 +351,48 @@ export default async function ApplicationDetailPage(props: PageProps<"/applicati
             ) : (
               <ul className="relative space-y-0">
                 {timelineEvents.map((event, index) => (
-                  <li key={event.id} className="relative flex gap-3 pb-4 last:pb-0">
+                  <li
+                    key={event.id}
+                    className="relative flex gap-3 pb-4 last:pb-0"
+                  >
                     {index < timelineEvents.length - 1 && (
                       <span className="absolute left-1.5 top-3 h-full w-px bg-neutral-200" />
                     )}
-                    <span className={`relative mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-white ${timelineDotClass(event.status)}`} />
+                    <span
+                      className={`relative mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-white ${timelineDotClass(event.status)}`}
+                    />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="text-sm font-medium text-neutral-800">{event.title}</p>
+                        <p className="text-sm font-medium text-neutral-800">
+                          {event.title}
+                        </p>
                         {event.detail && (
-                          <p className="text-xs text-neutral-400">{event.detail}</p>
+                          <p className="text-xs text-neutral-400">
+                            {event.detail}
+                          </p>
                         )}
                       </div>
                       {(event.receivedAt || event.completedAt) && (
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-neutral-500">
-                          {event.receivedAt && <span>Received {formatTimestamp(event.receivedAt, true)}</span>}
-                          {event.completedAt && <span>Completed {formatTimestamp(event.completedAt, true)}</span>}
+                          {event.receivedAt && (
+                            <span>
+                              Received {formatTimestamp(event.receivedAt, true)}
+                            </span>
+                          )}
+                          {event.completedAt && (
+                            <span>
+                              Completed{" "}
+                              {formatTimestamp(event.completedAt, true)}
+                            </span>
+                          )}
                         </div>
                       )}
-                      <p className="mt-0.5 text-xs text-neutral-500">{formatTimestamp(event.at, event.dateOnly)}</p>
-                      <p className="mt-0.5 text-xs text-neutral-400">{formatRelative(event.at)}</p>
+                      <p className="mt-0.5 text-xs text-neutral-500">
+                        {formatTimestamp(event.at, event.dateOnly)}
+                      </p>
+                      <p className="mt-0.5 text-xs text-neutral-400">
+                        {formatRelative(event.at)}
+                      </p>
                     </div>
                   </li>
                 ))}
@@ -302,7 +416,10 @@ type StatusTimelineEvent = {
   dateOnly?: boolean;
 };
 
-function statusTimelineEvents(application: Application, auditLogs: AuditLog[]): StatusTimelineEvent[] {
+function statusTimelineEvents(
+  application: Application,
+  auditLogs: AuditLog[],
+): StatusTimelineEvent[] {
   const events: StatusTimelineEvent[] = [];
 
   if (application.applied_at) {
@@ -329,14 +446,20 @@ function statusTimelineEvents(application: Application, auditLogs: AuditLog[]): 
       id: log.id,
       status: newStatus,
       title: newLabel,
-      detail: oldLabel ? `${oldLabel} -> ${newLabel}` : statusActionLabel(log.action),
+      detail: oldLabel
+        ? `${oldLabel} -> ${newLabel}`
+        : statusActionLabel(log.action),
       at: log.created_at,
       receivedAt: receivedAt ?? undefined,
       completedAt: completedAt ?? undefined,
     });
   }
 
-  return events.sort((a, b) => new Date(a.receivedAt ?? a.at).getTime() - new Date(b.receivedAt ?? b.at).getTime());
+  return events.sort(
+    (a, b) =>
+      new Date(a.receivedAt ?? a.at).getTime() -
+      new Date(b.receivedAt ?? b.at).getTime(),
+  );
 }
 
 function statusLabel(status: string): string {
@@ -402,10 +525,18 @@ function statusActionLabel(action: string): string {
   return action.replace("_", " ");
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-neutral-200 bg-white">
-      <h2 className="px-5 py-3.5 text-sm font-medium text-neutral-700 border-b border-neutral-100">{title}</h2>
+      <h2 className="px-5 py-3.5 text-sm font-medium text-neutral-700 border-b border-neutral-100">
+        {title}
+      </h2>
       <div className="px-5 py-4">{children}</div>
     </div>
   );
@@ -424,7 +555,10 @@ function TrackBadges({ tracks }: { tracks: string[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {tracks.filter(Boolean).map((track) => (
-        <span key={track} className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}>
+        <span
+          key={track}
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}
+        >
           {formatTrackLabel(track)}
         </span>
       ))}

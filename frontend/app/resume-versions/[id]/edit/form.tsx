@@ -7,6 +7,8 @@ import { X, Trash2, Paperclip, FileText } from "lucide-react";
 import { updateResumeVersion, deleteResumeVersion, uploadResumePDF, getResumePDFUrl, type ResumeVersion } from "@/lib/api";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
 import { formatTrackLabel } from "@/lib/domain/applications";
 
 const TRACK_OPTIONS: Option[] = ["backend", "ai", "quant", "general"].map((t) => ({
@@ -19,6 +21,7 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [tags, setTags] = useState<string[]>(resume.tags ?? []);
   const [tagInput, setTagInput] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -59,7 +62,6 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete "${resume.name}"? This cannot be undone.`)) return;
     setDeleting(true);
     try {
       await deleteResumeVersion(resume.id);
@@ -68,6 +70,7 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete");
       setDeleting(false);
+      setDeleteOpen(false);
     }
   }
 
@@ -177,7 +180,7 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
         </div>
         <button
           type="button"
-          onClick={handleDelete}
+          onClick={() => setDeleteOpen(true)}
           disabled={loading || deleting}
           className="flex items-center gap-1.5 rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-400 disabled:opacity-50 transition-colors"
         >
@@ -185,6 +188,26 @@ export function EditResumeForm({ resume }: { resume: ResumeVersion }) {
           {deleting ? "Deleting…" : "Delete"}
         </button>
       </div>
+      <Dialog
+        open={deleteOpen}
+        onClose={deleting ? () => undefined : () => setDeleteOpen(false)}
+        title="Delete resume?"
+        description={`This will permanently delete “${resume.name}”. Applications using it may lose their resume reference.`}
+      >
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            onClick={() => setDeleteOpen(false)}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete} disabled={deleting}>
+            <Trash2 aria-hidden="true" />
+            {deleting ? "Deleting…" : "Delete resume"}
+          </Button>
+        </div>
+      </Dialog>
     </form>
   );
 }
