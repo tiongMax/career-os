@@ -12,6 +12,7 @@ export const APPLICATION_STATUS_OPTIONS: Option[] = [
   { value: "onsite", label: "Onsite", dot: "bg-orange-500" },
   { value: "offer", label: "Offer", dot: "bg-green-500" },
   { value: "rejected", label: "Rejected", dot: "bg-red-500" },
+  { value: "ghosted", label: "Ghosted", dot: "bg-zinc-500" },
   { value: "withdrawn", label: "Withdrawn", dot: "bg-neutral-400" },
   { value: "kiv", label: "KIV", dot: "bg-yellow-500" },
 ];
@@ -34,6 +35,7 @@ export const APPLICATION_STATUS_BADGE_CLASSES: Record<string, string> = {
   onsite: "bg-orange-100 text-orange-700",
   offer: "bg-green-100 text-green-700",
   rejected: "bg-red-100 text-red-600",
+  ghosted: "bg-zinc-100 text-zinc-700",
   withdrawn: "bg-neutral-100 text-neutral-500",
   kiv: "bg-yellow-100 text-yellow-800",
 };
@@ -50,6 +52,7 @@ export const APPLICATION_STATUS_CHART_COLORS: Record<string, string> = {
   onsite: "#f97316",
   offer: "#22c55e",
   rejected: "#ef4444",
+  ghosted: "#71717a",
   withdrawn: "#737373",
   kiv: "#eab308",
 };

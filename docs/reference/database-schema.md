@@ -113,6 +113,7 @@ Allowed statuses:
 - `onsite`
 - `offer`
 - `rejected`
+- `ghosted`
 - `withdrawn`
 - `kiv`
 

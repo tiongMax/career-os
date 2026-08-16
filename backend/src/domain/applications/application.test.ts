@@ -66,6 +66,12 @@ describe("application validation", () => {
       validateTransition("kiv", "technical_screen_3");
     }).not.toThrow();
     expect(() => {
+      validateTransition("applied", "ghosted");
+    }).not.toThrow();
+    expect(() => {
+      validateTransition("ghosted", "recruiter_screen");
+    }).not.toThrow();
+    expect(() => {
       validateTransition("withdrawn", "applied");
     }).toThrow(DomainConflictError);
     expect(() => {

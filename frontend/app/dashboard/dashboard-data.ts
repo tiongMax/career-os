@@ -25,6 +25,7 @@ const PIPELINE_STAGES = [
   { label: "Onsite", statuses: ["onsite"], color: "bg-orange-500" },
   { label: "Offer", statuses: ["offer"], color: "bg-green-500" },
   { label: "Rejected", statuses: ["rejected"], color: "bg-red-500" },
+  { label: "Ghosted", statuses: ["ghosted"], color: "bg-zinc-500" },
   { label: "KIV", statuses: ["kiv"], color: "bg-yellow-500" },
 ];
 
@@ -66,6 +67,15 @@ export function emptyDashboardSnapshot(): DashboardSnapshot {
 
 export function buildDashboardData(snapshot: DashboardSnapshot) {
   const totalApps = snapshot.summary.total;
+  const unsuccessfulBreakdown = {
+    rejected: snapshot.pipeline.rejected ?? 0,
+    ghosted: snapshot.pipeline.ghosted ?? 0,
+    withdrawn: snapshot.pipeline.withdrawn ?? 0,
+  };
+  const unsuccessfulApplications = Object.values(unsuccessfulBreakdown).reduce(
+    (total, count) => total + count,
+    0,
+  );
   const pipeline = PIPELINE_STAGES.map((stage) => ({
     ...stage,
     count: stage.statuses.reduce(
@@ -120,9 +130,10 @@ export function buildDashboardData(snapshot: DashboardSnapshot) {
       rate: percentage(snapshot.summary.offers, totalApps),
     },
     {
-      label: "Rejected",
-      value: snapshot.summary.rejected,
-      rate: percentage(snapshot.summary.rejected, totalApps),
+      label: "Unsuccessful",
+      value: unsuccessfulApplications,
+      rate: percentage(unsuccessfulApplications, totalApps),
+      detail: `${unsuccessfulBreakdown.rejected} rejected · ${unsuccessfulBreakdown.ghosted} ghosted · ${unsuccessfulBreakdown.withdrawn} withdrawn`,
     },
   ];
   const focusItems: FocusItemData[] = snapshot.attention.items.map((item) => ({

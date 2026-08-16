@@ -688,6 +688,7 @@ function formatTimestamp(iso?: string, dateOnly = false): string {
 function timelineDot(status: string): string {
   if (status === "offer") return "bg-green-500";
   if (status === "rejected") return "bg-red-500";
+  if (status === "ghosted") return "bg-zinc-500";
   if (status === "withdrawn") return "bg-neutral-400";
   if (status.includes("screen") || status === "onsite") return "bg-indigo-500";
   return "bg-blue-500";

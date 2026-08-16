@@ -302,6 +302,9 @@ export function ConversionSection({
             <p className="mt-1 text-xs text-neutral-500">
               {metric.rate}% of total apps
             </p>
+            {"detail" in metric && metric.detail && (
+              <p className="mt-1 text-xs text-neutral-400">{metric.detail}</p>
+            )}
           </div>
         ))}
       </div>
