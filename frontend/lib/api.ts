@@ -22,11 +22,16 @@ export function apiUrl(path: string): string {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const headers = new Headers(init?.headers);
+
+  if (init?.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   try {
     const res = await fetch(apiUrl(path), {
       ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
+      headers,
       cache: "no-store",
       signal: controller.signal,
     });
