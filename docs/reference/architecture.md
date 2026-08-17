@@ -8,14 +8,15 @@ CareerOS is split into a server-rendered Next.js frontend, a TypeScript Fastify 
 career-os/
   backend/
     src/
-      api/          Fastify server and route plugins
-      app/          dependency composition
-      commands/     API, worker, and migration entry points
+      app.ts        Fastify application factory
+      server.ts     API process entry point
+      routes.ts     top-level route plugin composition
       config/       Zod-validated environment configuration
-      domain/       business rules and repository contracts
-      infrastructure/ PostgreSQL, Gemini, and migrations
-      persistence/  Drizzle repositories and schema mapping
-      workers/      AI-analysis processor
+      database/     PostgreSQL client, schema, migrations, and seed data
+      features/     feature-first routes, services, repositories, and tests
+      routes/       cross-feature health, OpenAPI, and export routes
+      scripts/      worker, migration, and seed entry points
+      shared/       shared HTTP and infrastructure helpers
     migrations/     database schema migrations
   frontend/
     app/            Next.js App Router pages
@@ -33,19 +34,22 @@ career-os/
 | Component | Entry point | Responsibility |
 | --- | --- | --- |
 | Frontend | `frontend/app` | Server-rendered operational UI for dashboard, applications, contacts, resume versions, reminders, and analytics. |
-| API | `backend/src/commands/api.ts` | Serves `/api/v1/*`, connects to PostgreSQL, and exposes Swagger/OpenAPI docs. |
-| Worker | `backend/src/commands/worker.ts` | Optionally processes Gemini-backed AI analysis jobs. |
-| Migrator | `backend/src/commands/migrate.ts` | Applies and rolls back the existing Goose-format SQL migrations. |
+| API | `backend/src/server.ts` | Serves `/api/v1/*`, connects to PostgreSQL, and exposes Swagger/OpenAPI docs. |
+| Worker | `backend/src/scripts/worker.ts` | Optionally processes Gemini-backed AI analysis jobs. |
+| Migrator | `backend/src/scripts/migrate.ts` | Applies and rolls back the existing Goose-format SQL migrations. |
 | PostgreSQL | `docker-compose.yml` | Stores companies, applications, resume versions, job descriptions, contacts, interviews, reminders, audit logs, and analytics source data. |
 
-## Backend Layers
+## Backend Feature Flow
+
+The backend uses vertical feature folders. A feature keeps its Fastify route,
+service, repository, schemas, and tests together; only genuinely shared code
+lives in `database`, `routes`, or `shared`.
 
 ```text
 HTTP request
-  -> Fastify route and Zod schema
-  -> domain service
-  -> repository interface
-  -> Drizzle repository
+  -> feature Fastify route and Zod schema
+  -> feature service
+  -> repository contract and Drizzle implementation
   -> PostgreSQL
 
 Dashboard load
@@ -131,7 +135,7 @@ worker, migration runner, and SQL files. In the `full` Compose profile, the API
 container runs migrations before starting:
 
 ```sh
-node dist/commands/migrate.js up && node dist/commands/api.js
+node dist/scripts/migrate.js up && node dist/server.js
 ```
 
 The frontend is not included in the backend Dockerfile. Production frontend deployment needs separate hosting or a frontend container.

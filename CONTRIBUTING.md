@@ -102,9 +102,9 @@ make bench-mixed
 
 Backend:
 
-- Keep Fastify routes thin. Put validation and workflow rules in `backend/src/domain` and persistence behavior in repositories.
-- Define request and response contracts with Zod and keep route plugins under `backend/src/api/routes`.
-- Use Drizzle queries, transactions, and explicit schema mappings in `backend/src/persistence`.
+- Keep Fastify routes thin. Put validation and workflow rules in each feature's `*.service.ts` and persistence behavior in `*.repository.ts`.
+- Define request and response contracts with Zod and colocate route plugins with their feature under `backend/src/features`.
+- Use Drizzle queries and transactions in feature repositories, with explicit schema mappings in `backend/src/database/schema.ts`.
 - Load configuration through `loadConfig()` instead of scattered environment lookups.
 - Return JSON errors in the existing `{ "error": "..." }` shape.
 - Run format, typecheck, lint, tests, and the production build before opening a PR.
