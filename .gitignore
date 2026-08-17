@@ -1,4 +1,8 @@
 .env
+
+# Local database backups
+/careeros-backup-*.sql
+
 bin/
 tmp/
 dist/
