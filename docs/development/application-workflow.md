@@ -7,9 +7,9 @@ status lifecycle and where the code enforces it.
 
 Application status rules are implemented in:
 
-- `backend/src/domain/applications/application.ts`
-- `backend/src/persistence/postgres/applications-repository.ts`
-- `backend/src/api/routes/applications.ts`
+- `backend/src/features/applications/application.service.ts`
+- `backend/src/features/applications/application.repository.ts`
+- `backend/src/features/applications/application.routes.ts`
 
 ## Status Values
 
@@ -109,10 +109,10 @@ The `audit_logs` table is intentionally generic, so consistency in
 Keep the workflow split like this:
 
 ```text
-backend/src/domain/applications/application.ts
-backend/src/persistence/postgres/applications-repository.ts
-backend/src/api/routes/applications.ts
-backend/src/persistence/postgres/schema.ts
+backend/src/features/applications/application.service.ts
+backend/src/features/applications/application.repository.ts
+backend/src/features/applications/application.routes.ts
+backend/src/database/schema.ts
 ```
 
 Keep validation in the service. The HTTP handler should parse input and return

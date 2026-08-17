@@ -9,14 +9,15 @@ AI-analysis worker, and a Goose-compatible migration runner.
 ```text
 backend/
   src/
-    api/             Fastify server, errors, and route plugins
-    app/             dependency composition
-    commands/        API, worker, and migration entry points
+    app.ts           Fastify application factory
+    server.ts        API process entry point
+    routes.ts        top-level route plugin composition
     config/          Zod-validated environment configuration
-    domain/          schemas, interfaces, and business rules
-    infrastructure/  PostgreSQL, Gemini, and migrations
-    persistence/     Drizzle repositories and schema mapping
-    workers/         AI-analysis processor
+    database/        PostgreSQL client, schema, migrations, and seed data
+    features/        feature-first routes, services, repositories, and tests
+    routes/          cross-feature health, OpenAPI, and export routes
+    scripts/         worker, migration, and seed entry points
+    shared/          shared errors, HTTP schemas, logging, and Redis client
   migrations/        authoritative SQL migration history
 ```
 
@@ -43,25 +44,31 @@ npm run build:api
 
 ## API Startup
 
-Entry point: `backend/src/commands/api.ts`.
+Entry point: `backend/src/server.ts`. The testable application factory lives in
+`backend/src/app.ts`.
 
 Startup loads and validates configuration, opens PostgreSQL, composes
 repositories and domain services, builds the Fastify server, and installs
 graceful shutdown handlers. `API_HOST` and `API_PORT` control the listener.
 
-Routes are Fastify plugins under `backend/src/api/routes`. Request bodies,
+Routes are Fastify plugins colocated under `backend/src/features/<feature>`.
+Cross-feature routes live under `backend/src/routes`. Request bodies,
 parameters, queries, and responses use Zod schemas through the Fastify Zod type
 provider. The generated OpenAPI document and Swagger UI are served at
 `/api/v1/openapi.yaml` and `/api/v1/docs`.
 
-## Backend Layers
+## Feature Slices
+
+Backend code is organized by product feature rather than by technical layer.
+For example, the applications route plugin, service, repository, and tests all
+live in `src/features/applications`. Shared database and HTTP utilities stay in
+their small top-level folders.
 
 ```text
 HTTP request
-  -> Fastify route + Zod contract
-  -> domain service
-  -> repository interface
-  -> Drizzle repository
+  -> feature Fastify route + Zod contract
+  -> feature service
+  -> repository contract + Drizzle implementation
   -> PostgreSQL
 ```
 
@@ -77,13 +84,13 @@ identity or inheritance.
 
 ## Configuration
 
-`backend/src/config/config.ts` validates environment variables with Zod and
+`backend/src/config/env.ts` validates environment variables with Zod and
 applies local defaults. Do not read `process.env` throughout the application;
 load configuration once at a command boundary and inject values into adapters.
 
 ## Migrations
 
-Entry point: `backend/src/commands/migrate.ts`.
+Entry point: `backend/src/scripts/migrate.ts`.
 
 ```sh
 npm run migrate:up
@@ -102,7 +109,7 @@ the persistent schema changes, then update the Drizzle schema mapping.
 
 ## Worker
 
-Entry point: `backend/src/commands/worker.ts`.
+Entry point: `backend/src/scripts/worker.ts`.
 
 When `GEMINI_API_KEY` is configured, the worker runs the AI-analysis processor.
 AI analysis supports structured Gemini output, resume embedding ranking, JD
@@ -112,7 +119,7 @@ background worker.
 
 Processor logic is kept independent from long-running loops so it can be tested
 with plain fakes. Unit tests live beside worker modules; real repository coverage
-is in `backend/src/persistence/postgres/repositories.integration.test.ts`.
+is in `backend/src/database/repositories.integration.test.ts`.
 
 ## Deployment
 
