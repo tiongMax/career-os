@@ -13,7 +13,7 @@ import type { Database } from "../../infrastructure/postgres.js";
 const activeStatuses = `'applied','online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer'`;
 const respondedStatuses = `'online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer','rejected'`;
 const interviewStatuses = `'recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer'`;
-const finalStatuses = `'offer','rejected','withdrawn','kiv'`;
+const finalStatuses = `'offer','rejected','ghosted','withdrawn','kiv'`;
 
 type Row<T> = T & Record<string, unknown>;
 

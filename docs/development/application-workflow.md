@@ -26,6 +26,7 @@ Application status rules are implemented in:
 | `onsite` | Final or multi-round interview stage is active. |
 | `offer` | Offer received. |
 | `rejected` | Company rejected or process ended negatively. |
+| `ghosted` | The company stopped responding before the process formally ended. |
 | `withdrawn` | You withdrew or decided not to continue. |
 | `kiv` | Application is paused indefinitely but may resume later. |
 
@@ -33,25 +34,26 @@ Terminal statuses in the current state machine:
 
 - `withdrawn`
 
-`offer` is not terminal because the code allows it to move to `rejected` or
-`withdrawn`.
+`offer`, `rejected`, `ghosted`, and `kiv` are not terminal because the workflow
+allows an application to resume or move to another final state.
 
 ## Transition Rules
 
 | From | Allowed next statuses |
 | --- | --- |
 | `saved` | `applied`, `withdrawn`, `kiv` |
-| `applied` | `online_assessment`, `recruiter_screen`, `technical_screen`, `rejected`, `withdrawn`, `kiv` |
-| `online_assessment` | `recruiter_screen`, `technical_screen`, `rejected`, `withdrawn`, `kiv` |
-| `recruiter_screen` | `online_assessment`, `technical_screen`, `rejected`, `withdrawn`, `kiv` |
-| `technical_screen` | `technical_screen_2`, `onsite`, `rejected`, `withdrawn`, `kiv` |
-| `technical_screen_2` | `technical_screen_3`, `onsite`, `rejected`, `withdrawn`, `kiv` |
-| `technical_screen_3` | `technical_screen_4`, `onsite`, `rejected`, `withdrawn`, `kiv` |
-| `technical_screen_4` | `onsite`, `rejected`, `withdrawn`, `kiv` |
-| `onsite` | `offer`, `rejected`, `withdrawn`, `kiv` |
-| `offer` | `withdrawn`, `rejected`, `kiv` |
-| `rejected` | `saved`, `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `withdrawn`, `kiv` |
-| `kiv` | `saved`, `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `rejected`, `withdrawn` |
+| `applied` | `online_assessment`, `recruiter_screen`, `technical_screen`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `online_assessment` | `recruiter_screen`, `technical_screen`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `recruiter_screen` | `online_assessment`, `technical_screen`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `technical_screen` | `technical_screen_2`, `onsite`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `technical_screen_2` | `technical_screen_3`, `onsite`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `technical_screen_3` | `technical_screen_4`, `onsite`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `technical_screen_4` | `onsite`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `onsite` | `offer`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
+| `offer` | `withdrawn`, `rejected`, `ghosted`, `kiv` |
+| `rejected` | `saved`, `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `ghosted`, `withdrawn`, `kiv` |
+| `ghosted` | `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `rejected`, `withdrawn`, `kiv` |
+| `kiv` | `saved`, `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `rejected`, `ghosted`, `withdrawn` |
 | `withdrawn` | none |
 
 Invalid transitions return HTTP `409` from `PATCH /api/v1/applications/{id}/status`.
