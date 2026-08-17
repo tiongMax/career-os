@@ -4,9 +4,9 @@ tmp/
 dist/
 coverage.out
 *.log
+*.exe
 
 # Go
-backend/api.exe
 vendor/
 .gocache/
 .gomodcache/
@@ -17,5 +17,6 @@ node_modules/
 # OS/editor
 .DS_Store
 Thumbs.db
+.claude/
 .idea/
 .vscode/

@@ -1,26 +1,23 @@
 # Architecture
 
-CareerOS is split into a server-rendered Next.js frontend, a Go HTTP API, PostgreSQL, Redis, and a background reminder worker. The backend uses thin HTTP handlers, service packages for business rules, and a query layer shaped around generated/sqlc-style data access.
+CareerOS is split into a server-rendered Next.js frontend, a TypeScript Fastify API, PostgreSQL, and an optional AI-analysis worker process. The backend uses Zod HTTP contracts, functional domain services, repository interfaces, and Drizzle persistence.
 
 ## High-Level Structure
 
 ```text
 career-os/
   backend/
-    cmd/
-      api/          HTTP API process
-      worker/       reminder worker process
-      migrate/      Goose migration runner
-      seed/         seed command
-    internal/
-      config/       environment loading and defaults
-      db/           PostgreSQL and Redis clients
-      httpapi/      routes, handlers, OpenAPI serving, HTTP helpers
-      logger/       zerolog configuration
-      services/     business rules and orchestration
-      workers/      background reminder delivery loop
+    src/
+      app.ts        Fastify application factory
+      server.ts     API process entry point
+      routes.ts     top-level route plugin composition
+      config/       Zod-validated environment configuration
+      database/     PostgreSQL client, schema, migrations, and seed data
+      features/     feature-first routes, services, repositories, and tests
+      routes/       cross-feature health, OpenAPI, and export routes
+      scripts/      worker, migration, and seed entry points
+      shared/       shared HTTP and infrastructure helpers
     migrations/     database schema migrations
-    queries/        sqlc query source files
   frontend/
     app/            Next.js App Router pages
     components/     shared UI components
@@ -28,7 +25,7 @@ career-os/
   benchmarks/k6/    k6 load-test scripts
   docs/
     reference/     stable API, architecture, environment, and schema docs
-    development/   implementation guides, workflow notes, and decisions
+    development/   implementation guides, workflow notes, and testing notes
     product/       PRD and roadmap material
 ```
 
@@ -37,29 +34,31 @@ career-os/
 | Component | Entry point | Responsibility |
 | --- | --- | --- |
 | Frontend | `frontend/app` | Server-rendered operational UI for dashboard, applications, contacts, resume versions, reminders, and analytics. |
-| API | `backend/cmd/api/main.go` | Serves `/api/v1/*`, connects to PostgreSQL and Redis, exposes Swagger/OpenAPI docs. |
-| Worker | `backend/cmd/worker/main.go` | Polls Redis for due reminders, updates reminder state in PostgreSQL, retries failures, and dead-letters exhausted jobs. |
-| Migrator | `backend/cmd/migrate/main.go` | Applies and rolls back Goose migrations. |
+| API | `backend/src/server.ts` | Serves `/api/v1/*`, connects to PostgreSQL, and exposes Swagger/OpenAPI docs. |
+| Worker | `backend/src/scripts/worker.ts` | Optionally processes Gemini-backed AI analysis jobs. |
+| Migrator | `backend/src/scripts/migrate.ts` | Applies and rolls back the existing Goose-format SQL migrations. |
 | PostgreSQL | `docker-compose.yml` | Stores companies, applications, resume versions, job descriptions, contacts, interviews, reminders, audit logs, and analytics source data. |
-| Redis | `docker-compose.yml` | Stores reminder schedule state used by the API and worker. |
 
-## Backend Layers
+## Backend Feature Flow
+
+The backend uses vertical feature folders. A feature keeps its Fastify route,
+service, repository, schemas, and tests together; only genuinely shared code
+lives in `database`, `routes`, or `shared`.
 
 ```text
 HTTP request
-  -> chi router and middleware
-  -> httpapi handler
-  -> service package
-  -> db/queries package
+  -> feature Fastify route and Zod schema
+  -> feature service
+  -> repository contract and Drizzle implementation
   -> PostgreSQL
 
-Reminder API calls
-  -> reminders service
-  -> PostgreSQL mutation
-  -> Redis scheduler update
+Dashboard load
+  -> existing analytics and entity APIs
+  -> PostgreSQL reads
+  -> frontend attention-rule calculation
 ```
 
-Handlers own HTTP concerns: JSON decoding, path params, status codes, and response writing. Services own validation, status transitions, keyword extraction/scoring, analytics aggregation, reminder scheduling, and transaction-oriented behavior. Query packages own SQL and model mapping.
+Handlers own HTTP concerns: JSON decoding, path params, status codes, and response writing. Services own validation, status transitions, keyword extraction/scoring, analytics aggregation, and transaction-oriented behavior. Query packages own SQL and model mapping.
 
 ## Frontend Flow
 
@@ -67,7 +66,7 @@ Handlers own HTTP concerns: JSON decoding, path params, status codes, and respon
 Next.js page or form
   -> frontend/lib/api.ts
   -> fetch http://localhost:8080/api/v1/*
-  -> Go API
+  -> TypeScript API
   -> JSON response
   -> server-rendered or client-side UI
 ```
@@ -79,11 +78,14 @@ The frontend API base URL is `NEXT_PUBLIC_API_URL` when set, otherwise `http://l
 ```mermaid
 flowchart LR
   User[User] --> UI[Next.js Frontend]
-  UI -->|REST JSON / multipart PDF| API[Go API]
-  API -->|pgx| DB[(PostgreSQL)]
-  API -->|schedule/cancel reminders| Redis[(Redis)]
-  Worker[Reminder Worker] -->|poll due reminders| Redis
-  Worker -->|state, deliveries, failed jobs| DB
+  UI -->|REST JSON / multipart PDF| API[TypeScript Fastify API]
+  API -->|Drizzle / node-postgres| DB[(PostgreSQL)]
+  API -->|cache dashboard snapshot| Redis[(Redis)]
+  API -->|queue analysis jobs| DB
+  API -->|derive dashboard attention| Attention[Attention Rules]
+  Attention -->|application-level items| UI
+  Worker[AI Analysis Worker] -->|poll analysis jobs| DB
+  Worker -->|optional Gemini calls| Gemini[Gemini API]
   API -->|OpenAPI YAML / Swagger UI| Docs[API Docs]
   Bench[k6 Benchmarks] --> API
 ```
@@ -95,41 +97,45 @@ Core entities:
 - `companies`: organization metadata.
 - `resume_versions`: resume variants, tags, track, optional PDF data.
 - `applications`: job opportunities with status, source, dates, role track, company, and optional resume version.
+- `application_role_tracks`: optional multi-track labels for applications; `applications.role_track` remains the primary/backward-compatible track.
 - `job_descriptions`: raw JD text, extracted keywords, optional summary.
 - `contacts`: people associated with companies.
 - `interview_rounds`: scheduled rounds and outcomes for an application.
-- `reminders`: follow-ups/deadlines with retry state and idempotency keys.
+- `reminders`: optional manually dated dashboard follow-ups.
 - `audit_logs`: status transition history.
 - `role_tracks`: configurable role track names.
-- `reminder_deliveries` and `failed_reminder_jobs`: worker reliability records.
+- `reminder_deliveries` and `failed_reminder_jobs`: legacy compatibility records from the removed reminder worker.
+- `analysis_jobs`: queued, processing, completed, or failed AI analysis results.
 
 ## External Services and Integrations
 
 | Integration | Purpose | Required locally |
 | --- | --- | --- |
 | PostgreSQL | Primary data store and full-text search vectors. | Yes |
-| Redis | Reminder scheduling queue/state. | Yes for API startup and worker |
+| Redis | Short-lived dashboard read cache; not a reminder queue. | Yes |
+| Gemini API | Optional structured JD extraction, resume matching, prep briefs, and embeddings. | Only when `GEMINI_API_KEY` is set for the worker |
 | Swagger UI CDN | Renders `/api/v1/docs`. | Only needed to view Swagger UI in a browser |
 | k6 | Optional benchmark runner. | No |
 
-No third-party authentication, email, notification, or AI provider integration is currently wired in code.
+No third-party authentication, email, notification, or calendar integration is currently wired in code. Dashboard attention is calculated only when the app is opened.
 
 ## Request Middleware
 
-The API router uses:
+The API server uses:
 
 - CORS with `Access-Control-Allow-Origin: *`
-- Chi request IDs
-- Real IP parsing
-- Structured request logging
-- Panic recovery
+- Fastify request IDs and structured logging
+- Zod request and response validation
+- centralized error mapping
 
 ## Deployment Notes
 
-The Dockerfile builds three backend binaries: `api`, `worker`, and `migrate`. In the `full` Compose profile, the API container runs migrations before starting:
+The multi-stage Dockerfile builds a production Node 22 image containing the API,
+worker, migration runner, and SQL files. In the `full` Compose profile, the API
+container runs migrations before starting:
 
 ```sh
-./migrate up && ./api
+node dist/scripts/migrate.js up && node dist/server.js
 ```
 
 The frontend is not included in the backend Dockerfile. Production frontend deployment needs separate hosting or a frontend container.

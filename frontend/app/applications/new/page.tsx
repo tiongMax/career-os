@@ -5,25 +5,36 @@ import { NewApplicationForm } from "./form";
 
 export default async function NewApplicationPage() {
   const [companies, resumes, tracks] = await Promise.all([
-    getCompanies().catch(() => []),
-    getResumeVersions().catch(() => []),
-    getRoleTracks().catch(() => []),
+    getCompanies(),
+    getResumeVersions(),
+    getRoleTracks(),
   ]);
 
   return (
     <div className="max-w-2xl space-y-6">
       <div>
         <div className="flex items-center gap-1.5 text-sm text-neutral-400 mb-2">
-          <Link href="/applications" className="hover:text-neutral-600 transition-colors">
+          <Link
+            href="/applications"
+            className="hover:text-neutral-600 transition-colors"
+          >
             Applications
           </Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span className="text-neutral-600">New</span>
         </div>
-        <h1 className="text-2xl font-semibold text-neutral-900">New Application</h1>
-        <p className="mt-1 text-sm text-neutral-500">Track a new job application</p>
+        <h1 className="text-2xl font-semibold text-neutral-900">
+          New Application
+        </h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Track a new job application
+        </p>
       </div>
-      <NewApplicationForm companies={companies} resumes={resumes} tracks={tracks} />
+      <NewApplicationForm
+        companies={companies}
+        resumes={resumes}
+        tracks={tracks}
+      />
     </div>
   );
 }

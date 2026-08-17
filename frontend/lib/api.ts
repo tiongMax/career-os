@@ -1,6 +1,20 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 const DEFAULT_TIMEOUT_MS = 5_000;
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+export function isApiNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
 export function apiUrl(path: string): string {
   return `${BASE}${path}`;
 }
@@ -8,18 +22,23 @@ export function apiUrl(path: string): string {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  const headers = new Headers(init?.headers);
+
+  if (init?.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   try {
     const res = await fetch(apiUrl(path), {
       ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
+      headers,
       cache: "no-store",
       signal: controller.signal,
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => res.statusText);
-      throw new Error(`API ${res.status}: ${text}`);
+      throw new ApiError(`API ${res.status}: ${text}`, res.status);
     }
     if (res.status === 204) {
       return undefined as T;
@@ -47,6 +66,7 @@ export interface ResumeVersion {
   id: string;
   name: string;
   track: string;
+  content_text?: string;
   has_pdf: boolean;
   tags: string[];
   created_at: string;
@@ -59,16 +79,26 @@ export interface Application {
   resume_version_id?: string;
   title: string;
   role_track: string;
+  role_tracks: string[];
   source?: string;
   status: string;
   location?: string;
   employment_type?: string;
   job_url?: string;
+  portal_account?: string;
+  portal_password?: string;
   applied_at?: string;
   deadline_at?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ApplicationPage {
+  items: Application[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface JobDescription {
@@ -122,15 +152,6 @@ export interface Reminder {
   updated_at: string;
 }
 
-export interface FailedReminderJob {
-  id: string;
-  reminder_id?: string;
-  error_message: string;
-  retry_count: number;
-  payload: unknown;
-  failed_at: string;
-}
-
 export interface AuditLog {
   id: string;
   entity_type: string;
@@ -139,6 +160,52 @@ export interface AuditLog {
   old_value?: unknown;
   new_value?: unknown;
   created_at: string;
+}
+
+export type AnalysisJobType = "resume_match" | "jd_extract" | "prep_brief";
+export type AnalysisJobStatus =
+  "queued" | "processing" | "completed" | "failed";
+
+export interface EmbeddingMatch {
+  resume_version_id: string;
+  resume_version_name: string;
+  similarity: number;
+}
+
+export interface AnalysisResult {
+  summary?: string;
+  recommended_resume_id?: string;
+  recommended_resume_name?: string;
+  match_score?: number;
+  matched_skills?: string[];
+  missing_skills?: string[];
+  extracted_keywords?: string[];
+  core_requirements?: string[];
+  responsibilities?: string[];
+  seniority?: string;
+  resume_feedback?: string[];
+  interview_focus?: string[];
+  prep_plan?: string[];
+  talking_points?: string[];
+  suggested_questions?: string[];
+  embedding_matches?: EmbeddingMatch[];
+  generated_at?: string;
+}
+
+export interface AnalysisJob {
+  id: string;
+  application_id: string;
+  job_type: AnalysisJobType;
+  status: AnalysisJobStatus;
+  input_snapshot: unknown;
+  result?: AnalysisResult;
+  error_message?: string;
+  retry_count: number;
+  idempotency_key: string;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Role Tracks ─────────────────────────────────────────────────────────────
@@ -170,41 +237,92 @@ export interface CreateCompanyPayload {
 }
 
 export const createCompany = (payload: CreateCompanyPayload) =>
-  apiFetch<Company>("/companies", { method: "POST", body: JSON.stringify(payload) });
+  apiFetch<Company>("/companies", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const deleteCompany = (id: string) =>
+  apiFetch<void>(`/companies/${id}`, { method: "DELETE" });
 
 // ─── Resume Versions ─────────────────────────────────────────────────────────
 
-export const getResumeVersions = () => apiFetch<ResumeVersion[]>("/resume-versions");
+export const getResumeVersions = () =>
+  apiFetch<ResumeVersion[]>("/resume-versions");
 export const getResumeVersion = (id: string) =>
   apiFetch<ResumeVersion>(`/resume-versions/${id}`);
 export const createResumeVersion = (body: {
   name: string;
   track: string;
+  content_text?: string;
   tags?: string[];
-}) => apiFetch<ResumeVersion>("/resume-versions", { method: "POST", body: JSON.stringify(body) });
-export const updateResumeVersion = (id: string, body: {
-  name?: string;
-  track?: string;
-  tags?: string[];
-}) => apiFetch<ResumeVersion>(`/resume-versions/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+}) =>
+  apiFetch<ResumeVersion>("/resume-versions", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+export const updateResumeVersion = (
+  id: string,
+  body: {
+    name?: string;
+    track?: string;
+    content_text?: string;
+    tags?: string[];
+  },
+) =>
+  apiFetch<ResumeVersion>(`/resume-versions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 export const deleteResumeVersion = (id: string) =>
   apiFetch<void>(`/resume-versions/${id}`, { method: "DELETE" });
 
-export const uploadResumePDF = async (id: string, file: File): Promise<void> => {
+export const uploadResumePDF = async (
+  id: string,
+  file: File,
+): Promise<void> => {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(apiUrl(`/resume-versions/${id}/pdf`), { method: "POST", body: form });
+  const res = await fetch(apiUrl(`/resume-versions/${id}/pdf`), {
+    method: "POST",
+    body: form,
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`API ${res.status}: ${text}`);
   }
 };
 
-export const getResumePDFUrl = (id: string) => apiUrl(`/resume-versions/${id}/pdf`);
+export const getResumePDFUrl = (id: string) =>
+  apiUrl(`/resume-versions/${id}/pdf`);
 
 // ─── Applications ────────────────────────────────────────────────────────────
 
 export const getApplications = () => apiFetch<Application[]>("/applications");
+export const getApplicationsPage = async ({
+  limit,
+  offset,
+}: {
+  limit: number;
+  offset: number;
+}): Promise<ApplicationPage> => {
+  const data = await apiFetch<ApplicationPage | Application[]>(
+    `/applications?limit=${limit}&offset=${offset}`,
+  );
+  if (Array.isArray(data)) {
+    return {
+      items: data.slice(offset, offset + limit),
+      total: data.length,
+      limit,
+      offset,
+    };
+  }
+  return {
+    items: data.items ?? [],
+    total: data.total ?? data.items?.length ?? 0,
+    limit: data.limit ?? limit,
+    offset: data.offset ?? offset,
+  };
+};
 export const getApplication = (id: string) =>
   apiFetch<Application>(`/applications/${id}`);
 export interface CreateApplicationPayload {
@@ -212,31 +330,90 @@ export interface CreateApplicationPayload {
   resume_version_id?: string;
   title: string;
   role_track: string;
+  role_tracks?: string[];
   source?: string;
   status?: string;
   location?: string;
   employment_type?: string;
   job_url?: string;
+  portal_account?: string;
+  portal_password?: string;
   applied_at?: string;
   deadline_at?: string;
   notes?: string;
 }
 
 export const createApplication = (payload: CreateApplicationPayload) =>
-  apiFetch<Application>("/applications", { method: "POST", body: JSON.stringify(payload) });
+  apiFetch<Application>("/applications", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export type UpdateApplicationPayload = Partial<CreateApplicationPayload>;
+export const updateApplication = (
+  id: string,
+  payload: UpdateApplicationPayload,
+) =>
+  apiFetch<Application>(`/applications/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const deleteApplication = (id: string) =>
+  apiFetch<void>(`/applications/${id}`, { method: "DELETE" });
+export const updateApplicationStatus = (
+  id: string,
+  status: string,
+  dates?: { received_at?: string; completed_at?: string },
+) =>
+  apiFetch<Application>(`/applications/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, ...dates }),
+  });
 export const getApplicationAuditLogs = (id: string) =>
   apiFetch<AuditLog[]>(`/applications/${id}/audit-logs`);
 export const getApplicationJobDescription = (id: string) =>
   apiFetch<JobDescription>(`/applications/${id}/job-description`);
+export const createApplicationJobDescription = (
+  applicationId: string,
+  payload: { raw_text: string },
+) =>
+  apiFetch<JobDescription>(`/applications/${applicationId}/job-description`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateJobDescription = (
+  id: string,
+  payload: { raw_text?: string; extracted_keywords?: string[] },
+) =>
+  apiFetch<JobDescription>(`/job-descriptions/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 export const getApplicationInterviews = (id: string) =>
   apiFetch<InterviewRound[]>(`/applications/${id}/interviews`);
+export const createInterview = (
+  applicationId: string,
+  payload: {
+    round_type: string;
+    scheduled_at?: string;
+    interviewer?: string;
+    notes?: string;
+  },
+) =>
+  apiFetch<InterviewRound>(`/applications/${applicationId}/interviews`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 export const getRecommendedResume = (applicationId: string) =>
-  apiFetch<RecommendedResumeResult>(`/applications/${applicationId}/recommended-resume`);
+  apiFetch<RecommendedResumeResult>(
+    `/applications/${applicationId}/recommended-resume`,
+  );
 
 export interface ResumeMatchResult {
   matched: string[];
   missing: string[];
   score: number;
+  compared_keywords: number;
+  evidence: Array<{ keyword: string; source: string; weight: number }>;
 }
 
 export interface RecommendedResumeResult {
@@ -247,9 +424,14 @@ export interface RecommendedResumeResult {
 }
 
 export const extractKeywords = (jdId: string) =>
-  apiFetch<JobDescription>(`/job-descriptions/${jdId}/extract-keywords`, { method: "POST" });
+  apiFetch<JobDescription>(`/job-descriptions/${jdId}/extract-keywords`, {
+    method: "POST",
+  });
 export const compareResume = (jdId: string, resumeVersionId: string) =>
-  apiFetch<ResumeMatchResult>(`/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`, { method: "POST" });
+  apiFetch<ResumeMatchResult>(
+    `/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`,
+    { method: "POST" },
+  );
 
 export interface PrepContext {
   application: Application;
@@ -272,7 +454,19 @@ export interface PrepBrief {
 export const getPrepContext = (applicationId: string) =>
   apiFetch<PrepContext>(`/applications/${applicationId}/prep-context`);
 export const generatePrepBrief = (applicationId: string) =>
-  apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, { method: "POST" });
+  apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, {
+    method: "POST",
+  });
+export const getApplicationAnalysisJobs = (applicationId: string) =>
+  apiFetch<AnalysisJob[]>(`/applications/${applicationId}/ai-analysis-jobs`);
+export const createAnalysisJob = (
+  applicationId: string,
+  jobType: AnalysisJobType,
+) =>
+  apiFetch<AnalysisJob>(`/applications/${applicationId}/ai-analysis-jobs`, {
+    method: "POST",
+    body: JSON.stringify({ job_type: jobType }),
+  });
 
 // ─── Contacts ────────────────────────────────────────────────────────────────
 
@@ -290,7 +484,10 @@ export interface CreateContactPayload {
 }
 
 export const createContact = (payload: CreateContactPayload) =>
-  apiFetch<Contact>("/contacts", { method: "POST", body: JSON.stringify(payload) });
+  apiFetch<Contact>("/contacts", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
 export interface UpdateContactPayload {
   company_id?: string;
@@ -303,14 +500,46 @@ export interface UpdateContactPayload {
 }
 
 export const updateContact = (id: string, payload: UpdateContactPayload) =>
-  apiFetch<Contact>(`/contacts/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+  apiFetch<Contact>(`/contacts/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 
 // ─── Reminders ───────────────────────────────────────────────────────────────
 
 export const getReminders = () => apiFetch<Reminder[]>("/reminders");
-export const getFailedReminders = () => apiFetch<FailedReminderJob[]>("/reminders/failed");
-export const retryReminder = (id: string) =>
-  apiFetch<Reminder>(`/reminders/${id}/retry`, { method: "POST" });
+export const getReminder = (id: string) =>
+  apiFetch<Reminder>(`/reminders/${id}`);
+export interface CreateReminderPayload {
+  application_id: string;
+  contact_id?: string;
+  title: string;
+  description?: string | null;
+  due_at: string;
+}
+
+export interface UpdateReminderPayload {
+  application_id?: string;
+  contact_id?: string;
+  title?: string;
+  description?: string | null;
+  due_at?: string;
+}
+
+export const createReminder = (payload: CreateReminderPayload) =>
+  apiFetch<Reminder>("/reminders", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const updateReminder = (id: string, payload: UpdateReminderPayload) =>
+  apiFetch<Reminder>(`/reminders/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+export const completeReminder = (id: string) =>
+  apiFetch<Reminder>(`/reminders/${id}/cancel`, { method: "POST" });
+export const deleteReminder = (id: string) =>
+  apiFetch<void>(`/reminders/${id}`, { method: "DELETE" });
 
 // ─── Search ──────────────────────────────────────────────────────────────────
 
@@ -323,7 +552,9 @@ export interface SearchResult {
 }
 
 export const search = (q: string) =>
-  apiFetch<{ query: string; results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`);
+  apiFetch<{ query: string; results: SearchResult[] }>(
+    `/search?q=${encodeURIComponent(q)}`,
+  );
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
 
@@ -392,14 +623,85 @@ export interface UpcomingData {
   reminders: UpcomingReminder[];
 }
 
-export const getAnalyticsSummary = () => apiFetch<AnalyticsSummary>("/analytics/summary");
-export const getAnalyticsByStatus = () => apiFetch<StatusCount[]>("/analytics/by-status");
-export const getAnalyticsByTrack = () => apiFetch<TrackCount[]>("/analytics/by-role-track");
-export const getAnalyticsByResumeVersion = () => apiFetch<ResumeVersionPerformance[]>("/analytics/by-resume-version");
-export const getAnalyticsSourcePerformance = () => apiFetch<SourcePerformance[]>("/analytics/source-performance");
-export const getAnalyticsFunnel = () => apiFetch<FunnelStep[]>("/analytics/funnel");
-export const getAnalyticsUpcoming = () => apiFetch<UpcomingData>("/analytics/upcoming");
+export interface DashboardSnapshot {
+  generated_at: string;
+  summary: {
+    total: number;
+    active: number;
+    responded: number;
+    interviewed: number;
+    offers: number;
+    rejected: number;
+  };
+  attention: {
+    overdue_reminders: number;
+    due_today_reminders: number;
+    stale_applications: number;
+    missing_resume_version: number;
+    items: Array<{
+      id: string;
+      application_id: string;
+      application_title: string;
+      company_name: string;
+      type:
+        | "overdue_reminder"
+        | "due_reminder"
+        | "deadline"
+        | "interview"
+        | "follow_up"
+        | "stale"
+        | "missing_resume";
+      title: string | null;
+      action_at: string;
+    }>;
+  };
+  pipeline: Record<string, number>;
+  recent_applications: Array<{
+    id: string;
+    title: string;
+    status: string;
+    company_name: string;
+    updated_at: string;
+  }>;
+  upcoming: {
+    interviews: Array<{
+      id: string;
+      application_title: string;
+      company_name: string;
+      scheduled_at: string;
+    }>;
+    reminders: Array<{
+      id: string;
+      title: string;
+      application_title: string;
+      due_at: string;
+    }>;
+    deadlines: Array<{
+      id: string;
+      title: string;
+      company_name: string;
+      deadline_at: string;
+    }>;
+  };
+}
+
+export const getAnalyticsSummary = () =>
+  apiFetch<AnalyticsSummary>("/analytics/summary");
+export const getAnalyticsByStatus = () =>
+  apiFetch<StatusCount[]>("/analytics/by-status");
+export const getAnalyticsByTrack = () =>
+  apiFetch<TrackCount[]>("/analytics/by-role-track");
+export const getAnalyticsByResumeVersion = () =>
+  apiFetch<ResumeVersionPerformance[]>("/analytics/by-resume-version");
+export const getAnalyticsSourcePerformance = () =>
+  apiFetch<SourcePerformance[]>("/analytics/source-performance");
+export const getAnalyticsFunnel = () =>
+  apiFetch<FunnelStep[]>("/analytics/funnel");
+export const getAnalyticsUpcoming = () =>
+  apiFetch<UpcomingData>("/analytics/upcoming");
+export const getDashboard = () => apiFetch<DashboardSnapshot>("/dashboard");
 
 export type ExportKind = "applications" | "contacts" | "reminders";
 
-export const getExportUrl = (kind: ExportKind) => apiUrl(`/exports/${kind}.csv`);
+export const getExportUrl = (kind: ExportKind) =>
+  apiUrl(`/exports/${kind}.csv`);

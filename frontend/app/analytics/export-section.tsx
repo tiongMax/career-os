@@ -17,10 +17,10 @@ const EXPORTS = [
     description: "Recruiter and referral contacts",
   },
   {
-    label: "Reminders",
+    label: "Follow-ups",
     href: getExportUrl("reminders"),
     filename: "reminders.csv",
-    description: "Follow-up reminders and delivery status",
+    description: "Scheduled follow-ups tied to applications",
   },
 ];
 

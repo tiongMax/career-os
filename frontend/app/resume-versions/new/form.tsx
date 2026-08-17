@@ -7,10 +7,11 @@ import { X, Paperclip, FileText } from "lucide-react";
 import { createResumeVersion, uploadResumePDF } from "@/lib/api";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
+import { formatTrackLabel } from "@/lib/domain/applications";
 
 const TRACK_OPTIONS: Option[] = ["backend", "ai", "quant", "general"].map((t) => ({
   value: t,
-  label: t.charAt(0).toUpperCase() + t.slice(1),
+  label: formatTrackLabel(t),
 }));
 
 export function NewResumeForm() {
@@ -43,9 +44,10 @@ export function NewResumeForm() {
     const fd = new FormData(e.currentTarget);
     const name = (fd.get("name") as string).trim();
     const track = fd.get("track") as string;
+    const contentText = (fd.get("content_text") as string).trim();
 
     try {
-      const resume = await createResumeVersion({ name, track, tags });
+      const resume = await createResumeVersion({ name, track, content_text: contentText || undefined, tags });
       if (pdfFile) await uploadResumePDF(resume.id, pdfFile);
       router.push("/resume-versions");
       router.refresh();
@@ -92,6 +94,14 @@ export function NewResumeForm() {
               className="min-w-30 flex-1 bg-transparent text-sm text-neutral-800 placeholder-neutral-400 outline-none"
             />
           </div>
+        </Field>
+        <Field label="Resume Text">
+          <textarea
+            name="content_text"
+            rows={8}
+            placeholder="Paste resume bullets or extracted text"
+            className={inputClass}
+          />
         </Field>
         <Field label="Resume PDF">
           <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />

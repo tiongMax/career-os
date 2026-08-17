@@ -2,26 +2,37 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
+import {
+  Search,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import type { Application } from "@/lib/api";
-import { formatRelative } from "@/lib/utils";
+import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import {
   APPLICATION_STATUS_OPTIONS,
   APPLICATION_STATUS_ORDER,
   TRACK_BADGE_CLASSES,
+  formatTrackLabel,
+  isVisibleTrack,
 } from "@/lib/domain/applications";
 
-const DATE_OPTIONS = [
-  { value: "today",   label: "Today" },
-  { value: "7d",      label: "Last 7 days" },
-  { value: "30d",     label: "Last 30 days" },
-  { value: "90d",     label: "Last 3 months" },
-  { value: "year",    label: "This year" },
-];
-
-type SortCol = "title" | "company" | "track" | "status" | "applied";
+type SortCol =
+  "title" | "company" | "track" | "employment" | "status" | "applied";
 type SortDir = "asc" | "desc";
+
+const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  full_time: "Full-time",
+  internship: "Internship",
+  apprentice: "Apprentice",
+  part_time: "Part-time",
+  contract: "Contract",
+};
 
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
@@ -33,41 +44,64 @@ function fuzzyMatch(query: string, target: string): boolean {
   return qi === q.length;
 }
 
-function dateThreshold(range: string): Date {
-  const now = new Date();
-  switch (range) {
-    case "today": {
-      const d = new Date(now);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    case "7d":   return new Date(now.getTime() - 7  * 86400_000);
-    case "30d":  return new Date(now.getTime() - 30 * 86400_000);
-    case "90d":  return new Date(now.getTime() - 90 * 86400_000);
-    case "year": return new Date(now.getFullYear(), 0, 1);
-    default:     return new Date(0);
-  }
+function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function dateKey(date: Date): string {
+  return `${monthKey(date)}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function addMonths(date: Date, amount: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function formatMonthYear(date: Date): string {
+  return date.toLocaleString("en-US", { month: "long", year: "numeric" });
 }
 
 interface Props {
   applications: Application[];
   companyMap: Record<string, string>;
+  page: number;
+  pageSize: number;
+  total: number;
 }
 
-function SortIcon({ col, sortCol, sortDir }: { col: SortCol; sortCol: SortCol; sortDir: SortDir }) {
-  if (sortCol !== col) return <ChevronsUpDown className="w-3.5 h-3.5 ml-1 opacity-40" />;
-  return sortDir === "asc"
-    ? <ChevronUp className="w-3.5 h-3.5 ml-1 text-neutral-700" />
-    : <ChevronDown className="w-3.5 h-3.5 ml-1 text-neutral-700" />;
+function SortIcon({
+  col,
+  sortCol,
+  sortDir,
+}: {
+  col: SortCol;
+  sortCol: SortCol;
+  sortDir: SortDir;
+}) {
+  if (sortCol !== col)
+    return <ChevronsUpDown className="w-3.5 h-3.5 ml-1 opacity-40" />;
+  return sortDir === "asc" ? (
+    <ChevronUp className="w-3.5 h-3.5 ml-1 text-neutral-700" />
+  ) : (
+    <ChevronDown className="w-3.5 h-3.5 ml-1 text-neutral-700" />
+  );
 }
 
-export function ApplicationsTable({ applications, companyMap }: Props) {
+export function ApplicationsTable({
+  applications,
+  companyMap,
+  page,
+  pageSize,
+  total,
+}: Props) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [companyFilter, setCompanyFilter] = useState<string[]>([]);
-  const [dateFilter, setDateFilter] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 200);
@@ -79,7 +113,7 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const allTracks = useMemo(() => {
-    return [...new Set(applications.map((a) => a.role_track).filter(Boolean))].sort();
+    return [...new Set(applications.flatMap(applicationTracks))].sort();
   }, [applications]);
 
   const allCompanies = useMemo(() => {
@@ -89,6 +123,16 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       .filter((c) => c.name)
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [applications, companyMap]);
+
+  const applicationCountsByDate = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const application of applications) {
+      const appliedAt = application.applied_at ?? application.created_at;
+      const key = dateKey(new Date(appliedAt));
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts;
+  }, [applications]);
 
   const handleSort = (col: SortCol) => {
     if (sortCol === col) {
@@ -100,11 +144,17 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
   };
 
   const toggleTrack = (v: string) =>
-    setTrackFilter((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v]);
+    setTrackFilter((p) =>
+      p.includes(v) ? p.filter((x) => x !== v) : [...p, v],
+    );
   const toggleStatus = (v: string) =>
-    setStatusFilter((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v]);
+    setStatusFilter((p) =>
+      p.includes(v) ? p.filter((x) => x !== v) : [...p, v],
+    );
   const toggleCompany = (v: string) =>
-    setCompanyFilter((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v]);
+    setCompanyFilter((p) =>
+      p.includes(v) ? p.filter((x) => x !== v) : [...p, v],
+    );
 
   const filtered = useMemo(() => {
     let list = applications;
@@ -114,7 +164,9 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
     }
 
     if (trackFilter.length > 0)
-      list = list.filter((a) => trackFilter.includes(a.role_track));
+      list = list.filter((a) =>
+        applicationTracks(a).some((track) => trackFilter.includes(track)),
+      );
 
     if (statusFilter.length > 0)
       list = list.filter((a) => statusFilter.includes(a.status));
@@ -122,11 +174,10 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
     if (companyFilter.length > 0)
       list = list.filter((a) => companyFilter.includes(a.company_id));
 
-    if (dateFilter) {
-      const threshold = dateThreshold(dateFilter);
+    if (selectedDate) {
       list = list.filter((a) => {
-        if (!a.applied_at) return false;
-        return new Date(a.applied_at) >= threshold;
+        const appliedAt = a.applied_at ?? a.created_at;
+        return dateKey(new Date(appliedAt)) === selectedDate;
       });
     }
 
@@ -137,13 +188,24 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           cmp = a.title.localeCompare(b.title);
           break;
         case "company":
-          cmp = (companyMap[a.company_id] ?? "").localeCompare(companyMap[b.company_id] ?? "");
+          cmp = (companyMap[a.company_id] ?? "").localeCompare(
+            companyMap[b.company_id] ?? "",
+          );
           break;
         case "track":
-          cmp = a.role_track.localeCompare(b.role_track);
+          cmp = applicationTracks(a)
+            .join(", ")
+            .localeCompare(applicationTracks(b).join(", "));
+          break;
+        case "employment":
+          cmp = employmentTypeLabel(a.employment_type).localeCompare(
+            employmentTypeLabel(b.employment_type),
+          );
           break;
         case "status":
-          cmp = APPLICATION_STATUS_ORDER.indexOf(a.status) - APPLICATION_STATUS_ORDER.indexOf(b.status);
+          cmp =
+            APPLICATION_STATUS_ORDER.indexOf(a.status) -
+            APPLICATION_STATUS_ORDER.indexOf(b.status);
           break;
         case "applied": {
           const da = new Date(a.applied_at ?? a.created_at).getTime();
@@ -154,28 +216,51 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [applications, companyMap, debouncedSearch, trackFilter, statusFilter, companyFilter, dateFilter, sortCol, sortDir]);
+  }, [
+    applications,
+    companyMap,
+    debouncedSearch,
+    trackFilter,
+    statusFilter,
+    companyFilter,
+    selectedDate,
+    sortCol,
+    sortDir,
+  ]);
 
-  const hasFilters = search.trim() || trackFilter.length > 0 || statusFilter.length > 0 || companyFilter.length > 0 || dateFilter;
+  const hasFilters =
+    search.trim() ||
+    trackFilter.length > 0 ||
+    statusFilter.length > 0 ||
+    companyFilter.length > 0 ||
+    selectedDate;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastItem = Math.min(total, page * pageSize);
 
   const clearAll = () => {
     setSearch("");
     setTrackFilter([]);
     setStatusFilter([]);
     setCompanyFilter([]);
-    setDateFilter("");
+    setSelectedDate("");
   };
 
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Applications</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            {filtered.length !== applications.length
-              ? `${filtered.length} of ${applications.length} total`
-              : `${applications.length} total`}
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            Applications
+          </h1>
+          <p
+            className="mt-1 text-sm text-neutral-500"
+            aria-live="polite"
+          >
+            {hasFilters
+              ? `${filtered.length} filtered on this page`
+              : `Showing ${firstItem}-${lastItem} of ${total}`}
           </p>
         </div>
         <Link
@@ -189,10 +274,11 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative min-w-56 flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
           <input
             type="text"
+            aria-label="Search applications by role"
             placeholder="Search roles..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -200,18 +286,40 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              aria-label="Clear application search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm text-neutral-400 hover:text-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        <CompanyFilter companies={allCompanies} selected={companyFilter} onToggle={toggleCompany} onClear={() => setCompanyFilter([])} />
-        <TrackFilter tracks={allTracks} selected={trackFilter} onToggle={toggleTrack} onClear={() => setTrackFilter([])} />
-        <StatusFilter selected={statusFilter} onToggle={toggleStatus} onClear={() => setStatusFilter([])} />
-        <DateFilter selected={dateFilter} onChange={setDateFilter} />
+        <CompanyFilter
+          companies={allCompanies}
+          selected={companyFilter}
+          onToggle={toggleCompany}
+          onClear={() => setCompanyFilter([])}
+        />
+        <TrackFilter
+          tracks={allTracks}
+          selected={trackFilter}
+          onToggle={toggleTrack}
+          onClear={() => setTrackFilter([])}
+        />
+        <StatusFilter
+          selected={statusFilter}
+          onToggle={toggleStatus}
+          onClear={() => setStatusFilter([])}
+        />
+        <DateFilter
+          countsByDate={applicationCountsByDate}
+          selected={selectedDate}
+          selectedMonth={selectedMonth}
+          onChange={setSelectedDate}
+          onMonthChange={setSelectedMonth}
+        />
 
         {hasFilters && (
           <button
@@ -226,84 +334,235 @@ export function ApplicationsTable({ applications, companyMap }: Props) {
       {/* Table */}
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-neutral-200 bg-white py-16 text-center">
-          <p className="text-sm font-medium text-neutral-500">No applications match your filters</p>
-          <button onClick={clearAll} className="mt-3 text-xs text-blue-600 hover:underline">
+          <p className="text-sm font-medium text-neutral-500">
+            No applications match your filters
+          </p>
+          <button
+            onClick={clearAll}
+            className="mt-3 text-xs text-blue-600 hover:underline"
+          >
             Clear filters
           </button>
         </div>
       ) : (
-        <div className={`rounded-lg border border-neutral-200 bg-white overflow-hidden transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50">
-                {(
-                  [
-                    { col: "title"   as SortCol, label: "Role" },
-                    { col: "company" as SortCol, label: "Company" },
-                    { col: "track"   as SortCol, label: "Track" },
-                    { col: "status"  as SortCol, label: "Status" },
-                    { col: "applied" as SortCol, label: "Applied" },
-                  ] as const
-                ).map(({ col, label }) => (
-                  <th key={col} className="px-5 py-3 text-left">
-                    <button
-                      onClick={() => handleSort(col)}
-                      className="flex items-center text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors"
+        <>
+          <div
+            aria-busy={isPending}
+            className={`overflow-x-auto rounded-lg border border-neutral-200 bg-white transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}
+          >
+            <table className="w-full min-w-[680px] text-sm lg:min-w-[760px]">
+              <caption className="sr-only">Job applications</caption>
+              <thead>
+                <tr className="border-b border-neutral-100 bg-neutral-50">
+                  {(
+                    [
+                      { col: "title" as SortCol, label: "Role" },
+                      { col: "company" as SortCol, label: "Company" },
+                      { col: "track" as SortCol, label: "Track" },
+                      { col: "employment" as SortCol, label: "Employment" },
+                      { col: "status" as SortCol, label: "Status" },
+                      { col: "applied" as SortCol, label: "Applied" },
+                    ] as const
+                  ).map(({ col, label }) => (
+                    <th
+                      key={col}
+                      scope="col"
+                      aria-sort={
+                        sortCol === col
+                          ? sortDir === "asc"
+                            ? "ascending"
+                            : "descending"
+                          : undefined
+                      }
+                      className="px-5 py-3 text-left"
                     >
-                      {label}
-                      <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
-                    </button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-100">
-              {filtered.map((app) => (
-                <tr key={app.id} className="hover:bg-neutral-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <Link
-                      href={`/applications/${app.id}`}
-                      className="font-medium text-neutral-800 hover:text-blue-600 transition-colors"
-                    >
-                      {app.title}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-neutral-500">
-                    {companyMap[app.company_id] ?? "—"}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${TRACK_BADGE_CLASSES[app.role_track] ?? "bg-neutral-100 text-neutral-600"}`}>
-                      {app.role_track}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <StatusBadge status={app.status} />
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-neutral-400">
-                    {formatRelative(app.applied_at ?? app.created_at)}
-                  </td>
+                      <button
+                        type="button"
+                        onClick={() => handleSort(col)}
+                        aria-label={`Sort applications by ${label}`}
+                        className="flex items-center rounded-sm text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
+                      >
+                        {label}
+                        <SortIcon
+                          col={col}
+                          sortCol={sortCol}
+                          sortDir={sortDir}
+                        />
+                      </button>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {filtered.map((app) => (
+                  <tr
+                    key={app.id}
+                    className="hover:bg-neutral-50 transition-colors"
+                  >
+                    <td className="px-5 py-3.5">
+                      <Link
+                        href={`/applications/${app.id}`}
+                        className="font-medium text-neutral-800 hover:text-blue-600 transition-colors"
+                      >
+                        {app.title}
+                      </Link>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-neutral-500">
+                      {companyMap[app.company_id] ?? "—"}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex max-w-48 flex-wrap gap-1">
+                        {applicationTracks(app).map((track) => (
+                          <span
+                            key={track}
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}
+                          >
+                            {formatTrackLabel(track)}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-neutral-500">
+                      {employmentTypeLabel(app.employment_type)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusBadge status={app.status} />
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="text-xs text-neutral-500">
+                        {formatDate(app.applied_at ?? app.created_at)}
+                      </div>
+                      <div className="mt-0.5 text-xs text-neutral-400">
+                        {formatRelative(app.applied_at ?? app.created_at)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            firstItem={firstItem}
+            lastItem={lastItem}
+            total={total}
+          />
+        </>
       )}
     </>
   );
 }
 
+function applicationTracks(application: Application): string[] {
+  const tracks = application.role_tracks?.length
+    ? application.role_tracks
+    : [application.role_track].filter(Boolean);
+  return tracks.filter(isVisibleTrack);
+}
+
+function employmentTypeLabel(value?: string): string {
+  if (!value) return "—";
+  return EMPLOYMENT_TYPE_LABELS[value] ?? value.replace(/_/g, " ");
+}
+
+function Pagination({
+  page,
+  totalPages,
+  firstItem,
+  lastItem,
+  total,
+}: {
+  page: number;
+  totalPages: number;
+  firstItem: number;
+  lastItem: number;
+  total: number;
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-xs text-neutral-400">
+        Showing {firstItem}-{lastItem} of {total}
+      </p>
+      <div className="flex items-center gap-2">
+        <PageLink page={page - 1} disabled={page <= 1}>
+          Previous
+        </PageLink>
+        <span className="text-xs text-neutral-500">
+          Page {page} of {totalPages}
+        </span>
+        <PageLink page={page + 1} disabled={page >= totalPages}>
+          Next
+        </PageLink>
+      </div>
+    </div>
+  );
+}
+
+function PageLink({
+  page,
+  disabled,
+  children,
+}: {
+  page: number;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const className = `rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+    disabled
+      ? "border-neutral-200 text-neutral-300"
+      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
+  }`;
+
+  if (disabled) {
+    return (
+      <span aria-disabled="true" className={className}>
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Link href={`/applications?page=${page}`} className={className}>
+      {children}
+    </Link>
+  );
+}
+
 // ── Shared checkbox row ───────────────────────────────────────────────────────
 
-function CheckRow({ checked, label, onClick }: { checked: boolean; label: string; onClick: () => void }) {
+function CheckRow({
+  checked,
+  label,
+  onClick,
+}: {
+  checked: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50"
+      aria-pressed={checked}
+      className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-900"
     >
-      <span className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center ${checked ? "bg-neutral-900 border-neutral-900" : "border-neutral-300"}`}>
+      <span
+        className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center ${checked ? "bg-neutral-900 border-neutral-900" : "border-neutral-300"}`}
+      >
         {checked && (
-          <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="none">
-            <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            className="w-2.5 h-2.5 text-white"
+            viewBox="0 0 10 10"
+            fill="none"
+          >
+            <path
+              d="M2 5l2.5 2.5L8 3"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         )}
       </span>
@@ -312,11 +571,27 @@ function CheckRow({ checked, label, onClick }: { checked: boolean; label: string
   );
 }
 
-function FilterButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterButton({
+  label,
+  active,
+  expanded,
+  controls,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  expanded: boolean;
+  controls: string;
+  onClick: () => void;
+}) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors ${
+      aria-expanded={expanded}
+      aria-controls={controls}
+      aria-haspopup="dialog"
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 ${
         active
           ? "border-neutral-900 bg-neutral-900 text-white"
           : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300"
@@ -328,8 +603,39 @@ function FilterButton({ label, active, onClick }: { label: string; active: boole
   );
 }
 
-function Backdrop({ onClose }: { onClose: () => void }) {
-  return <div className="fixed inset-0 z-10" onClick={onClose} />;
+function Backdrop({
+  onClose,
+  triggerControls,
+}: {
+  onClose: () => void;
+  triggerControls: string;
+}) {
+  function closeAndRestoreFocus() {
+    onClose();
+    requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLButtonElement>(`[aria-controls="${triggerControls}"]`)
+        ?.focus();
+    });
+  }
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") closeAndRestoreFocus();
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  });
+
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      className="fixed inset-0 z-10 cursor-default"
+      aria-label="Close filter"
+      onClick={closeAndRestoreFocus}
+    />
+  );
 }
 
 // ── Company filter ────────────────────────────────────────────────────────────
@@ -349,24 +655,45 @@ function CompanyFilter({
   const [query, setQuery] = useState("");
 
   const visible = query.trim()
-    ? companies.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
+    ? companies.filter((c) =>
+        c.name.toLowerCase().includes(query.toLowerCase()),
+      )
     : companies;
 
-  const label = selected.length === 0 ? "Company" : `Company (${selected.length})`;
+  const label =
+    selected.length === 0 ? "Company" : `Company (${selected.length})`;
 
   return (
     <div className="relative">
-      <FilterButton label={label} active={selected.length > 0} onClick={() => setOpen((o) => !o)} />
+      <FilterButton
+        label={label}
+        active={selected.length > 0}
+        expanded={open}
+        controls="application-company-filter"
+        onClick={() => setOpen((o) => !o)}
+      />
       {open && (
         <>
-          <Backdrop onClose={() => { setOpen(false); setQuery(""); }} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg w-52">
+          <Backdrop
+            triggerControls="application-company-filter"
+            onClose={() => {
+              setOpen(false);
+              setQuery("");
+            }}
+          />
+          <div
+            id="application-company-filter"
+            role="dialog"
+            aria-label="Filter applications by company"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg w-52"
+          >
             <div className="p-2 border-b border-neutral-100">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-neutral-400 pointer-events-none" />
                 <input
                   autoFocus
                   type="text"
+                  aria-label="Search companies"
                   placeholder="Search companies..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -376,7 +703,10 @@ function CompanyFilter({
             </div>
             {selected.length > 0 && (
               <button
-                onClick={() => { onClear(); setOpen(false); }}
+                onClick={() => {
+                  onClear();
+                  setOpen(false);
+                }}
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 border-b border-neutral-100"
               >
                 <X className="w-3 h-3" /> Clear company filter
@@ -387,7 +717,12 @@ function CompanyFilter({
                 <p className="px-3 py-2 text-xs text-neutral-400">No results</p>
               ) : (
                 visible.map((c) => (
-                  <CheckRow key={c.id} checked={selected.includes(c.id)} label={c.name} onClick={() => onToggle(c.id)} />
+                  <CheckRow
+                    key={c.id}
+                    checked={selected.includes(c.id)}
+                    label={c.name}
+                    onClick={() => onToggle(c.id)}
+                  />
                 ))
               )}
             </div>
@@ -416,21 +751,40 @@ function TrackFilter({
 
   return (
     <div className="relative">
-      <FilterButton label={label} active={selected.length > 0} onClick={() => setOpen((o) => !o)} />
+      <FilterButton
+        label={label}
+        active={selected.length > 0}
+        expanded={open}
+        controls="application-track-filter"
+        onClick={() => setOpen((o) => !o)}
+      />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-[140px]">
+          <Backdrop triggerControls="application-track-filter" onClose={() => setOpen(false)} />
+          <div
+            id="application-track-filter"
+            role="dialog"
+            aria-label="Filter applications by track"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-35"
+          >
             {selected.length > 0 && (
               <button
-                onClick={() => { onClear(); setOpen(false); }}
+                onClick={() => {
+                  onClear();
+                  setOpen(false);
+                }}
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 border-b border-neutral-100 mb-1"
               >
                 <X className="w-3 h-3" /> Clear track filter
               </button>
             )}
             {tracks.map((track) => (
-              <CheckRow key={track} checked={selected.includes(track)} label={track} onClick={() => onToggle(track)} />
+              <CheckRow
+                key={track}
+                checked={selected.includes(track)}
+                label={formatTrackLabel(track)}
+                onClick={() => onToggle(track)}
+              />
             ))}
           </div>
         </>
@@ -451,25 +805,45 @@ function StatusFilter({
   onClear: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const label = selected.length === 0 ? "Status" : `Status (${selected.length})`;
+  const label =
+    selected.length === 0 ? "Status" : `Status (${selected.length})`;
 
   return (
     <div className="relative">
-      <FilterButton label={label} active={selected.length > 0} onClick={() => setOpen((o) => !o)} />
+      <FilterButton
+        label={label}
+        active={selected.length > 0}
+        expanded={open}
+        controls="application-status-filter"
+        onClick={() => setOpen((o) => !o)}
+      />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-[160px]">
+          <Backdrop triggerControls="application-status-filter" onClose={() => setOpen(false)} />
+          <div
+            id="application-status-filter"
+            role="dialog"
+            aria-label="Filter applications by status"
+            className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-40"
+          >
             {selected.length > 0 && (
               <button
-                onClick={() => { onClear(); setOpen(false); }}
+                onClick={() => {
+                  onClear();
+                  setOpen(false);
+                }}
                 className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 border-b border-neutral-100 mb-1"
               >
                 <X className="w-3 h-3" /> Clear status filter
               </button>
             )}
             {APPLICATION_STATUS_OPTIONS.map(({ value, label: optLabel }) => (
-              <CheckRow key={value} checked={selected.includes(value)} label={optLabel} onClick={() => onToggle(value)} />
+              <CheckRow
+                key={value}
+                checked={selected.includes(value)}
+                label={optLabel}
+                onClick={() => onToggle(value)}
+              />
             ))}
           </div>
         </>
@@ -481,45 +855,136 @@ function StatusFilter({
 // ── Date filter ───────────────────────────────────────────────────────────────
 
 function DateFilter({
+  countsByDate,
   selected,
+  selectedMonth,
   onChange,
+  onMonthChange,
 }: {
+  countsByDate: Record<string, number>;
   selected: string;
+  selectedMonth: Date;
   onChange: (v: string) => void;
+  onMonthChange: (date: Date) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const activeLabel = DATE_OPTIONS.find((o) => o.value === selected)?.label;
-  const label = activeLabel ?? "Applied";
+  const label = selected ? formatDate(`${selected}T00:00:00`) : "Applied";
+  const firstDay = new Date(
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth(),
+    1,
+  );
+  const daysInMonth = new Date(
+    selectedMonth.getFullYear(),
+    selectedMonth.getMonth() + 1,
+    0,
+  ).getDate();
+  const leadingDays = firstDay.getDay();
+  const cells = [
+    ...Array.from({ length: leadingDays }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+  ];
 
   return (
     <div className="relative">
-      <FilterButton label={label} active={!!selected} onClick={() => setOpen((o) => !o)} />
+      <FilterButton
+        label={label}
+        active={!!selected}
+        expanded={open}
+        controls="application-date-filter"
+        onClick={() => setOpen((o) => !o)}
+      />
       {open && (
         <>
-          <Backdrop onClose={() => setOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 min-w-37.5">
+          <Backdrop triggerControls="application-date-filter" onClose={() => setOpen(false)} />
+          <div
+            id="application-date-filter"
+            role="dialog"
+            aria-label="Filter applications by applied date"
+            className="absolute right-0 top-full mt-1 z-20 w-72 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                aria-label="Previous month"
+                onClick={() => onMonthChange(addMonths(selectedMonth, -1))}
+                className="flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <p className="text-sm font-medium text-neutral-800">
+                {formatMonthYear(selectedMonth)}
+              </p>
+              <button
+                type="button"
+                aria-label="Next month"
+                onClick={() => onMonthChange(addMonths(selectedMonth, 1))}
+                className="flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-neutral-400">
+              {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                <div key={`${day}-${index}`} className="py-1">
+                  {day}
+                </div>
+              ))}
+            </div>
+            <div className="mt-1 grid grid-cols-7 gap-1">
+              {cells.map((day, index) => {
+                if (!day) return <div key={`empty-${index}`} className="h-9" />;
+
+                const key = dateKey(
+                  new Date(
+                    selectedMonth.getFullYear(),
+                    selectedMonth.getMonth(),
+                    day,
+                  ),
+                );
+                const count = countsByDate[key] ?? 0;
+                const isSelected = selected === key;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-label={`${formatDate(`${key}T00:00:00`)}${count === 0 ? ", no applications" : `, ${count} application${count === 1 ? "" : "s"}`}`}
+                    onClick={() => {
+                      onChange(key);
+                      setOpen(false);
+                    }}
+                    className={`flex h-9 flex-col items-center justify-center rounded text-xs transition-colors ${
+                      isSelected
+                        ? "bg-neutral-900 text-white"
+                        : count > 0
+                          ? "text-neutral-800 hover:bg-neutral-100"
+                          : "text-neutral-400 hover:bg-neutral-50"
+                    }`}
+                  >
+                    <span className="leading-none">{day}</span>
+                    <span
+                      className={`mt-0.5 text-[10px] leading-none ${isSelected ? "text-neutral-200" : count > 0 ? "text-blue-600" : "text-neutral-300"}`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             {selected && (
               <button
-                onClick={() => { onChange(""); setOpen(false); }}
-                className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50"
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-500 transition-colors hover:border-neutral-300 hover:text-neutral-800"
               >
-                <X className="w-3 h-3" /> Clear date filter
+                <X className="h-3 w-3" /> Clear selected day
               </button>
             )}
-            {DATE_OPTIONS.map(({ value, label: optLabel }) => (
-              <button
-                key={value}
-                onClick={() => { onChange(value); setOpen(false); }}
-                className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm text-left hover:bg-neutral-50 ${selected === value ? "font-medium text-neutral-900" : "text-neutral-700"}`}
-              >
-                {selected === value && (
-                  <svg className="w-3 h-3 text-neutral-900 shrink-0" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 5l2.5 2.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-                <span className={selected === value ? "" : "ml-5"}>{optLabel}</span>
-              </button>
-            ))}
           </div>
         </>
       )}

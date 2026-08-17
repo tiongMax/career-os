@@ -1,157 +1,73 @@
 # Testing Guide
 
-The repo has fast unit tests for service rules, HTTP handler behavior,
-application workflow rules, and reminder worker reliability. PostgreSQL
-integration tests are available behind an environment variable so the default
-test command stays lightweight.
+The TypeScript backend uses Vitest for unit and repository integration tests,
+plus TypeScript, ESLint, Prettier, and production compilation as required gates.
 
-## Current Test Command
+## Standard Verification
 
-```sh
-make test
-```
-
-Runs:
+From the repository root:
 
 ```sh
-go test ./...
+npm run format:check:api:ts
+npm run typecheck:api:ts
+npm run lint:api:ts
+npm run test:api:ts
+npm run build:api
 ```
 
-Coverage can be checked with:
-
-```sh
-go test ./... -cover
-```
-
-## Testing Strategy
-
-Keep tests layered by risk:
+`make test` runs the backend Vitest suite.
 
 ## Unit Tests
 
-Use for fast business-rule checks.
+Unit tests live beside their modules and use plain object fakes. They cover:
 
-Good targets:
+- Zod configuration and request validation.
+- Domain validation and application status transitions.
+- Route status codes and JSON contracts through Fastify injection.
+- Reminder validation and cancellation behavior.
+- AI-analysis retry, embedding ranking, and JD extraction persistence.
+- Goose-format migration parsing.
 
-- Config parsing edge cases.
-- Application status transition rules.
-- Contact, interview, resume, and reminder validation.
-- Reminder retry decision logic.
-- Keyword extraction and scoring helpers.
-- Date filtering helpers.
-
-Current examples:
-
-```text
-backend/internal/services/applications/service_test.go
-backend/internal/services/contacts/service_test.go
-backend/internal/services/interviews/service_test.go
-backend/internal/services/reminders/service_test.go
-backend/internal/workers/reminders_test.go
-```
-
-## HTTP Tests
-
-Use for route behavior and JSON contracts.
-
-Good targets:
-
-- `GET /api/v1/health` healthy response.
-- Health degraded response when PostgreSQL or Redis is unavailable.
-- Request validation errors.
-- Status codes for missing rows.
-- JSON response shapes.
-
-Keep HTTP tests focused on handler behavior. Mock or fake service dependencies
-once the service layer exists.
-
-## Integration Tests
-
-Use when testing real PostgreSQL behavior matters.
-
-Good targets:
-
-- Migrations apply cleanly.
-- Application create/update workflow.
-- Transactional status update plus audit log.
-- Full-text search queries.
-- Reminder polling queries.
-
-Integration tests are gated behind environment variables so normal
-`go test ./...` stays lightweight.
-
-Example:
+Run one file with:
 
 ```sh
-CAREEROS_INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/careeros?sslmode=disable go test ./backend/internal/services/applications
+npm run test --prefix backend -- analysis-worker.test.ts
 ```
 
-## Worker Tests
+## PostgreSQL Integration Tests
 
-The reminder worker has unit coverage for the core reliability behaviors:
-
-- Finds due pending reminders.
-- Claims scheduled reminders before processing.
-- Marks pending reminders as `processing` before delivery.
-- Writes reminder deliveries idempotently.
-- Retries failed jobs up to `REMINDER_MAX_RETRIES`.
-- Reschedules failed reminders with backoff.
-- Writes failed jobs after retry exhaustion.
-- Does not deliver cancelled reminders.
-
-The worker tests use package-local store and queue fakes. That keeps the default
-test suite fast while still exercising the state machine around delivery,
-retry, and dead-lettering.
-
-Day 3 service and handler tests cover:
-
-- Contact validation and routes.
-- Interview round validation and routes.
-- Reminder creation, scheduling, cancellation, and routes.
-
-## Manual Smoke Test
-
-Use Docker Compose to test the whole local stack:
+Real Drizzle repository tests are opt-in through
+`CAREEROS_INTEGRATION_DATABASE_URL` so the default suite stays fast:
 
 ```sh
-docker compose up --build
+CAREEROS_INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5433/careeros?sslmode=disable \
+  npm run test --prefix backend -- repositories.integration.test.ts
 ```
 
-Then call:
+On PowerShell, set the variable for the command session before running Vitest.
+Integration tests create uniquely named records and remove them in `finally`
+blocks.
 
-```http
-GET http://localhost:8080/api/v1/health
-```
+## Migration Tests
 
-Expected healthy response:
+Parser behavior is covered by unit tests. Before changing migration execution,
+also verify `up`, `status`, `down`, and `up` against a fresh disposable database.
+Never test `down` against a database containing user data.
 
-```json
-{
-  "status": "ok",
-  "postgres": "ok",
-  "redis": "ok"
-}
-```
+## Runtime Smoke Tests
 
-Recommended Day 3 smoke flow:
+After a production build, start the compiled API or the Compose `full` profile
+and verify at least:
 
-1. Create a company.
-2. Create an application for the company.
-3. Create a contact for the company.
-4. Create an interview round for the application.
-5. Create a reminder due within a few seconds.
-6. Confirm the worker changes the reminder from `pending` to `sent`.
-7. Confirm invalid inputs return `400`, such as a blank contact name or invalid
-   interview `round_type`.
+- `/api/v1/health` reports PostgreSQL as healthy.
+- A representative create/get/delete workflow reaches PostgreSQL.
+- The worker starts and shuts down without leaving jobs processing.
+- The API container applies pending migrations before listening.
 
-## What To Test First
+## Test Design
 
-Recommended order:
-
-1. Health handler tests.
-2. Config parsing tests.
-3. Application status state machine tests.
-4. Transactional application workflow integration test.
-5. Reminder worker reliability tests.
-6. Query-layer integration tests for contacts, interviews, reminders, and Redis
-   scheduling.
+- Test domain behavior without a database when possible.
+- Use Fastify injection for HTTP contracts.
+- Use real PostgreSQL for SQL, transactions, constraints, and row mapping.
+- Keep time, providers, queues, and external AI calls injectable.
+- Assert observable outcomes instead of private implementation details.

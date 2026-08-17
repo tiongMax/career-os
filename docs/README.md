@@ -11,7 +11,6 @@ This folder keeps the reference, development, and product docs.
 
 - [Architecture](reference/architecture.md) - system structure and runtime flow.
 - [API Reference](reference/api.md) - implemented endpoints and examples.
-- [Environment Variables](reference/environment.md) - runtime configuration.
 - [Database Schema](reference/database-schema.md) - tables, relationships, constraints,
   and delete behavior.
 
@@ -21,15 +20,13 @@ This folder keeps the reference, development, and product docs.
   migrations, and worker process.
 - [Application Workflow](development/application-workflow.md) - application statuses,
   transition rules, and audit logging.
-- [Reminder Worker](development/reminder-worker.md) - Redis scheduling, delivery,
-  retries, and dead-lettering.
+- [Dashboard Attention](development/dashboard-attention.md) - follow-up, stale,
+  deadline, interview, and manual-reminder rules.
 - [Testing Guide](development/testing-guide.md) - unit, HTTP, integration, worker, and
   manual testing notes.
-- [Decisions](development/decisions.md) - lightweight engineering journal.
 
 ## Product
 
-- [Product Requirements](product/prd.md)
 - [Roadmap](product/roadmap.md)
 
 ## Documentation Rule

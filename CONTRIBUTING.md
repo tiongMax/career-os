@@ -6,9 +6,10 @@ Install dependencies and prepare local infrastructure:
 
 ```sh
 npm install
+npm install --prefix backend
 npm install --prefix frontend
 cp .env.example .env
-docker compose up -d postgres redis
+docker compose up -d postgres
 make migrate-up
 ```
 
@@ -68,13 +69,7 @@ make test
 Equivalent command:
 
 ```sh
-go test ./...
-```
-
-Run coverage:
-
-```sh
-go test ./... -cover
+npm run test --prefix backend
 ```
 
 Run frontend lint:
@@ -93,7 +88,7 @@ Run integration tests that require PostgreSQL:
 
 ```sh
 $env:CAREEROS_INTEGRATION_DATABASE_URL="postgres://postgres:postgres@localhost:5433/careeros?sslmode=disable"
-go test ./backend/internal/services/applications
+npm run test --prefix backend -- repositories.integration.test.ts
 ```
 
 Run benchmarks, if k6 is installed:
@@ -107,12 +102,12 @@ make bench-mixed
 
 Backend:
 
-- Keep HTTP handlers thin. Put validation, workflow rules, transactions, and scheduling behavior in `backend/internal/services`.
-- Keep SQL in `backend/internal/db/queries` or `backend/queries`.
-- Use parameterized SQL and explicit column lists.
-- Use `config.Load()` for runtime configuration instead of scattered environment lookups.
+- Keep Fastify routes thin. Put validation and workflow rules in each feature's `*.service.ts` and persistence behavior in `*.repository.ts`.
+- Define request and response contracts with Zod and colocate route plugins with their feature under `backend/src/features`.
+- Use Drizzle queries and transactions in feature repositories, with explicit schema mappings in `backend/src/database/schema.ts`.
+- Load configuration through `loadConfig()` instead of scattered environment lookups.
 - Return JSON errors in the existing `{ "error": "..." }` shape.
-- Run `gofmt` on changed Go files.
+- Run format, typecheck, lint, tests, and the production build before opening a PR.
 
 Frontend:
 
@@ -124,8 +119,9 @@ Frontend:
 
 Database:
 
-- Add schema changes as Goose migrations in `backend/migrations`.
-- Keep generated/sqlc-style queries aligned with schema changes.
+- Add schema changes as versioned, Goose-compatible SQL migrations in
+  `backend/migrations`.
+- Keep the Drizzle schema mapping aligned with SQL migrations.
 - Prefer backward-compatible migrations when possible.
 
 ## Documentation

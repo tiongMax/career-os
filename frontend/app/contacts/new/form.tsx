@@ -83,7 +83,7 @@ export function NewContactForm({ companies }: { companies: Company[] }) {
             className={inputClass}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Role">
             <input
               name="role"

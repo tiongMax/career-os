@@ -3,17 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Briefcase, FileText, Globe, Layers, MapPin } from "lucide-react";
+import { Briefcase, FileText, Globe, MapPin } from "lucide-react";
 import type { Company, ResumeVersion, RoleTrack } from "@/lib/api";
 import { createApplication, createCompany, createRoleTrack, type CreateApplicationPayload } from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
+import { PasswordInput } from "@/components/password-input";
 import { OptionCombobox, type Option } from "@/components/ui/option-combobox";
-import { APPLICATION_STATUS_OPTIONS } from "@/lib/domain/applications";
+import { MultiOptionCombobox } from "@/components/ui/multi-option-combobox";
+import { APPLICATION_STATUS_OPTIONS, formatTrackLabel, isVisibleTrack } from "@/lib/domain/applications";
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
   { value: "internship", label: "Internship" },
+  { value: "apprentice", label: "Apprentice" },
   { value: "part_time", label: "Part-time" },
   { value: "contract", label: "Contract" },
 ];
@@ -25,10 +28,7 @@ const SOURCE_OPTIONS: Option[] = [
 ].map((source) => ({ value: source, label: source }));
 
 const LOCATION_OPTIONS: Option[] = [
-  "Remote", "San Francisco, CA", "New York, NY", "Seattle, WA",
-  "Austin, TX", "Boston, MA", "Chicago, IL", "Los Angeles, CA",
-  "Denver, CO", "Miami, FL", "Washington, DC", "Pittsburgh, PA",
-  "Portland, OR", "Atlanta, GA",
+  "Singapore",
 ].map((location) => ({ value: location, label: location }));
 
 export function NewApplicationForm({
@@ -45,15 +45,17 @@ export function NewApplicationForm({
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
-  const trackOptions: Option[] = tracks.map((track) => ({
-    value: track.name,
-    label: track.name.charAt(0).toUpperCase() + track.name.slice(1),
-  }));
+  const trackOptions: Option[] = tracks
+    .filter((track) => isVisibleTrack(track.name))
+    .map((track) => ({
+      value: track.name,
+      label: formatTrackLabel(track.name),
+    }));
 
   const resumeOptions: Option[] = resumes.map((resume) => ({
     value: resume.id,
     label: resume.name,
-    meta: resume.track,
+    meta: formatTrackLabel(resume.track),
   }));
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -81,26 +83,31 @@ export function NewApplicationForm({
         companyId = existingCompanyId;
       }
 
-      const track = (fd.get("role_track") as string).trim().toLowerCase();
-      if (!track) throw new Error("Track is required");
+      const selectedTracks = fd.getAll("role_tracks").map((value) => String(value).trim().toLowerCase()).filter(Boolean);
+      if (selectedTracks.length === 0) throw new Error("Track is required");
 
-      const isKnownTrack = tracks.some((existingTrack) => existingTrack.name === track);
-      if (!isKnownTrack) {
-        await createRoleTrack(track).catch((err) => {
-          if (!String(err).includes("409")) throw err;
-        });
+      for (const track of selectedTracks) {
+        const isKnownTrack = tracks.some((existingTrack) => existingTrack.name === track);
+        if (!isKnownTrack) {
+          await createRoleTrack(track).catch((err) => {
+            if (!String(err).includes("409")) throw err;
+          });
+        }
       }
 
       const body: CreateApplicationPayload = {
         company_id: companyId,
         title: (fd.get("title") as string).trim(),
-        role_track: track,
+        role_track: selectedTracks[0],
+        role_tracks: selectedTracks,
         status: (fd.get("status") as string) || "saved",
       };
       if (fd.get("resume_version_id")) body.resume_version_id = fd.get("resume_version_id") as string;
       if (fd.get("source")) body.source = fd.get("source") as string;
       if (fd.get("location")) body.location = fd.get("location") as string;
       if (fd.get("job_url")) body.job_url = fd.get("job_url") as string;
+      if (fd.get("portal_account")) body.portal_account = fd.get("portal_account") as string;
+      if (fd.get("portal_password")) body.portal_password = fd.get("portal_password") as string;
       if (fd.get("notes")) body.notes = fd.get("notes") as string;
       if (fd.get("employment_type")) body.employment_type = fd.get("employment_type") as string;
       if (fd.get("applied_at")) {
@@ -138,15 +145,14 @@ export function NewApplicationForm({
       </FormSection>
 
       <FormSection title="Classification">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Track" required>
-            <OptionCombobox
-              name="role_track"
+            <MultiOptionCombobox
+              name="role_tracks"
               options={trackOptions}
-              placeholder="Select track..."
+              placeholder="Select tracks..."
               allowCustom
               required
-              icon={Layers}
             />
           </Field>
           <Field label="Status">
@@ -160,7 +166,7 @@ export function NewApplicationForm({
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Employment Type">
             <OptionCombobox
               name="employment_type"
@@ -194,7 +200,7 @@ export function NewApplicationForm({
       </FormSection>
 
       <FormSection title="Details">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Source">
             <OptionCombobox
               name="source"
@@ -217,6 +223,22 @@ export function NewApplicationForm({
         <Field label="Job URL">
           <input name="job_url" type="url" placeholder="https://..." className={inputClass} />
         </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Portal Account">
+            <input
+              name="portal_account"
+              placeholder="email or username used"
+              autoComplete="username"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Portal Password">
+            <PasswordInput
+              name="portal_password"
+              placeholder="password used"
+            />
+          </Field>
+        </div>
         <Field label="Notes">
           <textarea
             name="notes"
