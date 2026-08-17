@@ -10,7 +10,7 @@ npm install --prefix backend
 npm install --prefix frontend
 cp .env.example .env
 docker compose up -d postgres
-make migrate-up
+npm run migrate:up
 ```
 
 Run the application:
@@ -23,8 +23,8 @@ npm run dev
 Or run each process separately:
 
 ```sh
-make api
-make worker
+npm run dev:api
+npm run dev:worker
 npm run dev --prefix frontend
 ```
 
@@ -63,13 +63,7 @@ Open PRs from a focused branch into `main`. Keep PRs scoped to one feature, fix,
 Run backend tests:
 
 ```sh
-make test
-```
-
-Equivalent command:
-
-```sh
-npm run test --prefix backend
+npm run test:api
 ```
 
 Run frontend lint:
@@ -94,8 +88,8 @@ npm run test --prefix backend -- repositories.integration.test.ts
 Run benchmarks, if k6 is installed:
 
 ```sh
-make bench-search
-make bench-mixed
+npm run bench:search
+npm run bench:mixed
 ```
 
 ## Code Style

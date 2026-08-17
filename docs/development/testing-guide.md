@@ -8,14 +8,12 @@ plus TypeScript, ESLint, Prettier, and production compilation as required gates.
 From the repository root:
 
 ```sh
-npm run format:check:api:ts
-npm run typecheck:api:ts
-npm run lint:api:ts
-npm run test:api:ts
+npm run format:check:api
+npm run typecheck:api
+npm run lint:api
+npm run test:api
 npm run build:api
 ```
-
-`make test` runs the backend Vitest suite.
 
 ## Unit Tests
 

@@ -11,13 +11,12 @@ The project includes a TypeScript REST API, a Next.js frontend, PostgreSQL persi
 | Backend | TypeScript, Fastify, Zod, Drizzle ORM, node-postgres |
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, lucide-react |
 | Database | PostgreSQL 16 |
-| Tooling | Docker Compose, Make, Vitest, ESLint, Prettier, k6 benchmarks |
+| Tooling | npm, Docker Compose, Vitest, ESLint, Prettier, k6 benchmarks |
 
 ## Prerequisites
 
 - Node.js 22 or newer and npm
 - Docker Desktop or compatible Docker Compose runtime
-- Make, optional but recommended
 - k6, optional for benchmark scripts
 
 ## Setup
@@ -28,7 +27,7 @@ npm install --prefix backend
 npm install --prefix frontend
 cp .env.example .env
 docker compose up -d postgres
-make migrate-up
+npm run migrate:up
 ```
 
 The default `.env.example` connects the API to PostgreSQL on `localhost:5433`.
@@ -49,8 +48,8 @@ remains running for the next session.
 Run processes separately:
 
 ```sh
-make api
-make worker
+npm run dev:api
+npm run dev:worker
 npm run dev --prefix frontend
 ```
 
@@ -70,14 +69,14 @@ docker compose --profile full up --build
 ## Common Commands
 
 ```sh
-make migrate-up       # Apply database migrations
-make migrate-down     # Roll back one migration
-make seed             # Run seed command
-make test             # Run TypeScript backend tests
+npm run migrate:up    # Apply database migrations
+npm run migrate:down  # Roll back one migration
+npm run seed          # Run seed command
+npm run test:api      # Run backend tests
 npm run lint --prefix frontend
 npm run build --prefix frontend
-make bench-search     # Run k6 search benchmark
-make bench-mixed      # Run k6 mixed workload benchmark
+npm run bench:search  # Run k6 search benchmark
+npm run bench:mixed   # Run k6 mixed workload benchmark
 ```
 
 ## Basic Usage

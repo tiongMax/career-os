@@ -6,16 +6,16 @@ reminder paths against a running instance with seeded data.
 ## Prerequisites
 
 1. [k6](https://grafana.com/docs/k6/latest/set-up/install-k6/) installed and on `PATH`.
-2. The API running locally (`make api`) on `http://localhost:8080`.
-3. Seed data loaded (`make seed`). The scripts pull real company and
+2. The API running locally (`npm run dev:api`) on `http://localhost:8080`.
+3. Seed data loaded (`npm run seed`). The scripts pull real company and
    application IDs at start-up — an empty database will fail fast.
 
 ## Running
 
 ```sh
 # Default base URL is http://localhost:8080
-make bench-search
-make bench-mixed
+npm run bench:search
+npm run bench:mixed
 
 # Dependency-free dashboard comparison (10 runs by default)
 npm run bench:dashboard
