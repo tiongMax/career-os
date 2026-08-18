@@ -226,11 +226,14 @@ export function createDashboardRepository(
               ) AS rank
               FROM candidates
             )
-            SELECT id, "applicationId", "applicationTitle", "companyName",
-              type, title, "actionAt"
+            SELECT ranked.id, ranked."applicationId", ranked."applicationTitle",
+              ranked."companyName", ranked.type, ranked.title, ranked."actionAt"
             FROM ranked
-            WHERE rank = 1
-            ORDER BY priority, "actionAt"
+            JOIN applications current_application
+              ON current_application.id::text = ranked."applicationId"
+            WHERE ranked.rank = 1
+              AND current_application.status NOT IN (${sql.raw(finalStatuses)})
+            ORDER BY ranked.priority, ranked."actionAt"
             LIMIT 20
           `),
       ]);
