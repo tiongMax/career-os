@@ -94,9 +94,10 @@ function statusTimelineEvents(
   }
 
   for (const log of auditLogs) {
-    const oldStatus = auditStringValue(log.old_value, "status");
+    const recordedOldStatus = auditStringValue(log.old_value, "status");
     const newStatus = auditStringValue(log.new_value, "status");
-    if (!newStatus) continue;
+    if (!newStatus || newStatus === "saved") continue;
+    const oldStatus = recordedOldStatus === "saved" ? null : recordedOldStatus;
 
     const receivedAt = auditStringValue(log.new_value, "received_at");
     const completedAt = auditStringValue(log.new_value, "completed_at");

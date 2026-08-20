@@ -241,6 +241,12 @@ export const createCompany = (payload: CreateCompanyPayload) =>
     method: "POST",
     body: JSON.stringify(payload),
   });
+export type UpdateCompanyPayload = Partial<CreateCompanyPayload>;
+export const updateCompany = (id: string, payload: UpdateCompanyPayload) =>
+  apiFetch<Company>(`/companies/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 export const deleteCompany = (id: string) =>
   apiFetch<void>(`/companies/${id}`, { method: "DELETE" });
 

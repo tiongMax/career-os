@@ -1,17 +1,23 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Search,
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  Check,
+  Pencil,
   X,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import type { Application } from "@/lib/api";
+import {
+  getApplicationsPage,
+  updateCompany,
+  type Application,
+} from "@/lib/api";
 import { formatDate, formatRelative } from "@/lib/utils";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -28,6 +34,7 @@ type SortDir = "asc" | "desc";
 
 const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   full_time: "Full-time",
+  graduate_program: "Graduate Program",
   internship: "Internship",
   apprentice: "Apprentice",
   part_time: "Part-time",
@@ -63,7 +70,6 @@ function formatMonthYear(date: Date): string {
 interface Props {
   applications: Application[];
   companyMap: Record<string, string>;
-  page: number;
   pageSize: number;
   total: number;
 }
@@ -89,10 +95,15 @@ function SortIcon({
 export function ApplicationsTable({
   applications,
   companyMap,
-  page,
   pageSize,
   total,
 }: Props) {
+  const [loadedApplications, setLoadedApplications] = useState(applications);
+  const [companyNames, setCompanyNames] = useState(companyMap);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState<string[]>([]);
@@ -111,28 +122,80 @@ export function ApplicationsTable({
   const isPending = search !== debouncedSearch;
   const [sortCol, setSortCol] = useState<SortCol>("applied");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const hasMore = loadedApplications.length < total;
+
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current || loadedApplications.length >= total) return;
+
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    setLoadError(null);
+
+    try {
+      const nextPage = await getApplicationsPage({
+        limit: pageSize,
+        offset: loadedApplications.length,
+      });
+      setLoadedApplications((current) => {
+        const loadedIds = new Set(current.map((application) => application.id));
+        const newApplications = nextPage.items.filter(
+          (application) => !loadedIds.has(application.id),
+        );
+        return [...current, ...newApplications];
+      });
+    } catch (error) {
+      setLoadError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load more applications",
+      );
+    } finally {
+      loadingMoreRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, [loadedApplications.length, pageSize, total]);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasMore || loadError) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) void loadMore();
+      },
+      { rootMargin: "300px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadError, loadMore]);
 
   const allTracks = useMemo(() => {
-    return [...new Set(applications.flatMap(applicationTracks))].sort();
-  }, [applications]);
+    return [...new Set(loadedApplications.flatMap(applicationTracks))].sort();
+  }, [loadedApplications]);
 
   const allCompanies = useMemo(() => {
-    const ids = [...new Set(applications.map((a) => a.company_id))];
-    return ids
-      .map((id) => ({ id, name: companyMap[id] ?? "" }))
-      .filter((c) => c.name)
+    return Object.entries(companyNames)
+      .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [applications, companyMap]);
+  }, [companyNames]);
+
+  const renameCompany = useCallback(async (id: string, name: string) => {
+    const updated = await updateCompany(id, { name });
+    setCompanyNames((current) => ({
+      ...current,
+      [id]: updated.name,
+    }));
+  }, []);
 
   const applicationCountsByDate = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const application of applications) {
+    for (const application of loadedApplications) {
       const appliedAt = application.applied_at ?? application.created_at;
       const key = dateKey(new Date(appliedAt));
       counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
-  }, [applications]);
+  }, [loadedApplications]);
 
   const handleSort = (col: SortCol) => {
     if (sortCol === col) {
@@ -157,7 +220,7 @@ export function ApplicationsTable({
     );
 
   const filtered = useMemo(() => {
-    let list = applications;
+    let list = loadedApplications;
 
     if (debouncedSearch.trim()) {
       list = list.filter((a) => fuzzyMatch(debouncedSearch.trim(), a.title));
@@ -188,8 +251,8 @@ export function ApplicationsTable({
           cmp = a.title.localeCompare(b.title);
           break;
         case "company":
-          cmp = (companyMap[a.company_id] ?? "").localeCompare(
-            companyMap[b.company_id] ?? "",
+          cmp = (companyNames[a.company_id] ?? "").localeCompare(
+            companyNames[b.company_id] ?? "",
           );
           break;
         case "track":
@@ -217,8 +280,8 @@ export function ApplicationsTable({
       return sortDir === "asc" ? cmp : -cmp;
     });
   }, [
-    applications,
-    companyMap,
+    loadedApplications,
+    companyNames,
     debouncedSearch,
     trackFilter,
     statusFilter,
@@ -234,10 +297,6 @@ export function ApplicationsTable({
     statusFilter.length > 0 ||
     companyFilter.length > 0 ||
     selectedDate;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const firstItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const lastItem = Math.min(total, page * pageSize);
-
   const clearAll = () => {
     setSearch("");
     setTrackFilter([]);
@@ -254,13 +313,12 @@ export function ApplicationsTable({
           <h1 className="text-2xl font-semibold text-neutral-900">
             Applications
           </h1>
-          <p
-            className="mt-1 text-sm text-neutral-500"
-            aria-live="polite"
-          >
+          <p className="mt-1 text-sm text-neutral-500" aria-live="polite">
             {hasFilters
-              ? `${filtered.length} filtered on this page`
-              : `Showing ${firstItem}-${lastItem} of ${total}`}
+              ? `${filtered.length} matching · ${loadedApplications.length} of ${total} loaded`
+              : loadedApplications.length < total
+                ? `Showing ${loadedApplications.length} of ${total}`
+                : `${total} total`}
           </p>
         </div>
         <Link
@@ -301,6 +359,7 @@ export function ApplicationsTable({
           selected={companyFilter}
           onToggle={toggleCompany}
           onClear={() => setCompanyFilter([])}
+          onRename={renameCompany}
         />
         <TrackFilter
           tracks={allTracks}
@@ -345,110 +404,118 @@ export function ApplicationsTable({
           </button>
         </div>
       ) : (
-        <>
-          <div
-            aria-busy={isPending}
-            className={`overflow-x-auto rounded-lg border border-neutral-200 bg-white transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}
-          >
-            <table className="w-full min-w-[680px] text-sm lg:min-w-[760px]">
-              <caption className="sr-only">Job applications</caption>
-              <thead>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
-                  {(
-                    [
-                      { col: "title" as SortCol, label: "Role" },
-                      { col: "company" as SortCol, label: "Company" },
-                      { col: "track" as SortCol, label: "Track" },
-                      { col: "employment" as SortCol, label: "Employment" },
-                      { col: "status" as SortCol, label: "Status" },
-                      { col: "applied" as SortCol, label: "Applied" },
-                    ] as const
-                  ).map(({ col, label }) => (
-                    <th
-                      key={col}
-                      scope="col"
-                      aria-sort={
-                        sortCol === col
-                          ? sortDir === "asc"
-                            ? "ascending"
-                            : "descending"
-                          : undefined
-                      }
-                      className="px-5 py-3 text-left"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleSort(col)}
-                        aria-label={`Sort applications by ${label}`}
-                        className="flex items-center rounded-sm text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
-                      >
-                        {label}
-                        <SortIcon
-                          col={col}
-                          sortCol={sortCol}
-                          sortDir={sortDir}
-                        />
-                      </button>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100">
-                {filtered.map((app) => (
-                  <tr
-                    key={app.id}
-                    className="hover:bg-neutral-50 transition-colors"
+        <div
+          aria-busy={isPending}
+          className={`overflow-x-auto rounded-lg border border-neutral-200 bg-white transition-opacity duration-200 ${isPending ? "opacity-50" : "opacity-100"}`}
+        >
+          <table className="w-full min-w-[680px] text-sm lg:min-w-[760px]">
+            <caption className="sr-only">Job applications</caption>
+            <thead>
+              <tr className="border-b border-neutral-100 bg-neutral-50">
+                {(
+                  [
+                    { col: "title" as SortCol, label: "Role" },
+                    { col: "company" as SortCol, label: "Company" },
+                    { col: "track" as SortCol, label: "Track" },
+                    { col: "employment" as SortCol, label: "Employment" },
+                    { col: "status" as SortCol, label: "Status" },
+                    { col: "applied" as SortCol, label: "Applied" },
+                  ] as const
+                ).map(({ col, label }) => (
+                  <th
+                    key={col}
+                    scope="col"
+                    aria-sort={
+                      sortCol === col
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : undefined
+                    }
+                    className="px-5 py-3 text-left"
                   >
-                    <td className="px-5 py-3.5">
-                      <Link
-                        href={`/applications/${app.id}`}
-                        className="font-medium text-neutral-800 hover:text-blue-600 transition-colors"
-                      >
-                        {app.title}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3.5 text-sm text-neutral-500">
-                      {companyMap[app.company_id] ?? "—"}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex max-w-48 flex-wrap gap-1">
-                        {applicationTracks(app).map((track) => (
-                          <span
-                            key={track}
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}
-                          >
-                            {formatTrackLabel(track)}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-sm text-neutral-500">
-                      {employmentTypeLabel(app.employment_type)}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <StatusBadge status={app.status} />
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="text-xs text-neutral-500">
-                        {formatDate(app.applied_at ?? app.created_at)}
-                      </div>
-                      <div className="mt-0.5 text-xs text-neutral-400">
-                        {formatRelative(app.applied_at ?? app.created_at)}
-                      </div>
-                    </td>
-                  </tr>
+                    <button
+                      type="button"
+                      onClick={() => handleSort(col)}
+                      aria-label={`Sort applications by ${label}`}
+                      className="flex items-center rounded-sm text-xs font-medium text-neutral-500 uppercase tracking-wide hover:text-neutral-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
+                    >
+                      {label}
+                      <SortIcon col={col} sortCol={sortCol} sortDir={sortDir} />
+                    </button>
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            firstItem={firstItem}
-            lastItem={lastItem}
-            total={total}
-          />
-        </>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {filtered.map((app) => (
+                <tr
+                  key={app.id}
+                  className="hover:bg-neutral-50 transition-colors"
+                >
+                  <td className="px-5 py-3.5">
+                    <Link
+                      href={`/applications/${app.id}`}
+                      className="font-medium text-neutral-800 hover:text-blue-600 transition-colors"
+                    >
+                      {app.title}
+                    </Link>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-neutral-500">
+                    {companyNames[app.company_id] ?? "—"}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex max-w-48 flex-wrap gap-1">
+                      {applicationTracks(app).map((track) => (
+                        <span
+                          key={track}
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TRACK_BADGE_CLASSES[track] ?? "bg-neutral-100 text-neutral-600"}`}
+                        >
+                          {formatTrackLabel(track)}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-neutral-500">
+                    {employmentTypeLabel(app.employment_type)}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <StatusBadge status={app.status} />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="text-xs text-neutral-500">
+                      {formatDate(app.applied_at ?? app.created_at)}
+                    </div>
+                    <div className="mt-0.5 text-xs text-neutral-400">
+                      {formatRelative(app.applied_at ?? app.created_at)}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {(hasMore || isLoadingMore || loadError) && (
+        <div
+          ref={loadMoreRef}
+          aria-live="polite"
+          className="flex min-h-10 items-center justify-center text-xs text-neutral-400"
+        >
+          {isLoadingMore ? (
+            <span>Loading more applications…</span>
+          ) : loadError ? (
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              className="rounded-md border border-neutral-200 px-3 py-1.5 font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+            >
+              Couldn&apos;t load more. Try again
+            </button>
+          ) : (
+            <span className="sr-only">More applications load on scroll</span>
+          )}
+        </div>
       )}
     </>
   );
@@ -464,69 +531,6 @@ function applicationTracks(application: Application): string[] {
 function employmentTypeLabel(value?: string): string {
   if (!value) return "—";
   return EMPLOYMENT_TYPE_LABELS[value] ?? value.replace(/_/g, " ");
-}
-
-function Pagination({
-  page,
-  totalPages,
-  firstItem,
-  lastItem,
-  total,
-}: {
-  page: number;
-  totalPages: number;
-  firstItem: number;
-  lastItem: number;
-  total: number;
-}) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-xs text-neutral-400">
-        Showing {firstItem}-{lastItem} of {total}
-      </p>
-      <div className="flex items-center gap-2">
-        <PageLink page={page - 1} disabled={page <= 1}>
-          Previous
-        </PageLink>
-        <span className="text-xs text-neutral-500">
-          Page {page} of {totalPages}
-        </span>
-        <PageLink page={page + 1} disabled={page >= totalPages}>
-          Next
-        </PageLink>
-      </div>
-    </div>
-  );
-}
-
-function PageLink({
-  page,
-  disabled,
-  children,
-}: {
-  page: number;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
-  const className = `rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-    disabled
-      ? "border-neutral-200 text-neutral-300"
-      : "border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
-  }`;
-
-  if (disabled) {
-    return (
-      <span aria-disabled="true" className={className}>
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <Link href={`/applications?page=${page}`} className={className}>
-      {children}
-    </Link>
-  );
 }
 
 // ── Shared checkbox row ───────────────────────────────────────────────────────
@@ -614,7 +618,9 @@ function Backdrop({
     onClose();
     requestAnimationFrame(() => {
       document
-        .querySelector<HTMLButtonElement>(`[aria-controls="${triggerControls}"]`)
+        .querySelector<HTMLButtonElement>(
+          `[aria-controls="${triggerControls}"]`,
+        )
         ?.focus();
     });
   }
@@ -645,14 +651,40 @@ function CompanyFilter({
   selected,
   onToggle,
   onClear,
+  onRename,
 }: {
   companies: { id: string; name: string }[];
   selected: string[];
   onToggle: (id: string) => void;
   onClear: () => void;
+  onRename: (id: string, name: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function saveName(id: string) {
+    const name = editName.trim();
+    if (!name) {
+      setError("Company name is required.");
+      return;
+    }
+
+    setSavingId(id);
+    setError(null);
+    try {
+      await onRename(id, name);
+      setEditingId(null);
+      setEditName("");
+    } catch {
+      setError("Could not update company.");
+    } finally {
+      setSavingId(null);
+    }
+  }
 
   const visible = query.trim()
     ? companies.filter((c) =>
@@ -713,17 +745,86 @@ function CompanyFilter({
               </button>
             )}
             <div className="py-1 max-h-52 overflow-y-auto">
+              {error && (
+                <p
+                  role="alert"
+                  className="mx-2 mb-1 rounded bg-red-50 px-2 py-1.5 text-xs text-red-600"
+                >
+                  {error}
+                </p>
+              )}
               {visible.length === 0 ? (
                 <p className="px-3 py-2 text-xs text-neutral-400">No results</p>
               ) : (
-                visible.map((c) => (
-                  <CheckRow
-                    key={c.id}
-                    checked={selected.includes(c.id)}
-                    label={c.name}
-                    onClick={() => onToggle(c.id)}
-                  />
-                ))
+                visible.map((company) =>
+                  editingId === company.id ? (
+                    <div
+                      key={company.id}
+                      className="flex items-center gap-1.5 px-2 py-1.5"
+                    >
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editName}
+                        disabled={savingId === company.id}
+                        aria-label={`Edit ${company.name}`}
+                        onChange={(event) => setEditName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void saveName(company.id);
+                          }
+                        }}
+                        className="min-w-0 flex-1 rounded border border-neutral-300 px-2 py-1 text-xs focus:border-neutral-900 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditName("");
+                          setError(null);
+                        }}
+                        disabled={savingId === company.id}
+                        aria-label="Cancel editing company"
+                        className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-50"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void saveName(company.id)}
+                        disabled={savingId === company.id}
+                        aria-label={`Save ${company.name}`}
+                        className="rounded bg-neutral-900 p-1 text-white hover:bg-neutral-700 disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      key={company.id}
+                      className="flex items-center hover:bg-neutral-50"
+                    >
+                      <CheckRow
+                        checked={selected.includes(company.id)}
+                        label={company.name}
+                        onClick={() => onToggle(company.id)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(company.id);
+                          setEditName(company.name);
+                          setError(null);
+                        }}
+                        aria-label={`Edit ${company.name}`}
+                        className="mr-2 rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ),
+                )
               )}
             </div>
           </div>
@@ -760,7 +861,10 @@ function TrackFilter({
       />
       {open && (
         <>
-          <Backdrop triggerControls="application-track-filter" onClose={() => setOpen(false)} />
+          <Backdrop
+            triggerControls="application-track-filter"
+            onClose={() => setOpen(false)}
+          />
           <div
             id="application-track-filter"
             role="dialog"
@@ -819,7 +923,10 @@ function StatusFilter({
       />
       {open && (
         <>
-          <Backdrop triggerControls="application-status-filter" onClose={() => setOpen(false)} />
+          <Backdrop
+            triggerControls="application-status-filter"
+            onClose={() => setOpen(false)}
+          />
           <div
             id="application-status-filter"
             role="dialog"
@@ -896,7 +1003,10 @@ function DateFilter({
       />
       {open && (
         <>
-          <Backdrop triggerControls="application-date-filter" onClose={() => setOpen(false)} />
+          <Backdrop
+            triggerControls="application-date-filter"
+            onClose={() => setOpen(false)}
+          />
           <div
             id="application-date-filter"
             role="dialog"

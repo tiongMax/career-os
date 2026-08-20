@@ -8,9 +8,17 @@ import {
   type AriaAttributes,
   type KeyboardEvent,
 } from "react";
-import { Building2, Check, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  Building2,
+  Check,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import type { Company } from "@/lib/api";
-import { deleteCompany } from "@/lib/api";
+import { deleteCompany, updateCompany } from "@/lib/api";
 
 type CompanySelection =
   | { type: "existing"; id: string; name: string }
@@ -39,8 +47,14 @@ export function CompanyCombobox({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [renamedCompanies, setRenamedCompanies] = useState<
+    Record<string, string>
+  >({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [selected, setSelected] = useState<CompanySelection | null>(
@@ -51,7 +65,12 @@ export function CompanyCombobox({
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const trimmedQuery = query.trim();
-  const choices = companies.filter((company) => !removedIds.includes(company.id));
+  const choices = companies
+    .filter((company) => !removedIds.includes(company.id))
+    .map((company) => ({
+      ...company,
+      name: renamedCompanies[company.id] ?? company.name,
+    }));
   const filtered = trimmedQuery
     ? choices.filter((company) => company.name.toLowerCase().includes(trimmedQuery.toLowerCase()))
     : choices;
@@ -108,6 +127,7 @@ export function CompanyCombobox({
       await deleteCompany(company.id);
       setRemovedIds((current) => [...current, company.id]);
       setConfirmingId(null);
+      if (editingId === company.id) setEditingId(null);
       if (selected?.type === "existing" && selected.id === company.id) {
         setSelected(null);
       }
@@ -120,6 +140,52 @@ export function CompanyCombobox({
       );
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  function startEditing(company: Company) {
+    setEditingId(company.id);
+    setEditName(company.name);
+    setConfirmingId(null);
+    setError(null);
+  }
+
+  function stopEditing() {
+    setEditingId(null);
+    setEditName("");
+    setError(null);
+  }
+
+  async function saveCompanyName(company: Company) {
+    const name = editName.trim();
+    if (!name) {
+      setError("Company name is required.");
+      return;
+    }
+    if (name === company.name) {
+      stopEditing();
+      return;
+    }
+
+    setError(null);
+    setUpdatingId(company.id);
+    try {
+      const updated = await updateCompany(company.id, { name });
+      setRenamedCompanies((current) => ({
+        ...current,
+        [company.id]: updated.name,
+      }));
+      setSelected((current) =>
+        current?.type === "existing" && current.id === company.id
+          ? { ...current, name: updated.name }
+          : current,
+      );
+      setEditingId(null);
+      setEditName("");
+    } catch {
+      setError("Could not update company.");
+    } finally {
+      setUpdatingId(null);
     }
   }
 
@@ -295,38 +361,97 @@ export function CompanyCombobox({
                 </p>
               )}
               {choices.map((company) => (
-                <div key={company.id} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50">
-                  <span className="min-w-0 flex-1 truncate text-xs text-neutral-700">
-                    {company.name}
-                  </span>
-                  {confirmingId === company.id ? (
-                    <div className="flex items-center gap-1">
+                <div
+                  key={company.id}
+                  className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-neutral-50"
+                >
+                  {editingId === company.id ? (
+                    <>
+                      <input
+                        autoFocus
+                        type="text"
+                        value={editName}
+                        disabled={updatingId === company.id}
+                        aria-label={`Edit ${company.name}`}
+                        onChange={(event) => setEditName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void saveCompanyName(company);
+                          } else if (event.key === "Escape") {
+                            event.preventDefault();
+                            stopEditing();
+                          }
+                        }}
+                        className="min-w-0 flex-1 rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-800 focus:border-neutral-900 focus:outline-none"
+                      />
                       <button
                         type="button"
-                        onClick={() => setConfirmingId(null)}
-                        disabled={deletingId === company.id}
-                        className="rounded px-1.5 py-1 text-[11px] font-medium text-neutral-500 hover:bg-neutral-100"
+                        onClick={stopEditing}
+                        disabled={updatingId === company.id}
+                        aria-label="Cancel editing company"
+                        className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-50"
                       >
-                        Cancel
+                        <X className="h-3.5 w-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => void removeChoice(company)}
-                        disabled={deletingId === company.id}
-                        className="rounded bg-red-600 px-1.5 py-1 text-[11px] font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        onClick={() => void saveCompanyName(company)}
+                        disabled={updatingId === company.id}
+                        aria-label={`Save ${company.name}`}
+                        className="rounded bg-neutral-900 p-1 text-white hover:bg-neutral-700 disabled:opacity-50"
                       >
-                        {deletingId === company.id ? "Deleting…" : "Confirm"}
+                        <Check className="h-3.5 w-3.5" />
                       </button>
-                    </div>
+                    </>
+                  ) : confirmingId === company.id ? (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-xs text-neutral-700">
+                        {company.name}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingId(null)}
+                          disabled={deletingId === company.id}
+                          className="rounded px-1.5 py-1 text-[11px] font-medium text-neutral-500 hover:bg-neutral-100"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void removeChoice(company)}
+                          disabled={deletingId === company.id}
+                          className="rounded bg-red-600 px-1.5 py-1 text-[11px] font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {deletingId === company.id
+                            ? "Deleting…"
+                            : "Confirm"}
+                        </button>
+                      </div>
+                    </>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingId(company.id)}
-                      aria-label={`Delete ${company.name}`}
-                      className="rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-xs text-neutral-700">
+                        {company.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => startEditing(company)}
+                        aria-label={`Edit ${company.name}`}
+                        className="rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingId(company.id)}
+                        aria-label={`Delete ${company.name}`}
+                        className="rounded p-1 text-neutral-400 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </>
                   )}
                 </div>
               ))}

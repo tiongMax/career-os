@@ -654,13 +654,6 @@ function getNextStep(
       description: "Choose the version you plan to use so CareerOS can help you check the fit.",
     };
   }
-  if (application.status === "saved") {
-    return {
-      icon: ExternalLink,
-      title: "Review the role and submit your application",
-      description: "Your core materials are ready. Open the job posting, make final edits, and apply.",
-    };
-  }
   return {
     icon: CalendarClock,
     title: "Keep the application moving",
