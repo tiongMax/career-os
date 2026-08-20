@@ -4,16 +4,30 @@ import { formatDate } from "@/lib/utils";
 export const STALE_DAYS = 14;
 
 const PIPELINE_STAGES = [
-  { label: "Saved", statuses: ["saved"], color: "bg-slate-400" },
-  { label: "Applied", statuses: ["applied"], color: "bg-blue-500" },
-  { label: "OA", statuses: ["online_assessment"], color: "bg-cyan-500" },
+  {
+    label: "Applied",
+    key: "applied",
+    statuses: ["applied"],
+    color: "bg-blue-500",
+    showReached: true,
+  },
+  {
+    label: "OA",
+    key: "online_assessment",
+    statuses: ["online_assessment"],
+    color: "bg-cyan-500",
+    showReached: true,
+  },
   {
     label: "Recruiter",
+    key: "recruiter_screen",
     statuses: ["recruiter_screen"],
     color: "bg-purple-500",
+    showReached: true,
   },
   {
     label: "Technical",
+    key: "technical_screen",
     statuses: [
       "technical_screen",
       "technical_screen_2",
@@ -21,12 +35,35 @@ const PIPELINE_STAGES = [
       "technical_screen_4",
     ],
     color: "bg-indigo-500",
+    showReached: true,
   },
-  { label: "Onsite", statuses: ["onsite"], color: "bg-orange-500" },
-  { label: "Offer", statuses: ["offer"], color: "bg-green-500" },
-  { label: "Rejected", statuses: ["rejected"], color: "bg-red-500" },
-  { label: "Ghosted", statuses: ["ghosted"], color: "bg-zinc-500" },
-  { label: "KIV", statuses: ["kiv"], color: "bg-yellow-500" },
+  {
+    label: "Onsite",
+    key: "onsite",
+    statuses: ["onsite"],
+    color: "bg-orange-500",
+    showReached: true,
+  },
+  {
+    label: "Offer",
+    key: "offer",
+    statuses: ["offer"],
+    color: "bg-green-500",
+    showReached: true,
+  },
+  {
+    label: "Rejected",
+    key: "rejected",
+    statuses: ["rejected"],
+    color: "bg-red-500",
+  },
+  {
+    label: "Ghosted",
+    key: "ghosted",
+    statuses: ["ghosted"],
+    color: "bg-zinc-500",
+  },
+  { label: "KIV", key: "kiv", statuses: ["kiv"], color: "bg-yellow-500" },
 ];
 
 export type FocusTone = "red" | "amber" | "blue" | "green" | "neutral";
@@ -60,6 +97,7 @@ export function emptyDashboardSnapshot(): DashboardSnapshot {
       items: [],
     },
     pipeline: {},
+    pipeline_reached: {},
     recent_applications: [],
     upcoming: { interviews: [], reminders: [], deadlines: [] },
   };
@@ -76,13 +114,17 @@ export function buildDashboardData(snapshot: DashboardSnapshot) {
     (total, count) => total + count,
     0,
   );
-  const pipeline = PIPELINE_STAGES.map((stage) => ({
-    ...stage,
-    count: stage.statuses.reduce(
+  const pipeline = PIPELINE_STAGES.map((stage) => {
+    const count = stage.statuses.reduce(
       (total, status) => total + (snapshot.pipeline[status] ?? 0),
       0,
-    ),
-  }));
+    );
+    return {
+      ...stage,
+      count,
+      reached: snapshot.pipeline_reached[stage.key] ?? count,
+    };
+  });
   const maxPipelineCount = Math.max(...pipeline.map((stage) => stage.count), 1);
   const upcomingItems = [
     ...snapshot.upcoming.interviews.map((interview) => ({

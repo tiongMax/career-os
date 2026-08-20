@@ -662,6 +662,7 @@ export interface DashboardSnapshot {
     }>;
   };
   pipeline: Record<string, number>;
+  pipeline_reached: Record<string, number>;
   recent_applications: Array<{
     id: string;
     title: string;

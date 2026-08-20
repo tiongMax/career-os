@@ -20,29 +20,75 @@ import {
 } from "./dashboard-data";
 
 export function StatCards({ stats }: { stats: DashboardData["stats"] }) {
+  const activeRate = percentageOf(stats.active, stats.total);
+  const offerRate = percentageOf(stats.offers, stats.total);
+
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <StatCard label="Total" value={stats.total} icon={Briefcase} />
-      <StatCard
-        label="Active"
-        value={stats.active}
-        icon={Activity}
-        accent="blue"
-      />
-      <StatCard
-        label="Offers"
-        value={stats.offers}
-        icon={Award}
-        accent="green"
-      />
-      <StatCard
-        label="Stale"
-        value={stats.stale}
-        subtitle={`Waiting ${STALE_DAYS}+ days`}
-        icon={AlertCircle}
-        accent="amber"
-      />
-    </div>
+    <section aria-labelledby="application-overview-heading" className="space-y-3">
+      <div>
+        <h2
+          id="application-overview-heading"
+          className="text-sm font-semibold text-neutral-800"
+        >
+          Application overview
+        </h2>
+        <p className="mt-1 text-xs leading-5 text-neutral-500">
+          Current totals, pipeline activity, outcomes, and applications that may
+          need a progress update.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total applications"
+          value={stats.total}
+          description="Every job application currently stored in your tracker."
+          detail="Includes active and completed outcomes"
+          infoItems={[
+            "Counts every application record, regardless of its current status or outcome.",
+          ]}
+          icon={Briefcase}
+        />
+        <StatCard
+          label="Active pipeline"
+          value={stats.active}
+          description="Applications currently between applied and offer."
+          detail={`${activeRate}% of all applications`}
+          infoItems={[
+            "Includes applied, online assessment, recruiter, technical, onsite, and offer statuses.",
+            "Rejected, ghosted, withdrawn, and KIV applications are not active.",
+          ]}
+          icon={Activity}
+          accent="blue"
+        />
+        <StatCard
+          label="Offers"
+          value={stats.offers}
+          description="Applications whose current status is Offer."
+          detail={`${offerRate}% of all applications`}
+          infoItems={[
+            "This is a current-status count, not the number of applications that have ever reached offer.",
+          ]}
+          icon={Award}
+          accent="green"
+        />
+        <StatCard
+          label="Stale applications"
+          value={stats.stale}
+          description={`Non-final applications unchanged for ${STALE_DAYS}+ days.`}
+          detail="Edit the application or update its status to reset the clock"
+          infoItems={[
+            `An application becomes stale when it has not been updated for at least ${STALE_DAYS} days.`,
+            "Offer, rejected, ghosted, withdrawn, and KIV applications are excluded.",
+            "Editing the application or changing its status restarts the 14-day timer.",
+            "Stale applications appear in Needs Attention unless a more urgent reminder, deadline, or interview is already shown for that application.",
+          ]}
+          href="/applications"
+          actionLabel="Review applications"
+          icon={AlertCircle}
+          accent="amber"
+        />
+      </div>
+    </section>
   );
 }
 
@@ -138,8 +184,15 @@ export function PipelineSection({
 }) {
   return (
     <section className="rounded-lg border border-neutral-200 bg-white">
-      <div className="border-b border-neutral-100 px-5 py-4">
+      <div className="flex items-center gap-2 border-b border-neutral-100 px-5 py-4">
         <h2 className="text-sm font-semibold text-neutral-700">Pipeline</h2>
+        <InfoTooltip
+          title="Current status and stages reached"
+          items={[
+            "The main number shows applications currently at that stage.",
+            "Reached includes applications that later moved on, were rejected, or became ghosted.",
+          ]}
+        />
       </div>
       <div className="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-2 lg:grid-cols-8">
         {pipeline.map((stage) => (
@@ -163,6 +216,11 @@ export function PipelineSection({
                 }}
               />
             </div>
+            {stage.showReached && (
+              <p className="mt-1.5 text-[11px] text-neutral-400">
+                {stage.reached} reached
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -315,13 +373,21 @@ export function ConversionSection({
 function StatCard({
   label,
   value,
-  subtitle,
+  description,
+  detail,
+  infoItems,
+  href,
+  actionLabel,
   icon: Icon,
   accent = "neutral",
 }: {
   label: string;
   value: string | number;
-  subtitle?: string;
+  description: string;
+  detail: string;
+  infoItems: string[];
+  href?: string;
+  actionLabel?: string;
   icon: React.ComponentType<{ className?: string }>;
   accent?: "neutral" | "blue" | "green" | "purple" | "amber";
 }) {
@@ -355,17 +421,39 @@ function StatCard({
   const s = styles[accent];
 
   return (
-    <div className={`rounded-lg border ${s.border} bg-white p-5`}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-          {label}
-        </p>
+    <article
+      className={`flex min-h-52 flex-col rounded-lg border ${s.border} bg-white p-5`}
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            {label}
+          </p>
+          <InfoTooltip title={`About ${label.toLowerCase()}`} items={infoItems} />
+        </div>
         <Icon className={`w-4 h-4 ${s.icon}`} />
       </div>
       <p className={`text-3xl font-bold ${s.value}`}>{value}</p>
-      {subtitle && <p className="mt-1 text-xs text-neutral-400">{subtitle}</p>}
-    </div>
+      <p className="mt-2 text-sm leading-5 text-neutral-600">{description}</p>
+      <div className="mt-auto pt-4">
+        <p className="border-t border-neutral-100 pt-3 text-xs leading-5 text-neutral-400">
+          {detail}
+        </p>
+        {href && actionLabel && (
+          <Link
+            href={href}
+            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 transition-colors hover:text-amber-900"
+          >
+            {actionLabel} <ArrowRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+    </article>
   );
+}
+
+function percentageOf(value: number, total: number): number {
+  return total === 0 ? 0 : Math.round((value / total) * 100);
 }
 
 function InfoTooltip({
