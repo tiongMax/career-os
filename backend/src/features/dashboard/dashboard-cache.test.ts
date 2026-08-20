@@ -25,6 +25,7 @@ const snapshot = {
     items: [],
   },
   pipeline: {},
+  reachedPipeline: {},
   recentApplications: [],
   upcoming: { interviews: [], reminders: [], deadlines: [] },
 } satisfies DashboardSnapshot;

@@ -16,8 +16,8 @@ Applications are ranked using these signals:
 5. Active applications without a linked resume version.
 
 Only the highest-priority reason is shown for each application. Final statuses
-(`offer`, `rejected`, `withdrawn`, and `kiv`) and saved applications are excluded
-from follow-up and stale rules.
+(`offer`, `rejected`, `ghosted`, `withdrawn`, and `kiv`) are excluded from
+follow-up and stale rules.
 
 ## Manual Reminders
 

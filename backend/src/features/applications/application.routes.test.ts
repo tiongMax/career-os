@@ -20,7 +20,7 @@ const application: Application = {
   roleTrack: "backend",
   roleTracks: ["ai", "backend"],
   source: null,
-  status: "saved",
+  status: "applied",
   location: "Remote",
   employmentType: null,
   jobUrl: null,
@@ -51,15 +51,15 @@ function services(): ApiServices {
     update: vi.fn().mockResolvedValue(application),
     changeStatus: vi
       .fn()
-      .mockResolvedValue({ ...application, status: "applied" }),
+      .mockResolvedValue({ ...application, status: "online_assessment" }),
     listAuditLogs: vi.fn().mockResolvedValue([
       {
         id: "00000000-0000-4000-8000-000000000005",
         entityType: "application",
         entityId: id,
         action: "status_changed",
-        oldValue: { status: "saved" },
-        newValue: { status: "applied" },
+        oldValue: { status: "applied" },
+        newValue: { status: "online_assessment" },
         createdAt: now,
       },
     ]),
@@ -168,7 +168,7 @@ describe("application routes", () => {
       id,
       company_id: companyId,
       role_tracks: ["ai", "backend"],
-      status: "saved",
+      status: "applied",
       location: "Remote",
     });
     expect(response.json()).not.toHaveProperty("resume_version_id");
@@ -213,7 +213,7 @@ describe("application routes", () => {
     });
     expect(response.statusCode).toBe(409);
     expect(response.json()).toEqual({
-      error: "invalid application status transition: saved -> onsite",
+      error: "invalid application status transition: applied -> onsite",
     });
   });
 
@@ -225,7 +225,7 @@ describe("application routes", () => {
     expect(body.at(0)).toMatchObject({
       entity_type: "application",
       action: "status_changed",
-      old_value: { status: "saved" },
+      old_value: { status: "applied" },
     });
   });
 

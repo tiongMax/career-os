@@ -40,6 +40,7 @@ const dashboardResponseSchema = z.object({
     ),
   }),
   pipeline: z.record(z.string(), count),
+  pipeline_reached: z.record(z.string(), count),
   recent_applications: z.array(
     z.object({
       id: z.uuid(),
@@ -112,6 +113,7 @@ export function dashboardRoutes(
             })),
           },
           pipeline: snapshot.pipeline,
+          pipeline_reached: snapshot.reachedPipeline,
           recent_applications: snapshot.recentApplications.map(
             (application) => ({
               id: application.id,

@@ -92,7 +92,6 @@ export function createAnalyticsRepository(
     },
     async funnel() {
       const stages = [
-        "saved",
         "applied",
         "online_assessment",
         "recruiter_screen",

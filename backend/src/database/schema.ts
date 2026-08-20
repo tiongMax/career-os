@@ -70,7 +70,7 @@ export const applications = pgTable("applications", {
   title: text("title").notNull(),
   roleTrack: text("role_track").notNull(),
   source: text("source"),
-  status: text("status").default("saved").notNull(),
+  status: text("status").default("applied").notNull(),
   location: text("location"),
   employmentType: text("employment_type"),
   jobUrl: text("job_url"),

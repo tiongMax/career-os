@@ -2,7 +2,7 @@ import type { RedisClientType } from "redis";
 
 import type { DashboardCache, DashboardSnapshot } from "./dashboard.service.js";
 
-export const DASHBOARD_CACHE_KEY = "dashboard:v1";
+export const DASHBOARD_CACHE_KEY = "dashboard:v3";
 
 export function createRedisDashboardCache(
   client: () => RedisClientType,
@@ -53,6 +53,8 @@ function isDashboardSnapshot(value: unknown): value is DashboardSnapshot {
     Array.isArray((candidate.attention as Record<string, unknown>).items) &&
     typeof candidate.pipeline === "object" &&
     candidate.pipeline !== null &&
+    typeof candidate.reachedPipeline === "object" &&
+    candidate.reachedPipeline !== null &&
     Array.isArray(candidate.recentApplications) &&
     typeof upcoming === "object" &&
     upcoming !== null &&

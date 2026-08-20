@@ -194,19 +194,19 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
           action: "status_changed",
         }),
       ).rejects.toBeDefined();
-      expect((await service.get(created.id)).status).toBe("saved");
+      expect((await service.get(created.id)).status).toBe("applied");
 
       const updated = await service.changeStatus(created.id, {
-        status: "applied",
+        status: "online_assessment",
       });
-      expect(updated.status).toBe("applied");
+      expect(updated.status).toBe("online_assessment");
       expect(await service.listAuditLogs(created.id)).toEqual([
         expect.objectContaining({
           entityType: "application",
           entityId: created.id,
           action: "status_changed",
-          oldValue: { status: "saved" },
-          newValue: { status: "applied" },
+          oldValue: { status: "applied" },
+          newValue: { status: "online_assessment" },
         }),
       ]);
     } finally {

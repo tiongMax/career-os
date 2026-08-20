@@ -15,7 +15,6 @@ Application status rules are implemented in:
 
 | Status | Meaning |
 | --- | --- |
-| `saved` | The opportunity is tracked but not applied to yet. |
 | `applied` | Application was submitted. |
 | `online_assessment` | Online assessment is active. |
 | `recruiter_screen` | Recruiter or initial screen is active. |
@@ -41,7 +40,6 @@ allows an application to resume or move to another final state.
 
 | From | Allowed next statuses |
 | --- | --- |
-| `saved` | `applied`, `withdrawn`, `kiv` |
 | `applied` | `online_assessment`, `recruiter_screen`, `technical_screen`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
 | `online_assessment` | `recruiter_screen`, `technical_screen`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
 | `recruiter_screen` | `online_assessment`, `technical_screen`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
@@ -51,9 +49,9 @@ allows an application to resume or move to another final state.
 | `technical_screen_4` | `onsite`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
 | `onsite` | `offer`, `rejected`, `ghosted`, `withdrawn`, `kiv` |
 | `offer` | `withdrawn`, `rejected`, `ghosted`, `kiv` |
-| `rejected` | `saved`, `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `ghosted`, `withdrawn`, `kiv` |
+| `rejected` | `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `ghosted`, `withdrawn`, `kiv` |
 | `ghosted` | `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `rejected`, `withdrawn`, `kiv` |
-| `kiv` | `saved`, `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `rejected`, `ghosted`, `withdrawn` |
+| `kiv` | `applied`, `online_assessment`, `recruiter_screen`, `technical_screen`, `technical_screen_2`, `technical_screen_3`, `technical_screen_4`, `onsite`, `offer`, `rejected`, `ghosted`, `withdrawn` |
 | `withdrawn` | none |
 
 Invalid transitions return HTTP `409` from `PATCH /api/v1/applications/{id}/status`.

@@ -6,7 +6,6 @@ import {
 } from "../../shared/domain-errors.js";
 
 export const applicationStatuses = [
-  "saved",
   "applied",
   "online_assessment",
   "recruiter_screen",
@@ -160,7 +159,6 @@ export interface ApplicationsService {
 }
 
 const transitions: Record<ApplicationStatus, readonly ApplicationStatus[]> = {
-  saved: ["applied", "withdrawn", "kiv"],
   applied: [
     "online_assessment",
     "recruiter_screen",
@@ -214,7 +212,6 @@ const transitions: Record<ApplicationStatus, readonly ApplicationStatus[]> = {
   onsite: ["offer", "rejected", "ghosted", "withdrawn", "kiv"],
   offer: ["withdrawn", "rejected", "ghosted", "kiv"],
   rejected: [
-    "saved",
     "applied",
     "online_assessment",
     "recruiter_screen",
@@ -243,7 +240,6 @@ const transitions: Record<ApplicationStatus, readonly ApplicationStatus[]> = {
     "kiv",
   ],
   kiv: [
-    "saved",
     "applied",
     "online_assessment",
     "recruiter_screen",

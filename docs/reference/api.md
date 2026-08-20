@@ -167,7 +167,7 @@ Create/update request:
   "role_track": "backend",
   "role_tracks": ["backend", "platform"],
   "source": "company_site",
-  "status": "saved",
+  "status": "applied",
   "location": "Remote",
   "employment_type": "full_time",
   "job_url": "https://example.com/jobs/backend",
@@ -190,7 +190,7 @@ Response:
   "role_track": "backend",
   "role_tracks": ["backend", "platform"],
   "source": "company_site",
-  "status": "saved",
+  "status": "applied",
   "location": "Remote",
   "employment_type": "full_time",
   "job_url": "https://example.com/jobs/backend",
@@ -213,7 +213,7 @@ falls back to the primary `role_track`.
 Status values:
 
 ```text
-saved, applied, online_assessment, recruiter_screen, technical_screen, technical_screen_2, technical_screen_3, technical_screen_4, onsite, offer, rejected, ghosted, withdrawn, kiv
+applied, online_assessment, recruiter_screen, technical_screen, technical_screen_2, technical_screen_3, technical_screen_4, onsite, offer, rejected, ghosted, withdrawn, kiv
 ```
 
 Status transition request:
