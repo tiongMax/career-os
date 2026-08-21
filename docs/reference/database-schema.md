@@ -94,7 +94,7 @@ Important fields:
 - `role_track` references `role_tracks.name` and acts as the primary track.
 - Extra application tracks live in `application_role_tracks` and are returned
   by the API as `role_tracks`.
-- `status` defaults to `saved`.
+- `status` defaults to `applied`.
 - `portal_account` and `portal_password` optionally store the account details
   used for an application portal. Treat these as sensitive local data.
 - `applied_at` and `deadline_at` track key dates.
@@ -102,7 +102,6 @@ Important fields:
 
 Allowed statuses:
 
-- `saved`
 - `applied`
 - `online_assessment`
 - `recruiter_screen`

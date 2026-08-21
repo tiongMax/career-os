@@ -68,6 +68,7 @@ export interface DashboardSnapshot {
   summary: DashboardSummary;
   attention: DashboardAttention;
   pipeline: Record<string, number>;
+  reachedPipeline: Record<string, number>;
   recentApplications: DashboardRecentApplication[];
   upcoming: {
     interviews: DashboardUpcomingInterview[];

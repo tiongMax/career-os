@@ -4,8 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Briefcase, FileText, Globe, MapPin, Trash2 } from "lucide-react";
-import type { Application, AuditLog, Company, ResumeVersion, RoleTrack, UpdateApplicationPayload } from "@/lib/api";
-import { createCompany, createRoleTrack, deleteApplication, updateApplication, updateApplicationStatus } from "@/lib/api";
+import type {
+  Application,
+  AuditLog,
+  Company,
+  JobDescription,
+  ResumeVersion,
+  RoleTrack,
+  UpdateApplicationPayload,
+} from "@/lib/api";
+import {
+  createApplicationJobDescription,
+  createCompany,
+  createRoleTrack,
+  deleteApplication,
+  updateApplication,
+  updateApplicationStatus,
+  updateJobDescription,
+} from "@/lib/api";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { Field, FormSection, inputClass } from "@/components/forms/form-section";
 import { PasswordInput } from "@/components/password-input";
@@ -23,6 +39,7 @@ import {
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
+  { value: "graduate_program", label: "Graduate Program" },
   { value: "internship", label: "Internship" },
   { value: "apprentice", label: "Apprentice" },
   { value: "part_time", label: "Part-time" },
@@ -80,12 +97,14 @@ export function EditApplicationForm({
   resumes,
   tracks,
   auditLogs,
+  jobDescription,
 }: {
   application: Application;
   companies: Company[];
   resumes: ResumeVersion[];
   tracks: RoleTrack[];
   auditLogs: AuditLog[];
+  jobDescription: JobDescription | null;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +158,12 @@ export function EditApplicationForm({
       const selectedTracks = fd.getAll("role_tracks").map((value) => String(value).trim().toLowerCase()).filter(Boolean);
       if (selectedTracks.length === 0) throw new Error("Track is required");
 
+      const jobDescriptionText = String(fd.get("job_description") ?? "").trim();
+      const initialJobDescriptionText = jobDescription?.raw_text.trim() ?? "";
+      if (jobDescription && !jobDescriptionText) {
+        throw new Error("Job description cannot be empty. Keep the current text or edit it.");
+      }
+
       for (const track of selectedTracks) {
         const isKnownTrack = tracks.some((existingTrack) => existingTrack.name === track);
         if (!isKnownTrack) {
@@ -169,7 +194,18 @@ export function EditApplicationForm({
       if (appliedAt) payload.applied_at = new Date(appliedAt).toISOString();
 
       await updateApplication(application.id, payload);
-      const nextStatus = (fd.get("status") as string) || "saved";
+      if (jobDescriptionText !== initialJobDescriptionText) {
+        if (jobDescription) {
+          await updateJobDescription(jobDescription.id, {
+            raw_text: jobDescriptionText,
+          });
+        } else if (jobDescriptionText) {
+          await createApplicationJobDescription(application.id, {
+            raw_text: jobDescriptionText,
+          });
+        }
+      }
+      const nextStatus = (fd.get("status") as string) || "applied";
       const shouldSaveReceivedAt = statusHasReceivedDate(nextStatus);
       const shouldSaveCompletedAt = statusHasCompletionDate(nextStatus);
       const receivedAt = shouldSaveReceivedAt ? ((fd.get("status_received_at") as string) || "") : "";
@@ -217,22 +253,24 @@ export function EditApplicationForm({
       {toast && <DeleteApplicationToast message={toast} onClose={() => setToast(null)} />}
 
       <FormSection title="Position">
-        <Field label="Company" required>
-          <CompanyCombobox
-            companies={companies}
-            defaultId={application.company_id}
-            defaultName={defaultCompanyName}
-          />
-        </Field>
-        <Field label="Role Title" required>
-          <input
-            name="title"
-            required
-            defaultValue={application.title}
-            placeholder="e.g. Backend Engineer Intern"
-            className={inputClass}
-          />
-        </Field>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Field label="Company" required>
+            <CompanyCombobox
+              companies={companies}
+              defaultId={application.company_id}
+              defaultName={defaultCompanyName}
+            />
+          </Field>
+          <Field label="Role Title" required>
+            <input
+              name="title"
+              required
+              defaultValue={application.title}
+              placeholder="e.g. Backend Engineer Intern"
+              className={inputClass}
+            />
+          </Field>
+        </div>
       </FormSection>
 
       <FormSection title="Classification">
@@ -273,7 +311,7 @@ export function EditApplicationForm({
               icon={Briefcase}
             />
           </Field>
-          {status && status !== "saved" && (
+          {status && (
             <Field label="Applied Date">
               <input
                 name="applied_at"
@@ -319,6 +357,25 @@ export function EditApplicationForm({
             placeholder="Search resumes..."
             defaultOption={optionForValue(resumeOptions, application.resume_version_id)}
             icon={FileText}
+          />
+        </Field>
+      </FormSection>
+
+      <FormSection
+        title="Job Description"
+        description={
+          jobDescription
+            ? "Edit the saved role details used for matching and interview preparation."
+            : "Paste the role details to add a job description to this application."
+        }
+      >
+        <Field label="Job Description (JD)">
+          <textarea
+            name="job_description"
+            rows={16}
+            defaultValue={jobDescription?.raw_text ?? ""}
+            placeholder="Paste the responsibilities, requirements, qualifications, and other role details..."
+            className={`${inputClass} min-h-80 resize-y font-normal leading-6`}
           />
         </Field>
       </FormSection>

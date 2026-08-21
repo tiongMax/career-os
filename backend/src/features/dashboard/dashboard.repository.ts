@@ -13,6 +13,7 @@ import type { Database } from "../../database/client.js";
 const activeStatuses = `'applied','online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer'`;
 const respondedStatuses = `'online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer','rejected'`;
 const interviewStatuses = `'recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer'`;
+const technicalStatuses = `'technical_screen','technical_screen_2','technical_screen_3','technical_screen_4'`;
 const finalStatuses = `'offer','rejected','ghosted','withdrawn','kiv'`;
 
 type Row<T> = T & Record<string, unknown>;
@@ -29,6 +30,7 @@ interface MetricsRow {
   overdueReminders: number;
   dueTodayReminders: number;
   statusCounts: Record<string, number>;
+  reachedStatusCounts: Record<string, number>;
 }
 
 type DatabaseTimestamp = Date | string;
@@ -77,13 +79,11 @@ export function createDashboardRepository(
               COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected,
               COUNT(*) FILTER (
                 WHERE status NOT IN (${sql.raw(finalStatuses)})
-                  AND status <> 'saved'
                   AND updated_at <= ${staleCutoff}
               )::int AS "staleApplications",
               COUNT(*) FILTER (
                 WHERE resume_version_id IS NULL
                   AND status NOT IN (${sql.raw(finalStatuses)})
-                  AND status <> 'saved'
               )::int AS "missingResumeVersion",
               (SELECT COUNT(*)::int FROM reminders WHERE status = 'pending' AND due_at < ${now}) AS "overdueReminders",
               (SELECT COUNT(*)::int FROM reminders WHERE status = 'pending' AND due_at >= ${now} AND due_at <= ${todayEnd}) AS "dueTodayReminders",
@@ -94,7 +94,43 @@ export function createDashboardRepository(
                   FROM applications
                   GROUP BY status
                 ) grouped
-              ), '{}'::jsonb) AS "statusCounts"
+              ), '{}'::jsonb) AS "statusCounts",
+              COALESCE((
+                SELECT jsonb_object_agg(grouped.status, grouped.count)
+                FROM (
+                  SELECT status, COUNT(*)::int AS count
+                  FROM (
+                    SELECT DISTINCT
+                      events.application_id,
+                      CASE
+                        WHEN events.status IN (${sql.raw(technicalStatuses)})
+                          THEN 'technical_screen'
+                        ELSE events.status
+                      END AS status
+                    FROM (
+                      SELECT id AS application_id, status
+                      FROM applications
+
+                      UNION ALL
+
+                      SELECT entity_id, old_value->>'status'
+                      FROM audit_logs
+                      WHERE entity_type = 'application'
+
+                      UNION ALL
+
+                      SELECT entity_id, new_value->>'status'
+                      FROM audit_logs
+                      WHERE entity_type = 'application'
+                    ) events
+                    JOIN applications current_application
+                      ON current_application.id = events.application_id
+                    WHERE events.status IS NOT NULL
+                      AND events.status <> 'saved'
+                  ) reached
+                  GROUP BY status
+                ) grouped
+              ), '{}'::jsonb) AS "reachedStatusCounts"
             FROM applications
           `),
         database.execute<Row<RecentRow>>(sql`
@@ -206,7 +242,6 @@ export function createDashboardRepository(
               FROM applications a
               JOIN companies c ON c.id = a.company_id
               WHERE a.status NOT IN (${sql.raw(finalStatuses)})
-                AND a.status <> 'saved'
                 AND a.updated_at <= ${staleCutoff}
 
               UNION ALL
@@ -218,7 +253,6 @@ export function createDashboardRepository(
               JOIN companies c ON c.id = a.company_id
               WHERE a.resume_version_id IS NULL
                 AND a.status NOT IN (${sql.raw(finalStatuses)})
-                AND a.status <> 'saved'
             ), ranked AS (
               SELECT *, ROW_NUMBER() OVER (
                 PARTITION BY "applicationId"
@@ -263,6 +297,7 @@ export function createDashboardRepository(
           })),
         },
         pipeline: metrics.statusCounts,
+        reachedPipeline: metrics.reachedStatusCounts,
         recentApplications: recentResult.rows.map((application) => ({
           ...application,
           updatedAt: isoTimestamp(application.updatedAt),

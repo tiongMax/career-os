@@ -59,7 +59,7 @@ export function createApplicationsRepository(
             title: input.title,
             roleTrack: primaryTrack,
             source: input.source ?? null,
-            status: input.status ?? "saved",
+            status: input.status ?? "applied",
             location: input.location ?? null,
             employmentType: input.employment_type ?? null,
             jobUrl: input.job_url ?? null,

@@ -3,11 +3,12 @@ import { ChevronRight } from "lucide-react";
 import {
   getApplication,
   getApplicationAuditLogs,
+  getApplicationJobDescription,
   getCompanies,
   getResumeVersions,
   getRoleTracks,
 } from "@/lib/api";
-import { requireEntity } from "@/lib/server-data";
+import { optionalEntity, requireEntity } from "@/lib/server-data";
 import { EditApplicationForm } from "./form";
 
 export default async function EditApplicationPage(
@@ -15,17 +16,18 @@ export default async function EditApplicationPage(
 ) {
   const { id } = await props.params;
 
-  const [application, auditLogs, companies, resumes, tracks] =
+  const [application, auditLogs, companies, resumes, tracks, jobDescription] =
     await Promise.all([
       requireEntity(getApplication(id)),
       getApplicationAuditLogs(id),
       getCompanies(),
       getResumeVersions(),
       getRoleTracks(),
+      optionalEntity(getApplicationJobDescription(id)),
     ]);
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <div className="flex items-center gap-1.5 text-sm text-neutral-400 mb-2">
           <Link
@@ -54,6 +56,7 @@ export default async function EditApplicationPage(
         resumes={resumes}
         tracks={tracks}
         auditLogs={auditLogs}
+        jobDescription={jobDescription}
       />
     </div>
   );

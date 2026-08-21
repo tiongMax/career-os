@@ -60,7 +60,7 @@ export const resumeSeeds = [
 ] as const;
 
 export const applicationSeeds = [
-  ["Software Engineer Intern", "backend", "LinkedIn", "saved", "internship"],
+  ["Software Engineer Intern", "backend", "LinkedIn", "applied", "internship"],
   ["Backend Engineer", "backend", "referral", "applied", "full_time"],
   ["ML Engineer", "ai", "company_site", "recruiter_screen", "full_time"],
   ["Quant Developer", "quant", "recruiter", "technical_screen", "full_time"],
@@ -77,7 +77,7 @@ export const applicationSeeds = [
     "full_time",
   ],
   ["Machine Learning Engineer", "ai", "LinkedIn", "onsite", "full_time"],
-  ["Full Stack Engineer", "general", "referral", "saved", "full_time"],
+  ["Full Stack Engineer", "general", "referral", "applied", "full_time"],
 ] as const;
 
 export const jobDescriptionTemplates = {

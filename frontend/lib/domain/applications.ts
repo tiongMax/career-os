@@ -1,7 +1,6 @@
 import type { Option } from "@/components/ui/option-combobox";
 
 export const APPLICATION_STATUS_OPTIONS: Option[] = [
-  { value: "saved", label: "Saved", dot: "bg-slate-400" },
   { value: "applied", label: "Applied", dot: "bg-blue-500" },
   { value: "online_assessment", label: "Online Assessment", dot: "bg-cyan-500" },
   { value: "recruiter_screen", label: "Recruiter Screen", dot: "bg-purple-500" },
@@ -24,7 +23,6 @@ export const APPLICATION_STATUS_LABELS = Object.fromEntries(
 ) as Record<string, string>;
 
 export const APPLICATION_STATUS_BADGE_CLASSES: Record<string, string> = {
-  saved: "bg-slate-100 text-slate-700",
   applied: "bg-blue-100 text-blue-700",
   online_assessment: "bg-cyan-100 text-cyan-700",
   recruiter_screen: "bg-purple-100 text-purple-700",
@@ -41,7 +39,6 @@ export const APPLICATION_STATUS_BADGE_CLASSES: Record<string, string> = {
 };
 
 export const APPLICATION_STATUS_CHART_COLORS: Record<string, string> = {
-  saved: "#94a3b8",
   applied: "#3b82f6",
   online_assessment: "#06b6d4",
   recruiter_screen: "#8b5cf6",

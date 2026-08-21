@@ -48,6 +48,7 @@ describe("GET /dashboard", () => {
             ],
           },
           pipeline: { applied: 1 },
+          reachedPipeline: { applied: 1 },
           recentApplications: [],
           upcoming: { interviews: [], reminders: [], deadlines: [] },
         },
@@ -66,6 +67,7 @@ describe("GET /dashboard", () => {
     expect(response.json()).toMatchObject({
       generated_at: "2026-08-02T10:00:00.000Z",
       pipeline: { applied: 1 },
+      pipeline_reached: { applied: 1 },
       attention: { missing_resume_version: 1 },
     });
   });

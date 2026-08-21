@@ -15,6 +15,7 @@ import { APPLICATION_STATUS_OPTIONS, formatTrackLabel, isVisibleTrack } from "@/
 
 const EMPLOYMENT_OPTIONS: Option[] = [
   { value: "full_time", label: "Full-time" },
+  { value: "graduate_program", label: "Graduate Program" },
   { value: "internship", label: "Internship" },
   { value: "apprentice", label: "Apprentice" },
   { value: "part_time", label: "Part-time" },
@@ -43,7 +44,7 @@ export function NewApplicationForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("applied");
 
   const trackOptions: Option[] = tracks
     .filter((track) => isVisibleTrack(track.name))
@@ -100,7 +101,7 @@ export function NewApplicationForm({
         title: (fd.get("title") as string).trim(),
         role_track: selectedTracks[0],
         role_tracks: selectedTracks,
-        status: (fd.get("status") as string) || "saved",
+        status: (fd.get("status") as string) || "applied",
       };
       if (fd.get("resume_version_id")) body.resume_version_id = fd.get("resume_version_id") as string;
       if (fd.get("source")) body.source = fd.get("source") as string;
@@ -160,6 +161,7 @@ export function NewApplicationForm({
               name="status"
               options={APPLICATION_STATUS_OPTIONS}
               placeholder="Select status..."
+              defaultOption={APPLICATION_STATUS_OPTIONS[0]}
               required
               onSelect={setStatus}
             />
@@ -175,7 +177,7 @@ export function NewApplicationForm({
               icon={Briefcase}
             />
           </Field>
-          {status && status !== "saved" && (
+          {status && (
             <Field label="Applied Date">
               <input
                 name="applied_at"

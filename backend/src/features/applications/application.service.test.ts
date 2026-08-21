@@ -21,7 +21,7 @@ const application: Application = {
   roleTrack: "backend",
   roleTracks: ["backend"],
   source: null,
-  status: "saved",
+  status: "applied",
   location: null,
   employmentType: null,
   jobUrl: null,
@@ -63,9 +63,6 @@ function repository(current = application): ApplicationsRepository {
 describe("application validation", () => {
   it("matches the Go transition graph", () => {
     expect(() => {
-      validateTransition("saved", "applied");
-    }).not.toThrow();
-    expect(() => {
       validateTransition("kiv", "technical_screen_3");
     }).not.toThrow();
     expect(() => {
@@ -78,10 +75,10 @@ describe("application validation", () => {
       validateTransition("withdrawn", "applied");
     }).toThrow(DomainConflictError);
     expect(() => {
-      validateTransition("saved", "onsite");
+      validateTransition("applied", "onsite");
     }).toThrow(
       new DomainConflictError(
-        "invalid application status transition: saved -> onsite",
+        "invalid application status transition: applied -> onsite",
       ),
     );
   });
@@ -100,6 +97,14 @@ describe("application validation", () => {
         title: "Role",
         role_track: "backend",
         status: "unknown",
+      }),
+    ).rejects.toThrow("invalid application status");
+    await expect(
+      service.create({
+        company_id: "",
+        title: "Role",
+        role_track: "backend",
+        status: "saved",
       }),
     ).rejects.toThrow("invalid application status");
   });

@@ -5,15 +5,9 @@ import { ApplicationsTable } from "./applications-table";
 
 const PAGE_SIZE = 25;
 
-export default async function ApplicationsPage(
-  props: PageProps<"/applications">,
-) {
-  const searchParams = await props.searchParams;
-  const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
-  const offset = (page - 1) * PAGE_SIZE;
-
+export default async function ApplicationsPage() {
   const [applicationPage, companies] = await Promise.all([
-    getApplicationsPage({ limit: PAGE_SIZE, offset }),
+    getApplicationsPage({ limit: PAGE_SIZE, offset: 0 }),
     getCompanies(),
   ]);
   const applications = applicationPage.items ?? [];
@@ -61,7 +55,6 @@ export default async function ApplicationsPage(
       <ApplicationsTable
         applications={applications}
         companyMap={companyMap}
-        page={page}
         pageSize={applicationPage.limit}
         total={applicationPage.total}
       />

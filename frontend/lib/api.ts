@@ -241,6 +241,12 @@ export const createCompany = (payload: CreateCompanyPayload) =>
     method: "POST",
     body: JSON.stringify(payload),
   });
+export type UpdateCompanyPayload = Partial<CreateCompanyPayload>;
+export const updateCompany = (id: string, payload: UpdateCompanyPayload) =>
+  apiFetch<Company>(`/companies/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 export const deleteCompany = (id: string) =>
   apiFetch<void>(`/companies/${id}`, { method: "DELETE" });
 
@@ -656,6 +662,7 @@ export interface DashboardSnapshot {
     }>;
   };
   pipeline: Record<string, number>;
+  pipeline_reached: Record<string, number>;
   recent_applications: Array<{
     id: string;
     title: string;
