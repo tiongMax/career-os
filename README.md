@@ -40,10 +40,12 @@ Run the backend and frontend together:
 npm run dev
 ```
 
-This starts PostgreSQL, applies migrations, loads `.env`, and runs the
-TypeScript API, optional AI-analysis worker, and Next.js dev server. Press
-`Ctrl+C` once to stop all three development processes; the database container
-remains running for the next session.
+This reuses PostgreSQL and Redis when they are already reachable, otherwise
+starts and health-checks their containers, applies migrations, and loads `.env`.
+The TypeScript API and Next.js server then start together; the optional
+AI-analysis worker joins after the API is ready. Press `Ctrl+C` once to stop all
+three development processes. The database and Redis containers remain running
+for the next session.
 
 Run processes separately:
 
