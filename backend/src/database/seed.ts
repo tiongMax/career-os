@@ -79,9 +79,7 @@ export async function seedDemoData(
         location: index % 5 === 0 ? "Remote" : company.location,
         employmentType,
         jobUrl: `https://jobs.example.com/${String(index + 1)}`,
-        appliedAt: new Date(
-          now - 30 * 86_400_000 + index * 21_600_000,
-        ),
+        appliedAt: new Date(now - 30 * 86_400_000 + index * 21_600_000),
       };
     });
     const applicationRows = await tx

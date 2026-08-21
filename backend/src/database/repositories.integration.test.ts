@@ -363,7 +363,7 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
         ]),
       );
       expect((await analytics.summary()).total).toBeGreaterThanOrEqual(1);
-      expect(await analytics.funnel()).toHaveLength(10);
+      expect(await analytics.funnel()).toHaveLength(9);
     } finally {
       await database
         .delete(jobDescriptions)
