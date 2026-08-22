@@ -323,7 +323,7 @@ export function ApplicationsTable({
         </div>
         <Link
           href="/applications/new"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 transition-colors whitespace-nowrap"
+          className="whitespace-nowrap rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-700 md:hidden"
         >
           + New Application
         </Link>
