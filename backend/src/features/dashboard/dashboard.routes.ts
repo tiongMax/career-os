@@ -4,6 +4,12 @@ import { z } from "zod";
 import type { DashboardService } from "./dashboard.service.js";
 
 const count = z.number().int().nonnegative();
+const reachedApplicationSchema = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  company_name: z.string(),
+  status: z.string(),
+});
 const dashboardResponseSchema = z.object({
   generated_at: z.iso.datetime(),
   summary: z.object({
@@ -144,6 +150,30 @@ export function dashboardRoutes(
             })),
           },
         };
+      },
+    );
+    app.get(
+      "/dashboard/pipeline-reached/:stage",
+      {
+        schema: {
+          tags: ["Dashboard"],
+          summary: "List applications that have ever reached a pipeline stage",
+          params: z.object({ stage: z.string() }),
+          response: {
+            200: z.array(reachedApplicationSchema),
+          },
+        },
+      },
+      async (request) => {
+        const applications = await service.listReachedByStage(
+          request.params.stage,
+        );
+        return applications.map((app) => ({
+          id: app.id,
+          title: app.title,
+          company_name: app.companyName,
+          status: app.status,
+        }));
       },
     );
     done();

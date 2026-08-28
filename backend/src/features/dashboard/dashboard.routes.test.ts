@@ -53,6 +53,7 @@ describe("GET /dashboard", () => {
           upcoming: { interviews: [], reminders: [], deadlines: [] },
         },
       }),
+      listReachedByStage: vi.fn().mockResolvedValue([]),
     };
     const app = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
     app.setValidatorCompiler(validatorCompiler);

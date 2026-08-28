@@ -650,13 +650,13 @@ export interface DashboardSnapshot {
       application_title: string;
       company_name: string;
       type:
-        | "overdue_reminder"
-        | "due_reminder"
-        | "deadline"
-        | "interview"
-        | "follow_up"
-        | "stale"
-        | "missing_resume";
+      | "overdue_reminder"
+      | "due_reminder"
+      | "deadline"
+      | "interview"
+      | "follow_up"
+      | "stale"
+      | "missing_resume";
       title: string | null;
       action_at: string;
     }>;
@@ -707,6 +707,18 @@ export const getAnalyticsFunnel = () =>
 export const getAnalyticsUpcoming = () =>
   apiFetch<UpcomingData>("/analytics/upcoming");
 export const getDashboard = () => apiFetch<DashboardSnapshot>("/dashboard");
+
+export interface PipelineReachedApplication {
+  id: string;
+  title: string;
+  company_name: string;
+  status: string;
+}
+
+export const getPipelineReachedApplications = (stage: string) =>
+  apiFetch<PipelineReachedApplication[]>(
+    `/dashboard/pipeline-reached/${encodeURIComponent(stage)}`,
+  );
 
 export type ExportKind = "applications" | "contacts" | "reminders";
 

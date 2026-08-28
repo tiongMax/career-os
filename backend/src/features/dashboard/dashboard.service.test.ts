@@ -37,7 +37,7 @@ function cache(overrides: Partial<DashboardCache> = {}): DashboardCache {
 
 describe("dashboard service", () => {
   it("returns a cached snapshot without querying PostgreSQL", async () => {
-    const repository = { load: vi.fn() };
+    const repository = { load: vi.fn(), listReachedByStage: vi.fn() };
     const service = createDashboardService(
       repository,
       cache({ get: vi.fn().mockResolvedValue(snapshot) }),
@@ -51,7 +51,10 @@ describe("dashboard service", () => {
   });
 
   it("loads and caches a miss", async () => {
-    const repository = { load: vi.fn().mockResolvedValue(snapshot) };
+    const repository = {
+      load: vi.fn().mockResolvedValue(snapshot),
+      listReachedByStage: vi.fn(),
+    };
     const dashboardCache = cache();
     const service = createDashboardService(
       repository,
@@ -79,6 +82,7 @@ describe("dashboard service", () => {
           resolveLoad = resolve;
         }),
       ),
+      listReachedByStage: vi.fn(),
     };
     const service = createDashboardService(repository, cache());
 
