@@ -42,6 +42,13 @@ export interface DashboardRecentApplication {
   updatedAt: string;
 }
 
+export interface DashboardReachedApplication {
+  id: string;
+  title: string;
+  status: string;
+  companyName: string;
+}
+
 export interface DashboardUpcomingInterview {
   id: string;
   applicationTitle: string;
@@ -79,6 +86,7 @@ export interface DashboardSnapshot {
 
 export interface DashboardRepository {
   load: (now: Date) => Promise<DashboardSnapshot>;
+  listReachedByStage: (stage: string) => Promise<DashboardReachedApplication[]>;
 }
 
 export interface DashboardCache {
@@ -96,6 +104,7 @@ export interface DashboardResult {
 
 export interface DashboardService {
   get: () => Promise<DashboardResult>;
+  listReachedByStage: (stage: string) => Promise<DashboardReachedApplication[]>;
 }
 
 export function createDashboardService(
@@ -124,6 +133,9 @@ export function createDashboardService(
         return { snapshot: cached, cacheStatus: "HIT" };
       }
       return { snapshot: await load(), cacheStatus: "MISS" };
+    },
+    async listReachedByStage(stage) {
+      return repository.listReachedByStage(stage);
     },
   };
 }

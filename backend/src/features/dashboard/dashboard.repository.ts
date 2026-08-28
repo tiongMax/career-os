@@ -10,6 +10,24 @@ import type {
 } from "./dashboard.service.js";
 import type { Database } from "../../database/client.js";
 
+// Stage key → the raw DB statuses that count as "reached" that stage
+const STAGE_STATUSES: Record<string, string[]> = {
+  applied: ["applied"],
+  online_assessment: ["online_assessment"],
+  recruiter_screen: ["recruiter_screen"],
+  technical_screen: [
+    "technical_screen",
+    "technical_screen_2",
+    "technical_screen_3",
+    "technical_screen_4",
+  ],
+  onsite: ["onsite"],
+  offer: ["offer"],
+  rejected: ["rejected"],
+  ghosted: ["ghosted"],
+  kiv: ["kiv"],
+};
+
 const activeStatuses = `'applied','online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer'`;
 const respondedStatuses = `'online_assessment','recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer','rejected'`;
 const interviewStatuses = `'recruiter_screen','technical_screen','technical_screen_2','technical_screen_3','technical_screen_4','onsite','offer'`;
@@ -54,6 +72,38 @@ export function createDashboardRepository(
   database: Database,
 ): DashboardRepository {
   return {
+    async listReachedByStage(stage) {
+      const statuses = STAGE_STATUSES[stage];
+      if (statuses === undefined || statuses.length === 0) return [];
+
+      const statusList = statuses.map((s) => `'${s}'`).join(",");
+      const rows = await database.execute<{
+        id: string;
+        title: string;
+        companyName: string;
+        status: string;
+      }>(sql`
+        SELECT DISTINCT ON (a.id)
+          a.id::text,
+          a.title,
+          c.name AS "companyName",
+          a.status
+        FROM (
+          SELECT id AS application_id, status FROM applications
+          UNION ALL
+          SELECT entity_id, old_value->>'status' FROM audit_logs WHERE entity_type = 'application'
+          UNION ALL
+          SELECT entity_id, new_value->>'status' FROM audit_logs WHERE entity_type = 'application'
+        ) events
+        JOIN applications a ON a.id = events.application_id
+        JOIN companies c ON c.id = a.company_id
+        WHERE events.status IN (${sql.raw(statusList)})
+        ORDER BY a.id, a.updated_at DESC
+      `);
+
+      return rows.rows;
+    },
+
     async load(now) {
       const staleCutoff = new Date(now.getTime() - 14 * 86_400_000);
       const followUpCutoff = new Date(now.getTime() - 7 * 86_400_000);
