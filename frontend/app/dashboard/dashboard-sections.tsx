@@ -175,58 +175,6 @@ export function ActionSections({
   );
 }
 
-export function PipelineSection({
-  maxPipelineCount,
-  pipeline,
-}: {
-  maxPipelineCount: DashboardData["maxPipelineCount"];
-  pipeline: DashboardData["pipeline"];
-}) {
-  return (
-    <section className="rounded-lg border border-neutral-200 bg-white">
-      <div className="flex items-center gap-2 border-b border-neutral-100 px-5 py-4">
-        <h2 className="text-sm font-semibold text-neutral-700">Pipeline</h2>
-        <InfoTooltip
-          title="Current status and stages reached"
-          items={[
-            "The main number shows applications currently at that stage.",
-            "Reached includes applications that later moved on, were rejected, or became ghosted.",
-          ]}
-        />
-      </div>
-      <div className="grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-2 lg:grid-cols-8">
-        {pipeline.map((stage) => (
-          <div key={stage.label} className="min-w-0">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="truncate text-xs font-medium text-neutral-500">
-                {stage.label}
-              </span>
-              <span className="text-xs font-semibold text-neutral-700">
-                {stage.count}
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-              <div
-                className={`h-full rounded-full ${stage.color}`}
-                style={{
-                  width:
-                    stage.count === 0
-                      ? "0%"
-                      : `${Math.max(8, Math.round((stage.count / maxPipelineCount) * 100))}%`,
-                }}
-              />
-            </div>
-            {stage.showReached && (
-              <p className="mt-1.5 text-[11px] text-neutral-400">
-                {stage.reached} reached
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 export function ActivitySections({
   recentApps,

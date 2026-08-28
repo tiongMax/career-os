@@ -4,9 +4,9 @@ import {
   ActionSections,
   ActivitySections,
   ConversionSection,
-  PipelineSection,
   StatCards,
 } from "./dashboard-sections";
+import { PipelineSection } from "./pipeline-section";
 import { PageHeader } from "@/components/ui/page-header";
 
 export default async function DashboardPage() {
