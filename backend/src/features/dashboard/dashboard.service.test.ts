@@ -51,7 +51,10 @@ describe("dashboard service", () => {
   });
 
   it("loads and caches a miss", async () => {
-    const repository = { load: vi.fn().mockResolvedValue(snapshot), listReachedByStage: vi.fn() };
+    const repository = {
+      load: vi.fn().mockResolvedValue(snapshot),
+      listReachedByStage: vi.fn(),
+    };
     const dashboardCache = cache();
     const service = createDashboardService(
       repository,
