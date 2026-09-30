@@ -17,12 +17,12 @@ This folder keeps the reference, development, and product docs.
 ## Development
 
 - [Backend Guide](development/backend-guide.md) - backend layout, layers, runtime wiring,
-  migrations, and worker process.
+  and migrations.
 - [Application Workflow](development/application-workflow.md) - application statuses,
   transition rules, and audit logging.
 - [Dashboard Attention](development/dashboard-attention.md) - follow-up, stale,
   deadline, interview, and manual-reminder rules.
-- [Testing Guide](development/testing-guide.md) - unit, HTTP, integration, worker, and
+- [Testing Guide](development/testing-guide.md) - unit, HTTP, integration, and
   manual testing notes.
 
 ## Product

@@ -24,7 +24,6 @@ Or run each process separately:
 
 ```sh
 npm run dev:api
-npm run dev:worker
 npm run dev --prefix frontend
 ```
 

@@ -64,12 +64,6 @@ function services(): ApiServices {
     delete: vi.fn().mockResolvedValue(undefined),
   } satisfies InterviewsService;
   return {
-    analysis: {
-      create: vi.fn(),
-      list: vi.fn(),
-      listByApplication: vi.fn(),
-      get: vi.fn(),
-    },
     analytics: {
       summary: vi.fn(),
       byStatus: vi.fn(),
@@ -103,11 +97,6 @@ function services(): ApiServices {
       create: vi.fn(),
       getByApplication: vi.fn(),
       update: vi.fn(),
-      extractKeywords: vi.fn(),
-      compareResume: vi.fn(),
-      recommendedResume: vi.fn(),
-      prepContext: vi.fn(),
-      generatePrepBrief: vi.fn(),
     },
     reminders: {
       create: vi.fn(),
@@ -147,6 +136,30 @@ async function app(apiServices = services()) {
 }
 
 describe("contact routes", () => {
+  it("filters application contacts by company and rejects invalid filters", async () => {
+    const api = services();
+    const instance = await app(api);
+    const filtered = await instance.inject({
+      method: "GET",
+      url: "/api/v1/contacts?company_id=" + companyId,
+    });
+    expect(filtered.statusCode).toBe(200);
+    expect(api.contacts.list).toHaveBeenCalledWith(companyId);
+    vi.mocked(api.contacts.list).mockClear();
+    const invalid = await instance.inject({
+      method: "GET",
+      url: "/api/v1/contacts?company_id=invalid",
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(api.contacts.list).not.toHaveBeenCalled();
+    const unfiltered = await instance.inject({
+      method: "GET",
+      url: "/api/v1/contacts",
+    });
+    expect(unfiltered.statusCode).toBe(200);
+    expect(api.contacts.list).toHaveBeenCalledWith(undefined);
+  });
+
   it("creates a contact and omits null fields", async () => {
     const response = await (
       await app()

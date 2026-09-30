@@ -105,8 +105,6 @@ export interface JobDescription {
   id: string;
   application_id: string;
   raw_text: string;
-  extracted_keywords: string[];
-  ai_summary?: string;
   created_at: string;
   updated_at: string;
 }
@@ -160,52 +158,6 @@ export interface AuditLog {
   old_value?: unknown;
   new_value?: unknown;
   created_at: string;
-}
-
-export type AnalysisJobType = "resume_match" | "jd_extract" | "prep_brief";
-export type AnalysisJobStatus =
-  "queued" | "processing" | "completed" | "failed";
-
-export interface EmbeddingMatch {
-  resume_version_id: string;
-  resume_version_name: string;
-  similarity: number;
-}
-
-export interface AnalysisResult {
-  summary?: string;
-  recommended_resume_id?: string;
-  recommended_resume_name?: string;
-  match_score?: number;
-  matched_skills?: string[];
-  missing_skills?: string[];
-  extracted_keywords?: string[];
-  core_requirements?: string[];
-  responsibilities?: string[];
-  seniority?: string;
-  resume_feedback?: string[];
-  interview_focus?: string[];
-  prep_plan?: string[];
-  talking_points?: string[];
-  suggested_questions?: string[];
-  embedding_matches?: EmbeddingMatch[];
-  generated_at?: string;
-}
-
-export interface AnalysisJob {
-  id: string;
-  application_id: string;
-  job_type: AnalysisJobType;
-  status: AnalysisJobStatus;
-  input_snapshot: unknown;
-  result?: AnalysisResult;
-  error_message?: string;
-  retry_count: number;
-  idempotency_key: string;
-  started_at?: string;
-  completed_at?: string;
-  created_at: string;
-  updated_at: string;
 }
 
 // ─── Role Tracks ─────────────────────────────────────────────────────────────
@@ -388,7 +340,7 @@ export const createApplicationJobDescription = (
   });
 export const updateJobDescription = (
   id: string,
-  payload: { raw_text?: string; extracted_keywords?: string[] },
+  payload: { raw_text?: string },
 ) =>
   apiFetch<JobDescription>(`/job-descriptions/${id}`, {
     method: "PATCH",
@@ -409,74 +361,14 @@ export const createInterview = (
     method: "POST",
     body: JSON.stringify(payload),
   });
-export const getRecommendedResume = (applicationId: string) =>
-  apiFetch<RecommendedResumeResult>(
-    `/applications/${applicationId}/recommended-resume`,
-  );
-
-export interface ResumeMatchResult {
-  matched: string[];
-  missing: string[];
-  score: number;
-  compared_keywords: number;
-  evidence: Array<{ keyword: string; source: string; weight: number }>;
-}
-
-export interface RecommendedResumeResult {
-  resume_version: ResumeVersion;
-  matched: string[];
-  missing: string[];
-  score: number;
-}
-
-export const extractKeywords = (jdId: string) =>
-  apiFetch<JobDescription>(`/job-descriptions/${jdId}/extract-keywords`, {
-    method: "POST",
-  });
-export const compareResume = (jdId: string, resumeVersionId: string) =>
-  apiFetch<ResumeMatchResult>(
-    `/job-descriptions/${jdId}/compare-resume/${resumeVersionId}`,
-    { method: "POST" },
-  );
-
-export interface PrepContext {
-  application: Application;
-  company: Company;
-  job_description?: JobDescription;
-  resume?: ResumeVersion;
-  interviews: InterviewRound[];
-  contacts: Contact[];
-  audit_logs: AuditLog[];
-}
-
-export interface PrepBrief {
-  role_summary: string;
-  key_gaps: string[];
-  focus_areas: string[];
-  talking_points: string[];
-  generated_at: string;
-}
-
-export const getPrepContext = (applicationId: string) =>
-  apiFetch<PrepContext>(`/applications/${applicationId}/prep-context`);
-export const generatePrepBrief = (applicationId: string) =>
-  apiFetch<PrepBrief>(`/applications/${applicationId}/generate-prep-brief`, {
-    method: "POST",
-  });
-export const getApplicationAnalysisJobs = (applicationId: string) =>
-  apiFetch<AnalysisJob[]>(`/applications/${applicationId}/ai-analysis-jobs`);
-export const createAnalysisJob = (
-  applicationId: string,
-  jobType: AnalysisJobType,
-) =>
-  apiFetch<AnalysisJob>(`/applications/${applicationId}/ai-analysis-jobs`, {
-    method: "POST",
-    body: JSON.stringify({ job_type: jobType }),
-  });
-
 // ─── Contacts ────────────────────────────────────────────────────────────────
 
-export const getContacts = () => apiFetch<Contact[]>("/contacts");
+export const getContacts = (companyId?: string) =>
+  apiFetch<Contact[]>(
+    companyId === undefined
+      ? "/contacts"
+      : `/contacts?company_id=${encodeURIComponent(companyId)}`,
+  );
 export const getContact = (id: string) => apiFetch<Contact>(`/contacts/${id}`);
 
 export interface CreateContactPayload {

@@ -2,15 +2,12 @@ import {
   type Application,
   type AuditLog,
   getApplication,
-  getApplicationAnalysisJobs,
   getApplicationAuditLogs,
   getApplicationInterviews,
   getApplicationJobDescription,
   getCompany,
-  getPrepContext,
-  getRecommendedResume,
+  getContacts,
   getResumeVersion,
-  getResumeVersions,
 } from "@/lib/api";
 import { optionalEntity, requireEntity } from "@/lib/server-data";
 import { ApplicationWorkspace } from "./application-workspace";
@@ -22,7 +19,7 @@ export default async function ApplicationDetailPage(
   const { id } = await props.params;
   const application = await requireEntity(getApplication(id));
 
-  const [company, resume, jobDescription, auditLogs, interviews, analysisJobs, prepContext, resumes] =
+  const [company, resume, jobDescription, auditLogs, interviews, contacts] =
     await Promise.all([
       requireEntity(getCompany(application.company_id)),
       application.resume_version_id
@@ -31,15 +28,8 @@ export default async function ApplicationDetailPage(
       safe(optionalEntity(getApplicationJobDescription(id)), null),
       safe(getApplicationAuditLogs(id), []),
       safe(getApplicationInterviews(id), []),
-      safe(getApplicationAnalysisJobs(id), []),
-      safe(getPrepContext(id), null),
-      safe(getResumeVersions(), []),
+      safe(getContacts(application.company_id), []),
     ]);
-
-  const recommendedResume =
-    jobDescription && jobDescription.extracted_keywords.length > 0
-      ? await safe(optionalEntity(getRecommendedResume(id)), null)
-      : null;
 
   return (
     <ApplicationWorkspace
@@ -48,10 +38,7 @@ export default async function ApplicationDetailPage(
       resume={resume}
       jobDescription={jobDescription}
       interviews={interviews}
-      analysisJobs={analysisJobs}
-      contacts={prepContext?.contacts ?? []}
-      resumeVersions={resumes}
-      recommendedResume={recommendedResume}
+      contacts={contacts}
       timeline={statusTimelineEvents(application, auditLogs)}
     />
   );

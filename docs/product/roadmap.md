@@ -1,7 +1,7 @@
 # CareerOS Roadmap
 
 This roadmap reflects the current codebase after the core tracker, dashboard
-attention rules, analytics, exports, and AI analysis job flow have landed. Use it as the
+attention rules, analytics, and exports have landed. Use it as the
 forward-looking product plan, not as a record of the original one-week build
 plan.
 
@@ -14,7 +14,7 @@ Implemented today:
 - PostgreSQL schema for companies, applications, resume versions, job
   descriptions, contacts, interviews, reminders, audit logs, role tracks,
   application multi-track labels, reminder deliveries, failed reminder jobs, and
-  AI analysis jobs.
+  retained historical analysis jobs.
 - Next.js app for dashboard, applications, application detail, create/edit
   application, contacts, resume versions, reminders, and analytics.
 - Application status state machine with audit logs.
@@ -22,10 +22,8 @@ Implemented today:
   applications.
 - Resume PDF upload/download.
 - Portal account/password fields on applications for local personal tracking.
-- Deterministic JD keyword extraction, resume/JD comparison, recommended resume,
-  prep context, and template prep brief generation.
-- Gemini-backed async AI analysis jobs for resume match, JD extraction, and prep
-  brief generation when `GEMINI_API_KEY` is set.
+- Job-description text storage and manual resume selection. Unused keyword
+  extraction, matching, preparation generation, and Gemini analysis were removed.
 - Dashboard attention rules for due reminders, follow-ups, stale applications,
   deadlines, interviews, and missing resume links.
 - Analytics summary, status counts, role-track counts, resume performance,
@@ -49,10 +47,10 @@ Implemented today:
 ### 2. Documentation And Demo Readiness
 
 - Add screenshots for dashboard, applications, application detail, reminders,
-  analytics, and AI analysis results.
+  and analytics.
 - Record real benchmark runs before making performance claims.
 - Add a short demo script that walks through creating an application, adding a
-  JD, comparing resumes, updating status, creating a reminder, and viewing
+  JD, attaching a resume, updating status, creating a reminder, and viewing
   analytics.
 - Keep route-level Zod schemas aligned with handler behavior and generated
   OpenAPI output.
@@ -61,7 +59,6 @@ Implemented today:
 
 - Add integration tests for migrations, application status audit transactions,
   search, analytics, and dashboard attention rules against PostgreSQL.
-- Add more coverage for `analysis_jobs` retry/failure paths with fake providers.
 - Add frontend smoke tests for the main create/edit/detail flows.
 - Add a benchmark-results document only after measured local runs.
 
@@ -73,7 +70,7 @@ Implemented today:
 - Add snooze and handled actions for dashboard attention items.
 - Add search UI if the API remains useful enough to expose in the frontend.
 - Improve contact-to-application context so recruiter/referral notes surface on
-  prep pages.
+  application pages.
 
 ## Later Enhancements
 
@@ -84,8 +81,8 @@ Implemented today:
 - Browser extension or bookmarklet to capture jobs from career pages.
 - OAuth or single-user passcode if the app is deployed beyond local use.
 - Encrypted secret storage for portal credentials.
-- OpenTelemetry/Prometheus metrics and worker heartbeat visibility.
-- pgvector or another semantic search layer if measured keyword search becomes a
+- OpenTelemetry/Prometheus API metrics.
+- pgvector or another semantic search layer if measured full-text search becomes a
   real limitation.
 - Hosted demo with sanitized seed data.
 
@@ -100,8 +97,7 @@ Safe current claims:
 - Added a dashboard attention queue derived from application state, dates,
   interviews, and manual reminders without a separate scheduling service.
 - Added application status transition rules with transactional audit logging.
-- Added deterministic resume/JD matching, prep context generation, analytics,
-  CSV exports, and optional Gemini-backed asynchronous analysis jobs.
+- Added application analytics and CSV exports.
 
 Claims that still need measured evidence:
 

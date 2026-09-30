@@ -8,18 +8,15 @@ import {
   Mail,
   MapPin,
   Pencil,
-  Sparkles,
   UserRound,
 } from "lucide-react";
 
 import type {
-  AnalysisJob,
   Application,
   Company,
   Contact,
   InterviewRound,
   JobDescription,
-  RecommendedResumeResult,
   ResumeVersion,
 } from "@/lib/api";
 import { formatDate, formatRelative } from "@/lib/utils";
@@ -39,11 +36,7 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ApplicationQuickActions } from "./application-quick-actions";
-import { AnalysisJobsCard } from "./analysis-jobs-card";
-import { CompareResumeCard } from "./compare-resume-card";
-import { ExtractKeywordsButton } from "./extract-keywords-button";
 import { PortalPassword } from "./portal-password";
-import { PrepBriefCard } from "./prep-brief-card";
 import type { StatusTimelineEvent } from "./page";
 
 type WorkspaceProps = {
@@ -52,10 +45,7 @@ type WorkspaceProps = {
   resume: ResumeVersion | null;
   jobDescription: JobDescription | null;
   interviews: InterviewRound[];
-  analysisJobs: AnalysisJob[];
   contacts: Contact[];
-  resumeVersions: ResumeVersion[];
-  recommendedResume: RecommendedResumeResult | null;
   timeline: StatusTimelineEvent[];
 };
 
@@ -65,10 +55,7 @@ export function ApplicationWorkspace({
   resume,
   jobDescription,
   interviews,
-  analysisJobs,
   contacts,
-  resumeVersions,
-  recommendedResume,
   timeline,
 }: WorkspaceProps) {
   const nextStep = getNextStep(application, resume, jobDescription, interviews);
@@ -151,8 +138,8 @@ export function ApplicationWorkspace({
       >
         {[
           ["overview", "Overview"],
-          ["role-resume", "Role & resume"],
-          ["interview-prep", "Interview prep"],
+          ["role-resume", "Job description & resume"],
+          ["interviews", "Interviews"],
           ["activity", "Activity"],
         ].map(([id, label]) => (
           <a
@@ -241,33 +228,19 @@ export function ApplicationWorkspace({
 
           <section id="role-resume" className="scroll-mt-6 space-y-4">
             <SectionHeading
-              title="Role & resume"
-              description="Understand the role, then tailor the strongest resume for it."
+              title="Job description & resume"
+              description="Keep the job posting and the resume used for this application together."
             />
             <Card>
               <CardHeader>
                 <CardTitle>Job description</CardTitle>
                 <CardDescription>
-                  The source used for role analysis, resume fit, and interview preparation.
+                  The saved job posting and requirements for this opportunity.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {jobDescription ? (
                   <div className="space-y-4">
-                    {jobDescription.extracted_keywords.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {jobDescription.extracted_keywords.map((keyword) => (
-                          <span
-                            key={keyword}
-                            className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <ExtractKeywordsButton jdId={jobDescription.id} />
-                    )}
                     <details>
                       <summary className="cursor-pointer text-sm font-medium text-primary hover:underline">
                         Read full job description
@@ -282,58 +255,18 @@ export function ApplicationWorkspace({
                     compact
                     icon={FileText}
                     title="No job description yet"
-                    description="Use the Add job description action above to unlock resume matching and role analysis."
+                    description="Use the Add job description action above to save the role requirements."
                   />
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <div className="flex items-start gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
-                    <Sparkles aria-hidden="true" className="size-4" />
-                  </div>
-                  <div>
-                    <CardTitle>AI Insights</CardTitle>
-                    <CardDescription>
-                      Analyze the role, check resume fit, and build a preparation plan. Results use the job description and resume data saved in CareerOS.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {recommendedResume && (
-                  <ResumeRecommendation recommendation={recommendedResume} />
-                )}
-                {jobDescription &&
-                  jobDescription.extracted_keywords.length > 0 &&
-                  resumeVersions.length > 0 && (
-                    <div className="rounded-card border border-border bg-surface-subtle p-4">
-                      <h3 className="text-sm font-semibold text-foreground">
-                        Compare another resume
-                      </h3>
-                      <p className="mb-3 mt-1 text-xs text-muted-foreground">
-                        Compare a saved version against the extracted role requirements.
-                      </p>
-                      <CompareResumeCard
-                        jdId={jobDescription.id}
-                        resumeVersions={resumeVersions}
-                      />
-                    </div>
-                  )}
-                <AnalysisJobsCard
-                  applicationId={application.id}
-                  initialJobs={analysisJobs}
-                />
-              </CardContent>
-            </Card>
           </section>
 
-          <section id="interview-prep" className="scroll-mt-6 space-y-4">
+          <section id="interviews" className="scroll-mt-6 space-y-4">
             <SectionHeading
-              title="Interview prep"
-              description="Keep upcoming rounds and preparation in one place."
+              title="Interviews"
+              description="Keep scheduled rounds, interviewers, and notes in one place."
             />
             <Card>
               <CardHeader>
@@ -375,17 +308,6 @@ export function ApplicationWorkspace({
                     Use Schedule interview above when the company confirms a round.
                   </p>
                 )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Preparation brief</CardTitle>
-                <CardDescription>
-                  Turn saved role, resume, and interview context into focused preparation notes.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PrepBriefCard applicationId={application.id} />
               </CardContent>
             </Card>
           </section>
@@ -539,66 +461,6 @@ function TrackBadges({ tracks }: { tracks: string[] }) {
   );
 }
 
-function ResumeRecommendation({ recommendation }: { recommendation: RecommendedResumeResult }) {
-  return (
-    <div className="rounded-card border border-blue-100 bg-accent p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-accent-foreground">
-            Best matching resume
-          </p>
-          <p className="mt-1 text-sm font-semibold text-foreground">
-            {recommendation.resume_version.name}
-          </p>
-        </div>
-        <span className="text-xl font-semibold text-accent-foreground">
-          {Math.round(recommendation.score * 100)}%
-        </span>
-      </div>
-      <p className="mt-3 text-xs leading-5 text-muted-foreground">
-        This score is a keyword-based guide, not a hiring prediction. Review the matched and missing skills before tailoring your resume.
-      </p>
-      {(recommendation.matched.length > 0 || recommendation.missing.length > 0) && (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs font-semibold text-accent-foreground">
-            Review match details
-          </summary>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <SkillGroup title="Matched" items={recommendation.matched} tone="success" />
-            <SkillGroup title="Consider adding" items={recommendation.missing} tone="danger" />
-          </div>
-        </details>
-      )}
-    </div>
-  );
-}
-
-function SkillGroup({
-  title,
-  items,
-  tone,
-}: {
-  title: string;
-  items: string[];
-  tone: "success" | "danger";
-}) {
-  return (
-    <div>
-      <p className="text-xs font-medium text-muted-foreground">{title}</p>
-      <div className="mt-1.5 flex flex-wrap gap-1">
-        {items.map((item) => (
-          <span
-            key={item}
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone === "success" ? "bg-success-soft text-success" : "bg-danger-soft text-danger"}`}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function Timeline({ events }: { events: StatusTimelineEvent[] }) {
   return (
     <ol className="space-y-0">
@@ -637,21 +499,21 @@ function getNextStep(
     return {
       icon: CalendarClock,
       title: `Prepare for the ${humanize(upcomingInterview.round_type)}`,
-      description: `Scheduled ${formatRelative(upcomingInterview.scheduled_at)}. Generate a preparation brief and review the role requirements.`,
+      description: `Scheduled ${formatRelative(upcomingInterview.scheduled_at)}. Review the role requirements and your interview notes.`,
     };
   }
   if (!jobDescription) {
     return {
       icon: FileText,
       title: "Add the job description",
-      description: "This unlocks role analysis, resume matching, and better interview preparation.",
+      description: "Keep the role requirements available for reference.",
     };
   }
   if (!resume) {
     return {
       icon: FileText,
       title: "Attach a tailored resume",
-      description: "Choose the version you plan to use so CareerOS can help you check the fit.",
+      description: "Choose the version you used or plan to submit for this application.",
     };
   }
   return {

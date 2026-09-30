@@ -26,12 +26,18 @@ export function createContactsRepository(
         throw new Error("contact insert returned no row");
       return contact;
     },
-    list: () =>
-      database
+    list(companyId) {
+      const query = database
         .select()
         .from(contacts)
-        .orderBy(desc(contacts.createdAt))
-        .limit(200),
+        .where(
+          companyId === undefined
+            ? undefined
+            : eq(contacts.companyId, companyId),
+        )
+        .orderBy(desc(contacts.createdAt));
+      return companyId === undefined ? query.limit(200) : query;
+    },
     async get(id) {
       const [contact] = await database
         .select()

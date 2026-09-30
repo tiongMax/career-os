@@ -20,10 +20,13 @@ describe("loadConfig", () => {
   });
 
   it("coerces numeric environment variables", () => {
-    const config = loadConfig({ API_PORT: "9090", GEMINI_TIMEOUT_MS: "5000" });
+    const config = loadConfig({
+      API_PORT: "9090",
+      DASHBOARD_CACHE_TTL_SECONDS: "30",
+    });
 
     expect(config.API_PORT).toBe(9090);
-    expect(config.GEMINI_TIMEOUT_MS).toBe(5000);
+    expect(config.DASHBOARD_CACHE_TTL_SECONDS).toBe(30);
   });
 
   it("rejects malformed configuration", () => {

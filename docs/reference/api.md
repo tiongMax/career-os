@@ -151,11 +151,9 @@ Required fields: `name`, `track`.
 | `DELETE` | `/applications/{id}`                     | Delete an application.                                    |
 | `PATCH`  | `/applications/{id}/status`              | Transition application status and write an audit log.     |
 | `GET`    | `/applications/{id}/audit-logs`          | List audit logs for an application.                       |
-| `GET`    | `/applications/{id}/recommended-resume`  | Return the best resume match for an application JD.       |
-| `GET`    | `/applications/{id}/prep-context`        | Aggregate interview prep context.                         |
-| `POST`   | `/applications/{id}/generate-prep-brief` | Generate a deterministic prep brief.                      |
-| `POST`   | `/applications/{id}/ai-analysis-jobs`    | Queue a Gemini-backed AI analysis job for an application. |
-| `GET`    | `/applications/{id}/ai-analysis-jobs`    | List AI analysis jobs for an application.                 |
+
+The contact list accepts an optional UUID filter: `GET /contacts?company_id={id}`.
+The application workspace uses this filter to display the company contacts.
 
 Create/update request:
 
@@ -235,52 +233,13 @@ application status.
 
 Invalid transitions return `409`.
 
-## AI Analysis Jobs
-
-| Method | Path                                  | Description                          |
-| ------ | ------------------------------------- | ------------------------------------ |
-| `POST` | `/applications/{id}/ai-analysis-jobs` | Queue an async AI analysis job.      |
-| `GET`  | `/applications/{id}/ai-analysis-jobs` | List jobs for one application.       |
-| `GET`  | `/ai-analysis-jobs`                   | List the latest 100 analysis jobs.   |
-| `GET`  | `/ai-analysis-jobs/{id}`              | Get one analysis job and its result. |
-
-Create request:
-
-```json
-{
-  "job_type": "resume_match"
-}
-```
-
-Supported `job_type` values:
-
-```text
-resume_match, jd_extract, prep_brief
-```
-
-Job statuses:
-
-```text
-queued, processing, completed, failed
-```
-
-Completed jobs include a persisted `result` JSON object. The shape depends on `job_type`:
-
-- `resume_match`: uses Gemini embeddings to rank resume versions, then returns `recommended_resume_id`, `match_score`, `matched_skills`, `missing_skills`, `resume_feedback`, `interview_focus`, and `embedding_matches`.
-- `jd_extract`: extracts `extracted_keywords`, `core_requirements`, `responsibilities`, `seniority`, and `summary`. Extracted keywords and summary are also written back to the job description.
-- `prep_brief`: returns `prep_plan`, `talking_points`, `suggested_questions`, `matched_skills`, `missing_skills`, and `interview_focus`.
-
-The worker processes queued jobs with Gemini when `GEMINI_API_KEY` is set.
-
 ## Job Descriptions
 
 | Method  | Path                                                      | Description                               |
 | ------- | --------------------------------------------------------- | ----------------------------------------- |
 | `POST`  | `/applications/{id}/job-description`                      | Attach a JD to an application.            |
 | `GET`   | `/applications/{id}/job-description`                      | Get an application's JD.                  |
-| `PATCH` | `/job-descriptions/{id}`                                  | Update JD raw text or extracted keywords. |
-| `POST`  | `/job-descriptions/{id}/extract-keywords`                 | Run deterministic keyword extraction.     |
-| `POST`  | `/job-descriptions/{id}/compare-resume/{resumeVersionId}` | Score a resume against a JD.              |
+| `PATCH` | `/job-descriptions/{id}`                                  | Update JD raw text. |
 
 Create request:
 
@@ -294,8 +253,7 @@ Update request:
 
 ```json
 {
-  "raw_text": "Updated JD text",
-  "extracted_keywords": ["go", "postgresql", "redis"]
+  "raw_text": "Updated JD text"
 }
 ```
 
@@ -306,24 +264,17 @@ Response:
   "id": "00000000-0000-4000-8000-000000000020",
   "application_id": "00000000-0000-4000-8000-000000000010",
   "raw_text": "We are hiring a Go engineer with PostgreSQL and Redis experience.",
-  "extracted_keywords": ["go", "postgresql", "redis"],
-  "ai_summary": null,
   "created_at": "2026-05-25T00:00:00Z",
   "updated_at": "2026-05-25T00:00:00Z"
 }
 ```
 
-Resume comparison response:
-
-```json
-{
-  "matched": ["go", "postgresql"],
-  "missing": ["redis"],
-  "score": 0.67
-}
-```
-
 Required fields: `raw_text` when creating.
+
+Keyword extraction, resume matching, preparation generation, and AI-analysis
+endpoints have been removed and return 404. Historical analysis data remains
+in PostgreSQL. Job descriptions accept and return raw text without derived
+keywords or AI summaries.
 
 ## Contacts
 

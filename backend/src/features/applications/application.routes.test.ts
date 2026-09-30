@@ -66,12 +66,6 @@ function services(): ApiServices {
     delete: vi.fn().mockResolvedValue(undefined),
   } satisfies ApplicationsService;
   return {
-    analysis: {
-      create: vi.fn(),
-      list: vi.fn(),
-      listByApplication: vi.fn(),
-      get: vi.fn(),
-    },
     analytics: {
       summary: vi.fn(),
       byStatus: vi.fn(),
@@ -107,11 +101,6 @@ function services(): ApiServices {
       create: vi.fn(),
       getByApplication: vi.fn(),
       update: vi.fn(),
-      extractKeywords: vi.fn(),
-      compareResume: vi.fn(),
-      recommendedResume: vi.fn(),
-      prepContext: vi.fn(),
-      generatePrepBrief: vi.fn(),
     },
     reminders: {
       create: vi.fn(),

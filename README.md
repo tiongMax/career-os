@@ -42,16 +42,14 @@ npm run dev
 
 This reuses PostgreSQL and Redis when they are already reachable, otherwise
 starts and health-checks their containers, applies migrations, and loads `.env`.
-The TypeScript API starts first; the Next.js server and optional AI-analysis
-worker join after the API is ready. Press `Ctrl+C` once to stop all three
-development processes. The database and Redis containers remain running for the
+The TypeScript API starts first; the Next.js server joins after the API is
+ready. Press `Ctrl+C` once to stop both development processes. The database and Redis containers remain running for the
 next session.
 
 Run processes separately:
 
 ```sh
 npm run dev:api
-npm run dev:worker
 npm run dev --prefix frontend
 ```
 
@@ -62,7 +60,7 @@ Default URLs:
 - Swagger UI: `http://localhost:8080/api/v1/docs`
 - OpenAPI spec: `http://localhost:8080/api/v1/openapi.yaml`
 
-Run the full Docker Compose API/worker stack:
+Run the full Docker Compose API stack:
 
 ```sh
 docker compose --profile full up --build
@@ -120,5 +118,4 @@ curl -X POST http://localhost:8080/api/v1/applications \
 - [Documentation Index](docs/README.md)
 - [Architecture](docs/reference/architecture.md)
 - [API Reference](docs/reference/api.md)
-- [AI Analysis Jobs](docs/development/ai-analysis.md)
 - [Contributing](CONTRIBUTING.md)

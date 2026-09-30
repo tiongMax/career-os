@@ -159,8 +159,8 @@ Important fields:
 
 - `application_id` is required.
 - `raw_text` stores the original JD.
-- `extracted_keywords` stores deterministic or AI-assisted keywords.
-- `ai_summary` stores a later summary.
+- `extracted_keywords` retains historical keywords from the removed analysis feature; current APIs do not read or write it.
+- `ai_summary` retains historical summaries; current APIs do not read or write it.
 - `search_vector` enables full-text search over the raw JD.
 
 Delete behavior:
@@ -272,14 +272,15 @@ Important fields:
 
 ### `analysis_jobs`
 
-Stores asynchronous AI analysis requests and results for applications.
+Retains historical AI analysis requests and results. The analysis API and worker
+have been removed; this table is preserved without a destructive migration.
 
 Important fields:
 
 - `application_id` is required.
 - `job_type` must be `resume_match`, `jd_extract`, or `prep_brief`.
-- `status` defaults to `queued` and moves through `processing`, `completed`, or
-  `failed`.
+- `status` defaults to `queued`; historical values also include `processing`,
+  `completed`, and `failed`. Existing queued/processing records are no longer processed.
 - `result` stores job-specific JSON output.
 - `error_message`, `attempts`, `started_at`, and `completed_at` support worker
   retries and observability.

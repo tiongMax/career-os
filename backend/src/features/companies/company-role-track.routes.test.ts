@@ -74,12 +74,6 @@ function fakeServices(): ApiServices {
   };
 
   return {
-    analysis: {
-      create: vi.fn(),
-      list: vi.fn(),
-      listByApplication: vi.fn(),
-      get: vi.fn(),
-    },
     analytics: {
       summary: vi.fn(),
       byStatus: vi.fn(),
@@ -109,11 +103,6 @@ function fakeServices(): ApiServices {
       create: vi.fn(),
       getByApplication: vi.fn(),
       update: vi.fn(),
-      extractKeywords: vi.fn(),
-      compareResume: vi.fn(),
-      recommendedResume: vi.fn(),
-      prepContext: vi.fn(),
-      generatePrepBrief: vi.fn(),
     },
     reminders: {
       create: vi.fn(),

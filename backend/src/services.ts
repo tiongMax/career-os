@@ -41,11 +41,6 @@ import {
 } from "./features/search/search.service.js";
 import { createAnalyticsRepository } from "./features/analytics/analytics.repository.js";
 import { createSearchRepository } from "./features/search/search.repository.js";
-import {
-  createAnalysisService,
-  type AnalysisService,
-} from "./features/analysis/analysis.service.js";
-import { createAnalysisRepository } from "./features/analysis/analysis.repository.js";
 import { createCompaniesRepository } from "./features/companies/company.repository.js";
 import { createContactsRepository } from "./features/contacts/contact.repository.js";
 import { createInterviewsRepository } from "./features/interviews/interview.repository.js";
@@ -62,7 +57,6 @@ import {
 import { createDashboardRepository } from "./features/dashboard/dashboard.repository.js";
 
 export interface ApiServices {
-  analysis: AnalysisService;
   analytics: AnalyticsService;
   applications: ApplicationsService;
   companies: CompaniesService;
@@ -106,7 +100,6 @@ export function createApiServices(
   );
 
   return {
-    analysis: createAnalysisService(createAnalysisRepository(database)),
     analytics: createAnalyticsService(createAnalyticsRepository(database)),
     applications,
     companies,

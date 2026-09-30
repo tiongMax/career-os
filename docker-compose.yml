@@ -44,19 +44,5 @@ services:
       redis:
         condition: service_healthy
 
-  worker:
-    profiles: [full]
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    command: ["node", "dist/scripts/worker.js"]
-    env_file:
-      - .env.example
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/careeros?sslmode=disable
-    depends_on:
-      postgres:
-        condition: service_healthy
-
 volumes:
   postgres-data:
