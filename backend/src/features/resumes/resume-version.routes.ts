@@ -132,27 +132,42 @@ export function resumeVersionRoutes(
           tags: ["Resume Versions"],
           summary: "Upload PDF for resume version",
           params: idParamsSchema,
-          response: { 204: z.null(), 400: errorResponseSchema },
+          response: {
+            204: z.null(),
+            400: errorResponseSchema,
+            404: errorResponseSchema,
+            413: errorResponseSchema,
+            415: errorResponseSchema,
+          },
         },
       },
       async (request, reply) => {
         const id = requireUUID(request.params.id, "invalid resume version id");
-        let file;
-        try {
-          file = await request.file();
-        } catch {
-          throw new AppError("failed to parse form", 400);
+        const contentType = request.headers["content-type"];
+        if (
+          request.isMultipart() &&
+          !contentType?.match(/;\s*boundary=(?:"[^"]+"|[^;\s]+)/i)
+        ) {
+          throw new AppError("missing multipart boundary", 400);
         }
-        if (file === undefined || file.fieldname !== "file") {
-          throw new AppError("missing file field", 400);
+        let data: Buffer | undefined;
+        for await (const part of request.parts({
+          limits: { files: 1, fields: 0, parts: 1 },
+        })) {
+          if (part.type !== "file")
+            throw new AppError("missing file field", 400);
+          const bytes = await part.toBuffer();
+          if (part.fieldname !== "file")
+            throw new AppError("missing file field", 400);
+          if (part.mimetype !== "application/pdf") {
+            throw new AppError(
+              "file must have application/pdf content type",
+              415,
+            );
+          }
+          data = bytes;
         }
-
-        let data: Buffer;
-        try {
-          data = await file.toBuffer();
-        } catch {
-          throw new AppError("failed to read file", 500);
-        }
+        if (data === undefined) throw new AppError("missing file field", 400);
         await service.storePdf(id, data);
         return reply.status(204).send(null);
       },

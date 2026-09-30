@@ -32,6 +32,24 @@ function fakeRepository(): ResumeVersionsRepository {
 }
 
 describe("createResumeVersionsService", () => {
+  it("rejects empty and non-PDF bytes before persistence", async () => {
+    const repository = fakeRepository();
+    const service = createResumeVersionsService(repository);
+    for (const data of [
+      Buffer.alloc(0),
+      Buffer.from("not a PDF"),
+      Buffer.from([0xa5, 0xd0, 0xc4, 0xc6, 0xad]),
+    ]) {
+      await expect(service.storePdf(resume.id, data)).rejects.toBeInstanceOf(
+        DomainValidationError,
+      );
+    }
+    expect(repository.storePdf).not.toHaveBeenCalled();
+    const pdf = Buffer.from("%PDF-1.4\ncontent\n");
+    await service.storePdf(resume.id, pdf);
+    expect(repository.storePdf).toHaveBeenCalledWith(resume.id, pdf);
+  });
+
   it("requires a non-blank name", async () => {
     const service = createResumeVersionsService(fakeRepository());
     await expect(
