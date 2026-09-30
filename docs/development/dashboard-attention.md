@@ -32,5 +32,4 @@ them.
 ## Runtime
 
 The dashboard runtime uses PostgreSQL plus Redis for its short-lived read cache.
-Redis is not a reminder queue; the background worker is reserved for optional
-Gemini-backed AI analysis jobs.
+Redis is not a reminder queue. No background worker is required.

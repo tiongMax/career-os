@@ -16,7 +16,6 @@ Run the TypeScript API with the repository `.env` file:
 ```sh
 npm run migrate:up
 npm run dev:api
-npm run dev:worker
 ```
 
 Run the verification gates:
@@ -45,17 +44,12 @@ The TypeScript API currently exposes:
 - `GET, PATCH, DELETE /api/v1/applications/{id}`
 - `PATCH /api/v1/applications/{id}/status`
 - `GET /api/v1/applications/{id}/audit-logs`
-- `GET, POST /api/v1/contacts`
+- `GET, POST /api/v1/contacts` (GET accepts optional `company_id`)
 - `GET, PATCH, DELETE /api/v1/contacts/{id}`
 - `GET, POST /api/v1/applications/{id}/interviews`
 - `PATCH, DELETE /api/v1/interviews/{id}`
 - `GET, POST /api/v1/applications/{id}/job-description`
 - `PATCH /api/v1/job-descriptions/{id}`
-- `POST /api/v1/job-descriptions/{id}/extract-keywords`
-- `POST /api/v1/job-descriptions/{id}/compare-resume/{resumeVersionId}`
-- `GET /api/v1/applications/{id}/recommended-resume`
-- `GET /api/v1/applications/{id}/prep-context`
-- `POST /api/v1/applications/{id}/generate-prep-brief`
 - `GET, POST /api/v1/reminders`
 - `GET /api/v1/reminders/due`
 - `GET /api/v1/reminders/failed`
@@ -65,9 +59,6 @@ The TypeScript API currently exposes:
 - `GET /api/v1/search?q={query}`
 - `GET /api/v1/analytics/{summary,by-status,by-role-track,by-resume-version,source-performance,funnel,upcoming}`
 - `GET /api/v1/exports/{applications,contacts,reminders}.csv`
-- `GET, POST /api/v1/applications/{id}/ai-analysis-jobs`
-- `GET /api/v1/ai-analysis-jobs`
-- `GET /api/v1/ai-analysis-jobs/{id}`
 
 Resume PDF uploads use the multipart field name `file` and accept up to 32 MiB.
 The PDF is stored in the existing PostgreSQL `resume_versions.pdf_data` column.
@@ -76,7 +67,8 @@ PostgreSQL migrations in `migrations/` remain the authoritative database
 schema history. Do not use schema-push workflows; add a versioned migration
 instead.
 
-The TypeScript worker processes AI analysis jobs when `GEMINI_API_KEY` is set.
-Resume matching uses Gemini embeddings; JD extraction stores the generated
-summary and keywords back on the job description. Dashboard reminders remain
-pending PostgreSQL records until the user handles or cancels them.
+Job descriptions store raw text for reference. Keyword extraction, resume
+matching, generated preparation briefs, and AI analysis have been removed.
+Historical analysis tables and derived job-description columns remain in the
+database; no cleanup migration is applied. Dashboard reminders remain pending
+PostgreSQL records until the user handles or cancels them.

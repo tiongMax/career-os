@@ -1,8 +1,8 @@
 # Backend Guide
 
 The backend is a TypeScript service built with Fastify, Zod, Drizzle ORM,
-PostgreSQL and functional dependency injection. It contains an HTTP API, an
-AI-analysis worker, and a Goose-compatible migration runner.
+PostgreSQL and functional dependency injection. It contains an HTTP API and a
+Goose-compatible migration runner.
 
 ## Directory Map
 
@@ -16,7 +16,7 @@ backend/
     database/        PostgreSQL client, schema, migrations, and seed data
     features/        feature-first routes, services, repositories, and tests
     routes/          cross-feature health, OpenAPI, and export routes
-    scripts/         worker, migration, and seed entry points
+    scripts/         migration and seed entry points
     shared/          shared errors, HTTP schemas, logging, and Redis client
   migrations/        authoritative SQL migration history
 ```
@@ -29,7 +29,6 @@ From the repository root:
 npm install --prefix backend
 npm run migrate:up
 npm run dev:api
-npm run dev:worker
 ```
 
 Verification:
@@ -76,7 +75,7 @@ HTTP request
 - Domain factories own validation and business rules.
 - Repository interfaces keep domain code independent from persistence.
 - Drizzle repositories own queries, transactions, and row mapping.
-- Infrastructure adapters own PostgreSQL and Gemini clients.
+- Infrastructure adapters own PostgreSQL and Redis clients.
 
 Prefer factory functions and plain objects for services and repositories.
 Classes are reserved for errors or behavior that genuinely needs instance
@@ -107,25 +106,11 @@ compatible.
 Do not use schema-push commands. Add a forward and reverse SQL section whenever
 the persistent schema changes, then update the Drizzle schema mapping.
 
-## Worker
-
-Entry point: `backend/src/scripts/worker.ts`.
-
-When `GEMINI_API_KEY` is configured, the worker runs the AI-analysis processor.
-AI analysis supports structured Gemini output, resume embedding ranking, JD
-extraction persistence, retry handling, and graceful shutdown. Reminder and
-follow-up attention is derived when the dashboard loads and does not use a
-background worker.
-
-Processor logic is kept independent from long-running loops so it can be tested
-with plain fakes. Unit tests live beside worker modules; real repository coverage
-is in `backend/src/database/repositories.integration.test.ts`.
-
 ## Deployment
 
 `backend/Dockerfile` is a multi-stage Node 22 build. The production image
 contains compiled JavaScript, production dependencies, and SQL migrations. In
 the Compose `full` profile, the API container applies migrations before starting
-the server, while the worker uses the same image with a different command.
+the server. No background worker is required.
 
 The frontend is deployed separately from the backend image.

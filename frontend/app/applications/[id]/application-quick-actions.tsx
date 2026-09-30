@@ -129,7 +129,7 @@ export function ApplicationQuickActions({
         open={open === "job-description"}
         onClose={() => !saving && setOpen(null)}
         title={jobDescription ? "Edit job description" : "Add job description"}
-        description="Paste the role details once, then use them for resume matching and interview preparation."
+        description="Save the role requirements alongside this application."
         className="max-w-2xl"
       >
         <form

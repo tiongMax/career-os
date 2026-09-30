@@ -1,7 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 
 import type { ApiServices } from "./services.js";
-import { analysisRoutes } from "./features/analysis/analysis.routes.js";
 import { analyticsRoutes } from "./features/analytics/analytics.routes.js";
 import { applicationRoutes } from "./features/applications/application.routes.js";
 import { companyRoutes } from "./features/companies/company.routes.js";
@@ -30,7 +29,6 @@ export function apiRoutes(options: ApiRoutesOptions): FastifyPluginAsyncZod {
     const services = options.services;
     if (!services) return;
 
-    await app.register(analysisRoutes(services.analysis));
     await app.register(analyticsRoutes(services.analytics));
     await app.register(applicationRoutes(services.applications));
     await app.register(companyRoutes(services.companies));

@@ -23,13 +23,13 @@ Unit tests live beside their modules and use plain object fakes. They cover:
 - Domain validation and application status transitions.
 - Route status codes and JSON contracts through Fastify injection.
 - Reminder validation and cancellation behavior.
-- AI-analysis retry, embedding ranking, and JD extraction persistence.
+- Job-description text CRUD and removal of analysis endpoints.
 - Goose-format migration parsing.
 
 Run one file with:
 
 ```sh
-npm run test --prefix backend -- analysis-worker.test.ts
+npm run test --prefix backend -- job-description.routes.test.ts
 ```
 
 ## PostgreSQL Integration Tests
@@ -59,7 +59,6 @@ and verify at least:
 
 - `/api/v1/health` reports PostgreSQL as healthy.
 - A representative create/get/delete workflow reaches PostgreSQL.
-- The worker starts and shuts down without leaving jobs processing.
 - The API container applies pending migrations before listening.
 
 ## Test Design
@@ -67,5 +66,5 @@ and verify at least:
 - Test domain behavior without a database when possible.
 - Use Fastify injection for HTTP contracts.
 - Use real PostgreSQL for SQL, transactions, constraints, and row mapping.
-- Keep time, providers, queues, and external AI calls injectable.
+- Keep time and infrastructure dependencies injectable.
 - Assert observable outcomes instead of private implementation details.

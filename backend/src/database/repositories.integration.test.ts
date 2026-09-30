@@ -255,6 +255,13 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     });
 
     try {
+      expect(await contactService.list(company.id)).toEqual([
+        expect.objectContaining({ id: contact.id, companyId: company.id }),
+      ]);
+      expect(
+        await contactService.list("00000000-0000-4000-8000-000000000000"),
+      ).toEqual([]);
+
       const updatedContact = await contactService.update(contact.id, {
         role: null,
         notes: "Follow up after interview",
@@ -290,7 +297,7 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
     }
   });
 
-  it("persists job descriptions and builds complete prep data", async () => {
+  it("persists job description text and keeps search and analytics available", async () => {
     const database = requirePostgres().db;
     const companyService = createCompaniesService(
       createCompaniesRepository(database),
@@ -324,36 +331,19 @@ describe.skipIf(databaseUrl === undefined)("Drizzle repositories", () => {
       const created = await service.create(application.id, {
         raw_text: "We need TypeScript, Redis and Kubernetes experience.",
       });
-      const extracted = await service.extractKeywords(created.id);
-      const compared = await service.compareResume(created.id, resume.id);
-      const recommended = await service.recommendedResume(application.id);
-      const context = await service.prepContext(application.id);
-      const brief = await service.generatePrepBrief(application.id);
+      expect(await service.getByApplication(application.id)).toEqual(created);
+      const updated = await service.update(created.id, {
+        raw_text: "Updated TypeScript, Redis and Kubernetes requirements.",
+      });
+      expect(updated.rawText).toBe(
+        "Updated TypeScript, Redis and Kubernetes requirements.",
+      );
+      expect(updated.id).toBe(created.id);
       const search = createSearchService(createSearchRepository(database));
       const analytics = createAnalyticsService(
         createAnalyticsRepository(database),
       );
 
-      expect(extracted.extractedKeywords).toEqual([
-        "TypeScript",
-        "R",
-        "Redis",
-        "Kubernetes",
-      ]);
-      expect(compared.matched).toEqual(["TypeScript", "R", "Redis"]);
-      expect(recommended.resumeVersion.id).toBe(resume.id);
-      expect(context).toMatchObject({
-        application: { id: application.id },
-        company: { id: company.id },
-        jobDescription: { id: created.id },
-        resume: { id: resume.id },
-        interviews: [],
-        contacts: [],
-      });
-      expect(brief.roleSummary).toBe(
-        "Platform Engineer at " + company.name + " · Remote",
-      );
-      expect(brief.keyGaps).toEqual(["Kubernetes"]);
       expect(await search.search("Kubernetes")).toEqual(
         expect.arrayContaining([
           expect.objectContaining({

@@ -49,11 +49,16 @@ export function contactRoutes(
       {
         schema: {
           tags: ["Contacts"],
-          summary: "List contacts",
-          response: { 200: z.array(contactResponseSchema) },
+          summary: "List contacts, optionally filtered by company",
+          querystring: z.strictObject({ company_id: z.uuid().optional() }),
+          response: {
+            200: z.array(contactResponseSchema),
+            400: errorResponseSchema,
+          },
         },
       },
-      async () => (await service.list()).map(contactDTO),
+      async (request) =>
+        (await service.list(request.query.company_id)).map(contactDTO),
     );
     app.get(
       "/contacts/:id",

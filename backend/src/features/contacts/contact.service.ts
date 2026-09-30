@@ -42,7 +42,7 @@ export interface Contact {
 
 export interface ContactsRepository {
   create: (input: CreateContactInput) => Promise<Contact>;
-  list: () => Promise<Contact[]>;
+  list: (companyId?: string) => Promise<Contact[]>;
   get: (id: string) => Promise<Contact>;
   update: (id: string, input: UpdateContactInput) => Promise<Contact>;
   delete: (id: string) => Promise<void>;
@@ -58,7 +58,7 @@ export function createContactsService(
       requireName(input.name);
       return repository.create(input);
     },
-    list: () => repository.list(),
+    list: (companyId) => repository.list(companyId),
     get: (id) => repository.get(id),
     async update(id, input) {
       if (input.name != null) requireName(input.name);
