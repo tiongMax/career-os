@@ -36,6 +36,8 @@ Common status codes:
 | `400` | Invalid JSON, invalid UUID, validation error, unknown JSON field, or constraint violation. |
 | `404` | Resource not found.                                                                        |
 | `409` | Duplicate resource or invalid application status transition.                               |
+| `413` | Request body, upload size, or multipart part limit exceeded.                              |
+| `415` | Unsupported content type.                                                                 |
 | `500` | Unexpected server error.                                                                   |
 | `503` | Health check dependency failure.                                                           |
 
@@ -139,6 +141,11 @@ Response:
 ```
 
 Required fields: `name`, `track`.
+
+PDF uploads accept exactly one multipart field named `file`, with content type
+`application/pdf` and a maximum size of 32 MiB. The bytes must begin with a PDF
+signature. This basic format check does not validate the entire document.
+Invalid uploads never replace the existing attachment.
 
 ## Applications
 

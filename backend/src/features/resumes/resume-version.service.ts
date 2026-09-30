@@ -81,7 +81,13 @@ export function createResumeVersionsService(
       return repository.update(id, input);
     },
     delete: (id) => repository.delete(id),
-    storePdf: (id, data) => repository.storePdf(id, data),
+    async storePdf(id, data) {
+      // The signature is a basic format check, not a guarantee that a PDF is safe to render.
+      if (!data.subarray(0, 5).equals(Buffer.from("%PDF-"))) {
+        throw new DomainValidationError("file must contain PDF data");
+      }
+      return repository.storePdf(id, data);
+    },
     getPdf: (id) => repository.getPdf(id),
   };
 }

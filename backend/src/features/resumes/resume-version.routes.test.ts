@@ -249,6 +249,89 @@ describe("resume-version routes", () => {
     expect(noResume.json()).toEqual({ error: "resume not found" });
   });
 
+  it("rejects invalid MIME types and excess files without persisting", async () => {
+    const services = fakeServices();
+    const app = await createApp(services);
+    const body = multipartBody("careeros", "file", Buffer.from("%PDF-1.4\n"));
+    const invalidMime = await app.inject({
+      method: "POST",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+      headers: { "content-type": "multipart/form-data; boundary=careeros" },
+      payload: Buffer.from(
+        body.toString().replace("application/pdf", "text/plain"),
+      ),
+    });
+    expect(invalidMime.statusCode).toBe(415);
+    const multiple = Buffer.concat([
+      body.subarray(0, body.length - Buffer.byteLength("--careeros--\r\n")),
+      body,
+    ]);
+    const extraFile = await app.inject({
+      method: "POST",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+      headers: { "content-type": "multipart/form-data; boundary=careeros" },
+      payload: multiple,
+    });
+    expect(extraFile.statusCode).toBe(413);
+    expect(services.resumeVersions.storePdf).not.toHaveBeenCalled();
+  });
+
+  it("returns 413 for oversized files without persisting truncated bytes", async () => {
+    const services = fakeServices();
+    const app = await createApp(services);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+      headers: { "content-type": "multipart/form-data; boundary=careeros" },
+      payload: multipartBody(
+        "careeros",
+        "file",
+        Buffer.alloc(32 * 1024 * 1024 + 1),
+      ),
+    });
+    expect(response.statusCode).toBe(413);
+    expect(services.resumeVersions.storePdf).not.toHaveBeenCalled();
+  });
+
+  it("handles empty and malformed multipart requests", async () => {
+    const services = fakeServices();
+    const app = await createApp(services);
+    const noBoundary = await app.inject({
+      method: "POST",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+      headers: { "content-type": "multipart/form-data" },
+      payload: "bad",
+    });
+    expect(noBoundary.statusCode).toBe(400);
+    const empty = await app.inject({
+      method: "POST",
+      url: `/api/v1/resume-versions/${resumeId}/pdf`,
+      headers: { "content-type": "multipart/form-data; boundary=careeros" },
+      payload: "--careeros--\r\n",
+    });
+    expect(empty.statusCode).toBe(400);
+    expect(services.resumeVersions.storePdf).not.toHaveBeenCalled();
+  });
+
+  it("preserves not-found and unexpected storage failures for uploads", async () => {
+    const services = fakeServices();
+    const app = await createApp(services);
+    for (const [error, status] of [
+      [new EntityNotFoundError("resume"), 404],
+      [new Error("private database connection details"), 500],
+    ] as const) {
+      vi.mocked(services.resumeVersions.storePdf).mockRejectedValueOnce(error);
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/v1/resume-versions/${resumeId}/pdf`,
+        headers: { "content-type": "multipart/form-data; boundary=careeros" },
+        payload: multipartBody("careeros", "file", Buffer.from("%PDF-1.4\n")),
+      });
+      expect(response.statusCode).toBe(status);
+      expect(response.body).not.toContain("private database");
+    }
+  });
+
   it("includes resume routes in generated OpenAPI", async () => {
     const app = await createApp();
     const response = await app.inject({
