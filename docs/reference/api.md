@@ -18,6 +18,10 @@ No authentication or authorization is currently implemented. The API sets permis
 
 Successful JSON responses use `Content-Type: application/json`.
 
+Every response includes `X-Request-ID`. Clients may supply an ID containing 1–64
+ASCII letters, digits, dots, underscores, or hyphens; otherwise the server
+generates a UUID. Completion logs include this ID and omit query strings.
+
 Errors use:
 
 ```json

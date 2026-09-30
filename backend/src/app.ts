@@ -3,6 +3,7 @@ import multipart from "@fastify/multipart";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { LogController, type FastifyServerOptions } from "fastify";
+import { randomUUID } from "node:crypto";
 import {
   jsonSchemaTransform,
   serializerCompiler,
@@ -25,7 +26,14 @@ export async function buildApp(options: BuildAppOptions) {
   const app = Fastify({
     logger: options.logger ?? { level: options.logLevel ?? "info" },
     logController: new LogController({ disableRequestLogging: true }),
-    requestIdHeader: "x-request-id",
+    requestIdHeader: false,
+    genReqId(request) {
+      const incoming = request.headers["x-request-id"];
+      return typeof incoming === "string" &&
+        /^[A-Za-z0-9._-]{1,64}$/.test(incoming)
+        ? incoming
+        : randomUUID();
+    },
     routerOptions: { ignoreTrailingSlash: true },
   }).withTypeProvider<ZodTypeProvider>();
 
@@ -33,11 +41,16 @@ export async function buildApp(options: BuildAppOptions) {
   app.setSerializerCompiler(serializerCompiler);
   registerErrorHandler(app);
 
+  app.addHook("onRequest", (request, reply, done) => {
+    reply.header("x-request-id", request.id);
+    done();
+  });
+
   app.addHook("onResponse", (request, reply, done) => {
     request.log.info(
       {
         method: request.method,
-        path: request.url,
+        path: request.url.split("?", 1)[0],
         responseTimeMs: Number(reply.elapsedTime.toFixed(1)),
         statusCode: reply.statusCode,
       },
